@@ -1,0 +1,179 @@
+local utils = require("engine.utils")
+local LOG = require("engine.log")
+local logger = LOG:new("ui", "debug", true, true)
+local ui_data = {
+    combo_box = { selected = "aa", id = "combo_box", items = { "bb", "aa", "cc" } },
+    radio = { { selected = false, text = "aaa" }, { selected = true, text = "bbb" } },
+    text_edit = {
+        id = "id_text",
+        content = "default",
+        single_line = false,
+        code_editor = false,
+        char_limit = 256,
+        clip_text = false,
+        rows = 1,
+        password = false,
+    },
+    checkbox = {
+        checked = false,
+        label = "checkbox"
+    },
+    slider = {
+        current = 40,
+        min = 0,
+        max = 100,
+        label = "gravity"
+    },
+    progress_bar = {
+        progress = 0.0,
+        name = "progress",
+        show_percentage = true,
+        color = { r = 200, g = 0, b = 200, a = 200 },
+        animate = true
+    },
+    color_picker = { r = 100, g = 0, b = 100, a = 100 },
+    label_text = "empty",
+    linux_texture = nil,
+    gear_texture = nil,
+    font = nil
+}
+local UI = {}
+UI.__index = UI
+function UI:new()
+    local self = setmetatable({}, UI)
+    self.data = utils:deepcopy(ui_data)
+    return self
+end
+
+---@param ui_context EguiContext
+---@param window Window
+---@diagnostic disable-next-line: lowercase-global
+function UI:view(ui_context, window)
+    window:set_title("window")
+    window:set_resizable(false)
+    window:set_max_inner_size_points({ w = 800, h = 800 })
+    window:set_min_inner_size_points({ w = 800, h = 800 })
+    window:set_gui_font(ui_context, self.data.font)
+    window:set_gui_style(ui_context, {
+        text = {
+            Heading = 22.0,
+            Body = 18.0,
+            Button = 18.0,
+            Small = 16.0,
+            Monospace = 18.0
+        },
+        dark = true,
+        animation_time = 0.2,
+        wrap = true,
+        -- noninteractive_fg_color = { r = 255, g = 0, b = 0, a = 0 },
+        -- hovered_fg_color =  { r = 255, g = 255, b = 255, a = 0 },
+        active_fg_color = { r = 0, g = 0, b = 0, a = 0 },
+        inactive_fg_color = { r = 200, g = 200, b = 200, a = 200 },
+        -- open_fg_color = {r = 200}
+    })
+    gui_create_window({
+        title = "test windows",
+        collapsible = false,
+        constrain = false,
+        default_open = true,
+        drag_to_scroll = false,
+        resizable = false,
+        title_bar = false,
+        movable = true,
+        x = 0.0,
+        y = 0.0,
+        w = 200.0,
+        h = 400.0,
+        frame = {
+            inner_margin = { left = 5, right = 5, top = 5, bottom = 5 },
+            outer_margin = { left = 1, right = 1, top = 1, bottom = 1 },
+            rounding = { nw = 5, ne = 5, sw = 5, se = 5 },
+            shadow = { extrusion = 1, color = { r = 0, g = 0, b = 0, a = 0 } },
+            fill = { r = 0, g = 0, b = 0, a = 0 },
+            stroke = { color = { r = 50, g = 50, b = 50, a = 50 }, width = 1 }
+        }
+    }, ui_context, nil, { r = 10, g = 10, b = 10, a = 10 }, function (ui)
+        gui_run(self.data, ui)
+    end)
+end
+
+---@diagnostic disable-next-line: lowercase-global
+function UI:init()
+    if self.data.linux_texture == nil then
+        self.data.linux_texture = ResourceManager:load_texture("linux.png")
+        self.data.gear_texture = ResourceManager:load_texture("gear.png")
+        self.data.font = ResourceManager:load_font("SarasaTermSCNerd-Regular.ttf")
+    end
+end
+
+---@diagnostic disable-next-line: lowercase-global
+function gui_run(data, ui)
+    ui:set_row_height(20)
+    ui:with_layout(true, function(image_ui)
+        local btn = image_ui:image_button(data.linux_texture, {
+            w = 100,
+            h = 100,
+            show_loading_spinner = true,
+            frame = true,
+            stroke_width = 2.0,
+            stroke_color = { r = 10, g = 10, b = 10, a = 0 },
+            wrap = false
+        })
+        if btn:clicked() then
+            logger:info("image_button clicked")
+        end
+    end)
+    ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)
+        grid_ui:with_layout(true, function(center_ui)
+            center_ui:collapsing(data.label_text, function(collapsing_ui)
+                collapsing_ui:label("啊!")
+            end)
+            center_ui:separator()
+            local res = center_ui:hyperlink("https://example.com")
+            if res:clicked() then
+                logger:info("clicked hyperlink")
+            end
+            local res = center_ui:button("Click Me")
+            if res:clicked() then
+                logger:info("clicked button")
+            end
+            local resp = center_ui:checkbox(data.checkbox)
+            if resp:changed() then
+                logger:info("checkbox changed %s",data.checkbox.checked)
+            end
+            center_ui:radio(data.radio, false)
+            center_ui:end_row()
+            center_ui:separator()
+            center_ui:combo_box(data.combo_box)
+            center_ui:heading("heading")
+            center_ui:small("small")
+            local selectable_label = center_ui:selectable_label(true, "Color Picker")
+            if selectable_label:double_clicked() then
+                logger:info("clicked selectable_label")
+            end
+            local r = center_ui:color_picker(data.color_picker)
+            center_ui:end_row()
+            center_ui:vertical(function(vertical_ui)
+                local sl = vertical_ui:slider(data.slider)
+                if sl:changed() then
+                    data.progress_bar.progress = data.slider.current / 100.0
+                end
+            end)
+            center_ui:horizontal(function(vertical_ui)
+                vertical_ui:progress_bar(data.slider.current)
+            end)
+            center_ui:end_row()
+
+            center_ui:with_layout(true, function(vertical_ui)
+                vertical_ui:progress_bar(data.progress_bar)
+            end)
+            center_ui:end_row()
+            local resp = center_ui:text_edit(data.text_edit)
+            if resp:changed() then
+                data.label_text = data.text_edit.content
+            end
+        end)
+    end)
+end
+
+return UI

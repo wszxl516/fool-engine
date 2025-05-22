@@ -1,0 +1,6 @@
+[target.'cfg(all(target_os="linux"))']
+rustflags = [
+    # "-Zlocation-detail=none",
+    "-C", "link-args=-Wl,-rpath,$ORIGIN/lib",
+]
+runner = """mangohud"""

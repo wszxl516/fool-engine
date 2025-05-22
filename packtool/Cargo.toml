@@ -1,0 +1,19 @@
+[package]
+name = "packtool"
+version = "0.1.0"
+edition = "2024"
+[[bin]]
+name = "packtool"
+path = "src/main.rs"
+[lib]
+name = "packtool"
+path = "src/lib.rs"
+[dependencies]
+serde = { workspace = true}
+zstd = { workspace = true}
+sha2 = { workspace = true}
+bincode = { workspace = true}
+walkdir = { workspace = true}
+path-slash = { workspace = true}
+anyhow = { workspace = true}
+log = { workspace = true}
