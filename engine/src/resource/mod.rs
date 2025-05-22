@@ -1,7 +1,7 @@
+use crate::map2anyhow_error;
 use nannou::image::{self, DynamicImage};
 use nannou::wgpu::DeviceQueuePair;
 use nannou_egui::egui::Context;
-use std::io::Read;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub mod lua;
 pub mod types;
@@ -13,26 +13,79 @@ pub enum Resource {
 }
 pub struct ResourceManager {
     resources: HashMap<String, Resource>,
+    #[cfg(not(feature = "debug"))]
+    pub memory_resource: packtool::ResourcePackage,
+    #[cfg(feature = "debug")]
     assets_path: PathBuf,
     dev: Arc<DeviceQueuePair>,
     ctx: Context,
 }
 
+pub fn resource_path() -> anyhow::Result<PathBuf> {
+    let exe_path = std::env::current_exe()?;
+    #[cfg(feature = "debug")]
+    const RESOURCES_PATH: &str = "assets";
+    #[cfg(not(feature = "debug"))]
+    const RESOURCES_PATH: &str = "resources";
+    let path = map2anyhow_error!(
+        find_folder::Search::ParentsThenKids(5, 3)
+            .of(exe_path
+                .parent()
+                .expect("executable has no parent directory to search")
+                .into())
+            .for_folder(RESOURCES_PATH),
+        "get resource_path failed"
+    )?;
+    Ok(path)
+}
 impl ResourceManager {
-    pub fn new(assets_path: &PathBuf, dev: &Arc<DeviceQueuePair>, ctx: Context) -> Self {
-        Self {
+    pub fn new(dev: &Arc<DeviceQueuePair>, ctx: Context) -> anyhow::Result<Self> {
+        let assets_path = resource_path()?;
+        #[cfg(not(feature = "debug"))]
+        let resource_pack =
+            packtool::ResourcePackage::unpack_from_file(assets_path.join("assets.pak"))?;
+        Ok(Self {
             resources: HashMap::new(),
-            assets_path: assets_path.clone(),
+            #[cfg(not(feature = "debug"))]
+            memory_resource: resource_pack,
             dev: dev.clone(),
+            #[cfg(feature = "debug")]
+            assets_path,
             ctx,
-        }
+        })
+    }
+    #[cfg(not(feature = "debug"))]
+    pub fn load_bytes_from_memory(&self, path: &String) -> &[u8] {
+        self.memory_resource
+            .get_file(path)
+            .expect(&format!("resource {} not found!", path))
+    }
+    #[cfg(not(feature = "debug"))]
+    pub fn all_memory_resource(&self) -> &HashMap<String, Vec<u8>> {
+        self.memory_resource.all_resource()
     }
     pub fn load_image(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
-        let img = image::open(self.assets_path.join(&path))
-            .map_err(|e| anyhow::anyhow!(format!("load_image failed: {}", e)))?;
-        self.resources
-            .insert(path.to_string_lossy().to_string(), Resource::Image(img));
+        #[cfg(feature = "debug")]
+        {
+            let img_path = self.assets_path.join(&path);
+            let img = image::open(&img_path)?;
+            log::debug!("load imge {} from disk!", img_path.display());
+            self.resources
+                .insert(path.to_string_lossy().to_string(), Resource::Image(img));
+        }
+        #[cfg(not(feature = "debug"))]
+        {
+            let img = map2anyhow_error!(
+                image::load_from_memory(
+                    self.load_bytes_from_memory(&path.to_string_lossy().to_string())
+                ),
+                "load_image failed"
+            )?;
+            log::debug!("load imge {} from memory!", &path.display());
+            self.resources
+                .insert(path.to_string_lossy().to_string(), Resource::Image(img));
+        }
         Ok(())
     }
     pub fn get_image(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<&DynamicImage> {
@@ -54,13 +107,27 @@ impl ResourceManager {
     }
     pub fn load_font(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
-        let mut fd = std::fs::File::open(self.assets_path.join(&path))
-            .map_err(|e| anyhow::anyhow!(format!("load_font failed: {}", e)))?;
-        let mut buffer = Vec::new();
-        fd.read_to_end(&mut buffer)?;
-        let font = LuaFont::from_bytes(buffer, &path.to_string_lossy().to_string())?;
-        self.resources
-            .insert(path.to_string_lossy().to_string(), Resource::Font(font));
+        #[cfg(feature = "debug")]
+        {
+            use std::io::Read;
+            let mut fd = map2anyhow_error!(
+                std::fs::File::open(self.assets_path.join(&path)),
+                "load_font failed"
+            )?;
+            let mut buffer = Vec::new();
+            fd.read_to_end(&mut buffer)?;
+            let font = LuaFont::from_bytes(buffer, &path.to_string_lossy().to_string())?;
+            self.resources
+                .insert(path.to_string_lossy().to_string(), Resource::Font(font));
+        }
+        #[cfg(not(feature = "debug"))]
+        {
+            let buffer = self.load_bytes_from_memory(&path.to_string_lossy().to_string());
+            let font = LuaFont::from_bytes(buffer.into(), &path.to_string_lossy().to_string())?;
+            self.resources
+                .insert(path.to_string_lossy().to_string(), Resource::Font(font));
+        }
+
         Ok(())
     }
     pub fn get_font(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<LuaFont> {

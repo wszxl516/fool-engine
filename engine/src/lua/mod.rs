@@ -1,6 +1,6 @@
-use std::{io::Read, path::PathBuf};
+#[cfg(not(feature = "debug"))]
+pub mod memmod;
 pub mod types;
-pub mod zipmod;
 use super::graphics::window::LuaWindow;
 use crate::resource::lua::LuaResourceManager;
 use crate::resource::ResourceManager;
@@ -10,37 +10,47 @@ use crate::{
 };
 use chrono::{Duration, NaiveDate};
 use lazy_static::lazy_static;
+#[cfg(not(feature = "debug"))]
+use memmod::MemoryModule;
 use mlua::{Error as LuaError, Function, Lua, LuaOptions, Result, StdLib, Table, Value};
 use nannou::{App, Draw};
 use nannou_egui::egui::Context;
+#[cfg(feature = "debug")]
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
-use zipmod::LuaZipModule;
 #[derive(Debug, Clone)]
 pub struct LuaBindings {
     pub lua: Lua,
+    #[cfg(feature = "debug")]
     pub script_path: PathBuf,
-    zip_mod: LuaZipModule,
+    #[cfg(not(feature = "debug"))]
+    mem_mod: MemoryModule,
 }
 lazy_static! {
     static ref globals_Instant: Instant = Instant::now();
 }
 impl LuaBindings {
-    pub fn new(script_path: &PathBuf) -> Result<Self> {
-        let lua = Lua::new_with(
-            StdLib::COROUTINE
-                | StdLib::STRING
-                | StdLib::TABLE
-                | StdLib::MATH
-                | StdLib::PACKAGE
-                | StdLib::UTF8,
-            LuaOptions::default(),
+    pub fn new() -> anyhow::Result<Self> {
+        let lua = map2anyhow_error!(
+            Lua::new_with(
+                StdLib::COROUTINE
+                    | StdLib::STRING
+                    | StdLib::TABLE
+                    | StdLib::MATH
+                    | StdLib::PACKAGE
+                    | StdLib::UTF8,
+                LuaOptions::default(),
+            ),
+            "init lua failed"
         )?;
         Ok(Self {
             lua,
-            script_path: script_path.clone(),
-            zip_mod: LuaZipModule::new(),
+            #[cfg(feature = "debug")]
+            script_path: crate::resource::resource_path()?,
+            #[cfg(not(feature = "debug"))]
+            mem_mod: MemoryModule::new(),
         })
     }
     fn disable_module(&self) -> Result<()> {
@@ -115,7 +125,7 @@ impl LuaBindings {
                     Ok(())
                 }),
             "create_function debug"
-        );
+        )?;
         let debug_info = map2anyhow_error!(
             self.lua.create_function(move |lua, value: usize| {
                 use std::borrow::Cow;
@@ -132,39 +142,42 @@ impl LuaBindings {
                 Ok(t)
             }),
             "create_function debug"
-        );
+        )?;
         map2anyhow_error!(
             self.lua.globals().set("debug_info", debug_info),
             "globals set debug"
-        );
+        )?;
 
         map2anyhow_error!(
             self.lua.globals().set("__logger", log_print),
             "globals set debug"
-        );
+        )?;
         Ok(())
     }
-    pub fn setup_zip_lua<I, P>(&mut self, modules: P) -> anyhow::Result<()>
-    where
-        I: Into<PathBuf> + Sized,
-        P: IntoIterator<Item = I>,
-    {
-        self.zip_mod
-            .init(&self.lua, modules)
-            .map_err(|err| anyhow::anyhow!("setup_zip_lua failed: {}", err))
-    }
-    pub fn setup(&self, res_mgr: Arc<Mutex<ResourceManager>>) -> anyhow::Result<()> {
-        self.disable_module()
-            .map_err(|e| anyhow::anyhow!("disable_module failed: {}", e))?;
-        let p: Table = self.lua.globals().get("package").unwrap();
-        p.set("path", self.script_path.join("?.lua;")).unwrap();
-        self.physics_module()
-            .map_err(|e| anyhow::anyhow!(format!("setup lua module physics failed: {}", e)))?;
+    pub fn setup(&mut self, res_mgr: Arc<Mutex<ResourceManager>>) -> anyhow::Result<()> {
+        #[cfg(not(feature = "debug"))]
+        map2anyhow_error!(
+            self.mem_mod.init(&self.lua, res_mgr.clone()),
+            "setup_mem_lua failed: {}"
+        )?;
+        #[cfg(feature = "debug")]
+        {
+            let p: Table = self.lua.globals().get("package").unwrap();
+            map2anyhow_error!(
+                p.set("path", self.script_path.join("?.lua;")),
+                "setup package.path failed"
+            )?;
+        }
+        map2anyhow_error!(self.disable_module(), "disable_module failed")?;
+
+        map2anyhow_error!(self.physics_module(), "setup lua module physics failed: {}")?;
         self.enable_debug()?;
-        self.lua
-            .globals()
-            .set("ResourceManager", LuaResourceManager::new(res_mgr.clone()))
-            .map_err(|e| anyhow::anyhow!(format!("setup lua module EngineTools failed: {}", e)))?;
+        map2anyhow_error!(
+            self.lua
+                .globals()
+                .set("ResourceManager", LuaResourceManager::new(res_mgr.clone())),
+            "setup lua module EngineTools failed: {}"
+        )?;
         Ok(())
     }
 
@@ -191,8 +204,8 @@ impl LuaBindings {
         let window = LuaWindow { window };
         let (w, h) = window.window.inner_size_points();
         let lua_canvas = LuaCancvas::new(draw.clone());
-        self.lua
-            .scope(|scope| {
+        map2anyhow_error!(
+            self.lua.scope(|scope| {
                 let lua_canvas = scope.create_userdata(lua_canvas)?;
                 let window = scope.create_userdata(window)?;
                 let ui_context = self.lua.create_userdata(EguiContext {
@@ -204,18 +217,14 @@ impl LuaBindings {
                 let lua_view_fn: Function = self.lua.globals().get("view")?;
                 lua_view_fn.call::<()>((lua_canvas, ui_context, window))?;
                 Ok(())
-            })
-            .map_err(|err| anyhow::anyhow!("run_draw_fn failed: {}", err))
+            }),
+            "run_draw_fn failed"
+        )
     }
     pub fn run_update_fn(&self) -> anyhow::Result<()> {
-        let lua_update_fn: Function = self
-            .lua
-            .globals()
-            .get("update")
-            .map_err(|err| anyhow::anyhow!("run_draw_fn failed: {}", err))?;
-        lua_update_fn
-            .call::<()>(())
-            .map_err(|err| anyhow::anyhow!("run_draw_fn failed: {}", err))
+        let lua_update_fn: Function =
+            map2anyhow_error!(self.lua.globals().get("update"), "run_draw_fn failed: {}")?;
+        map2anyhow_error!(lua_update_fn.call::<()>(()), "run_draw_fn failed: {}")
     }
     pub fn run_init_fn(&self) -> Result<()> {
         self.lua.load("if init then init() end").exec()
@@ -228,10 +237,20 @@ impl LuaBindings {
             Ok(())
         })
     }
-    pub fn load_main(&self, asset: &PathBuf) -> Result<()> {
-        let mut fd = std::fs::File::open(asset.join("main.lua"))?;
-        let mut script = String::new();
-        fd.read_to_string(&mut script)?;
-        self.lua.load(script).exec()
+    pub fn load_main(&self) -> anyhow::Result<()> {
+        #[cfg(feature = "debug")]
+        {
+            use std::io::Read;
+            let script = self.script_path.join("main.lua");
+            let mut fd = map2anyhow_error!(std::fs::File::open(&script), "load main.lua failed")?;
+            let mut script = String::new();
+            fd.read_to_string(&mut script)?;
+            map2anyhow_error!(self.lua.load(&script).exec(), "run main.lua failed")
+        }
+        #[cfg(not(feature = "debug"))]
+        map2anyhow_error!(
+            self.lua.load("require(\"main\")").exec(),
+            "run require(\"main\") failed"
+        )
     }
 }

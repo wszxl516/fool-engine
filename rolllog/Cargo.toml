@@ -1,0 +1,9 @@
+[package]
+name = "rolllog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log4rs = { workspace = true}
+log = { workspace = true}
+anyhow = {workspace = true}

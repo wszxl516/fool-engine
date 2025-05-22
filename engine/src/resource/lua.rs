@@ -1,5 +1,6 @@
+use crate::map2lua_error;
 use crate::resource::{types::LuaFont, types::LuaImage, ResourceManager};
-use mlua::{Error as LuaError, UserData, Value};
+use mlua::{UserData, Value};
 use nannou::text::{rt::Point, Font, Scale};
 use std::sync::{Arc, Mutex};
 pub struct LuaResourceManager {
@@ -33,35 +34,19 @@ impl UserData for LuaResourceManager {
             },
         );
         methods.add_method("load_texture", |lua, this, path: String| {
-            let mut mgr = this
-                .res_mgr
-                .lock()
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?;
-            let texture = mgr
-                .get_texture(path)
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?;
+            let mut mgr = map2lua_error!(this.res_mgr.lock(), "ResourceManager Error:")?;
+            let texture = map2lua_error!(mgr.get_texture(path), "lua load_texture Error")?;
             Ok(lua.create_any_userdata(texture))
         });
         methods.add_method("load_font", |lua, this, path: String| {
-            let mut mgr = this
-                .res_mgr
-                .lock()
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?;
-            let texture = mgr
-                .get_font(path)
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?;
+            let mut mgr = map2lua_error!(this.res_mgr.lock(), "ResourceManager Error")?;
+            let texture = map2lua_error!(mgr.get_font(path), "lua load_font Error: ")?;
             Ok(lua.create_any_userdata(texture))
         });
 
         methods.add_method("load_image", |lua, this, path: String| {
-            let mut mgr = this
-                .res_mgr
-                .lock()
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?;
-            let image = mgr
-                .get_image(path)
-                .map_err(|e| LuaError::RuntimeError(format!("ResourceManager Error: {}", e)))?
-                .clone();
+            let mut mgr = map2lua_error!(this.res_mgr.lock(), "ResourceManager Error")?;
+            let image = map2lua_error!(mgr.get_image(path), "lua load_image Error")?.clone();
             Ok(lua.create_any_userdata(LuaImage { image }))
         });
     }

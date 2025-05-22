@@ -1,6 +1,6 @@
 use clap::Parser;
+use engine::init_engine;
 use log::LevelFilter;
-use engine::{engine_log::log_init, init_engine};
 use std::str::FromStr;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -19,6 +19,6 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let level =
         LevelFilter::from_str(args.log_level.as_str()).unwrap_or_else(|_| LevelFilter::Info);
-    log_init(level, args.verbose, &args.file_log, &["minigfx"])?;
+    rolllog::log_init(level, args.verbose, &args.file_log, &["engine"])?;
     init_engine()
 }

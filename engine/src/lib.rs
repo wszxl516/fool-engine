@@ -1,4 +1,3 @@
-pub mod engine_log;
 pub mod graphics;
 mod gui;
 pub mod input;
@@ -23,22 +22,18 @@ struct Engine {
 impl Engine {
     pub fn new(app: &App) -> anyhow::Result<Self> {
         app.set_exit_on_escape(false);
-        let asset = app.assets_path().expect("assets path not found!");
-        let mut lua = LuaBindings::new(&asset)
-            .map_err(|e| anyhow::anyhow!("init LuaBindings failed: {}", e))?;
-        lua.setup_zip_lua([""])?;
-
+        let mut lua = map2anyhow_error!(LuaBindings::new(), "init LuaBindings failed")?;
         let window_id = Self::init_window(app)?;
         let window = app.window(window_id).unwrap();
         let gui = Gui::new(&window, &lua);
         let ctx = gui.egui.clone();
         let ctx = ctx.borrow().ctx().clone();
         let dev = window.device_queue_pair();
-        let resource = Arc::new(Mutex::new(ResourceManager::new(&asset, dev, ctx.clone())));
-        gui.init();
+        let resource = Arc::new(Mutex::new(ResourceManager::new(dev, ctx.clone())?));
+        map2anyhow_error!(gui.init(), "gui init failed")?;
         lua.setup(resource.clone())?;
-        map2anyhow_error!(lua.load_main(&asset), "load main.lua failed: ");
-        map2anyhow_error!(lua.run_init_fn(), "run_init_fn failed: ");
+        map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
+        map2anyhow_error!(lua.run_init_fn(), "run_init_fn failed: ")?;
         Ok(Engine {
             resource,
             lua,
@@ -47,16 +42,18 @@ impl Engine {
         })
     }
     pub fn init_window(app: &App) -> anyhow::Result<WindowId> {
-        app.new_window()
-            .size(800, 800)
-            .msaa_samples(4)
-            .decorations(true)
-            .transparent(true)
-            .raw_event(|_app, model: &mut Engine, event| {
-                model.gui.event(event);
-            })
-            .build()
-            .map_err(|e| anyhow::anyhow!("init window failed: {}", e))
+        map2anyhow_error!(
+            app.new_window()
+                .size(800, 800)
+                .msaa_samples(4)
+                .decorations(true)
+                .transparent(true)
+                .raw_event(|_app, model: &mut Engine, event| {
+                    model.gui.event(event);
+                })
+                .build(),
+            "init window failed: {}"
+        )
     }
     fn view(app: &App, model: &Engine, frame: Frame) {
         let draw = app.draw();
@@ -100,7 +97,7 @@ impl Engine {
 pub fn init_engine() -> anyhow::Result<()> {
     nannou::app::Builder::new(|app| {
         Engine::new(app).unwrap_or_else(|e| {
-            error!("init Model failed: {:?}", e);
+            error!("init Model {:?}", e);
             std::process::exit(1)
         })
     })
@@ -108,7 +105,7 @@ pub fn init_engine() -> anyhow::Result<()> {
     .view(Engine::view)
     .loop_mode(LoopMode::RefreshSync)
     .backends(Backends::all())
-    .size(800, 600)
+    .size(800, 800)
     .event(Engine::event)
     .run();
     Ok(())

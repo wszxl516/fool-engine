@@ -4,7 +4,7 @@ use crate::{
     map2lua_error,
     resource::types::{LuaFont, LuaImage},
 };
-use mlua::{Error as LuaError, FromLua, LuaSerdeExt, UserData, Value};
+use mlua::{FromLua, LuaSerdeExt, UserData, Value};
 use nannou::window::Window;
 use nannou_egui::egui::{Style, Visuals};
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ impl UserData for LuaWindow<'_> {
             map2lua_error!(
                 this.window.set_cursor_grab(rgba),
                 "window set_cursor_grab failed!"
-            );
+            )?;
             Ok(())
         });
         methods.add_method("set_cursor_icon", |_lua, this, icon: LuaCursorIcon| {
@@ -41,7 +41,7 @@ impl UserData for LuaWindow<'_> {
                     this.window
                         .set_cursor_position_points(position.x, position.y),
                     "window set_cursor_position_points failed!"
-                );
+                )?;
                 Ok(())
             },
         );
@@ -138,10 +138,10 @@ impl UserData for LuaWindow<'_> {
             };
             let image = img.image.to_rgba8();
             let size = image.dimensions();
-            let icon = Icon::from_rgba(image.into_raw(), size.0, size.1).map_err(|e| {
-                LuaError::RuntimeError(format!("set_window_icon create icon Error: {}", e))
-            })?;
-
+            let icon = map2lua_error!(
+                Icon::from_rgba(image.into_raw(), size.0, size.1),
+                "set_window_icon create icon Error: {}"
+            )?;
             this.window.set_window_icon(Some(icon));
             Ok(())
         });

@@ -8,11 +8,11 @@ use nannou_egui::{
 };
 mod binding;
 mod types;
+use crate::map2anyhow_error;
 use binding::LuaUiContext;
 use std::cell::RefCell;
 use std::rc::Rc;
 use types::LuaUIConfig;
-
 pub struct Gui {
     pub egui: Rc<RefCell<Egui>>,
     lua: LuaBindings,
@@ -36,13 +36,13 @@ impl Gui {
         }
     }
     pub fn end(&self, frame: &Frame) -> anyhow::Result<()> {
-        self.egui
-            .borrow_mut()
-            .draw_to_frame(frame)
-            .map_err(|e| anyhow::anyhow!("egui Draw to frame failed: {:?}", e))?;
+        map2anyhow_error!(
+            self.egui.borrow_mut().draw_to_frame(frame),
+            "egui Draw to frame failed"
+        )?;
         Ok(())
     }
-    pub fn init(&self) {
+    pub fn init(&self) -> anyhow::Result<()> {
         let create_window_fn = move |lua: &Lua,
                                      (window, context, texture, color, func): (
             LuaUIConfig,
@@ -118,17 +118,17 @@ impl Gui {
             Ok(())
         };
 
-        let lua_create_window_fn = self
-            .lua
-            .lua
-            .create_function(create_window_fn)
-            .map_err(|e| anyhow::anyhow!("gui_create_window failed: {:?}", e))
-            .unwrap();
-        self.lua
-            .lua
-            .globals()
-            .set("gui_create_window", lua_create_window_fn)
-            .unwrap();
+        let lua_create_window_fn = map2anyhow_error!(
+            self.lua.lua.create_function(create_window_fn),
+            "gui_create_window failed"
+        )?;
+        map2anyhow_error!(
+            self.lua
+                .lua
+                .globals()
+                .set("gui_create_window", lua_create_window_fn),
+            "gui_create_window failed"
+        )
     }
     pub fn event(&self, event: &nannou::winit::event::WindowEvent) {
         self.egui.borrow_mut().handle_raw_event(event);

@@ -14,12 +14,14 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 lazy_static = { workspace = true }
-log4rs = { workspace = true }
 log = { workspace = true }
+rolllog = { workspace = true}
 mlua = { workspace = true }
 rapier2d = { workspace = true }
 zip = { workspace = true }
 clap = { workspace = true }
+find_folder ={ workspace = true}
+packtool = { path = "../packtool"}
 #graphics
 nannou = { workspace = true }
 nannou_egui = { workspace = true }
@@ -35,3 +37,4 @@ default = [
     "egui/serde",
     "epaint/serde",
 ]
+debug = []

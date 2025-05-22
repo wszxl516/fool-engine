@@ -17,3 +17,9 @@ walkdir = { workspace = true}
 path-slash = { workspace = true}
 anyhow = { workspace = true}
 log = { workspace = true}
+clap = { workspace = true}
+rolllog = { workspace = true}
+prettytable = {workspace = true}
+chrono = {workspace = true}
+byte-unit = { workspace = true}
+hex = { workspace = true}

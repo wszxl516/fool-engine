@@ -1,3 +1,4 @@
+use crate::map2anyhow_error;
 use egui::Context;
 use mlua::UserData;
 use nannou::{
@@ -27,8 +28,10 @@ impl LuaFont {
         if let Some(family) = ui_fonts.families.get_mut(&FontFamily::Monospace) {
             family.insert(0, name.clone());
         }
-        let graphics_font = Font::from_bytes(buffer.clone())
-            .map_err(|e| anyhow::anyhow!(format!("graphics_font load failed: {}", e)))?;
+        let graphics_font = map2anyhow_error!(
+            Font::from_bytes(buffer.clone()),
+            "graphics_font load failed"
+        )?;
         Ok(Self {
             ui: ui_fonts,
             graphics: graphics_font,
