@@ -15,10 +15,11 @@ use memmod::MemoryModule;
 use mlua::{Error as LuaError, Function, Lua, LuaOptions, Result, StdLib, Table, Value};
 use nannou::{App, Draw};
 use nannou_egui::egui::Context;
+use parking_lot::Mutex;
 #[cfg(feature = "debug")]
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 #[derive(Debug, Clone)]
 pub struct LuaBindings {
@@ -29,7 +30,16 @@ pub struct LuaBindings {
     mem_mod: MemoryModule,
 }
 lazy_static! {
-    static ref globals_Instant: Instant = Instant::now();
+    static ref start_time: Instant = Instant::now();
+    static ref last_time: Mutex<Instant> = Mutex::new(Instant::now());
+}
+
+pub fn time_peer_frame() -> f64 {
+    let mut lt = last_time.lock();
+    let now = Instant::now();
+    let dt = now.duration_since(*lt).as_secs_f64();
+    *lt = now;
+    dt
 }
 impl LuaBindings {
     pub fn new() -> anyhow::Result<Self> {
@@ -64,7 +74,7 @@ impl LuaBindings {
         // os.clock
         let clock = self
             .lua
-            .create_function(|_, (): ()| Ok(globals_Instant.elapsed().as_secs_f64()))?;
+            .create_function(|_, (): ()| Ok(start_time.elapsed().as_secs_f64()))?;
         // os.time
         let time = self.lua.create_function(|_lua, arg: Option<Table>| {
             let timestamp = match arg {
@@ -222,18 +232,25 @@ impl LuaBindings {
         )
     }
     pub fn run_update_fn(&self) -> anyhow::Result<()> {
-        let lua_update_fn: Function =
-            map2anyhow_error!(self.lua.globals().get("update"), "run_draw_fn failed: {}")?;
-        map2anyhow_error!(lua_update_fn.call::<()>(()), "run_draw_fn failed: {}")
+        let elapsed = time_peer_frame();
+        map2anyhow_error!(
+            self.lua.scope(|_scope| {
+                let lua_update_fn: Function = self.lua.globals().get("update")?;
+                lua_update_fn.call::<()>(elapsed)?;
+                Ok(())
+            }),
+            "run_update_fn failed"
+        )
     }
     pub fn run_init_fn(&self) -> Result<()> {
         self.lua.load("if init then init() end").exec()
     }
     pub fn run_event_fn(&self, input: &InputState) -> Result<()> {
+        let elapsed = time_peer_frame();
         self.lua.scope(|scope| {
             let input = scope.create_userdata(input)?;
             let lua_event_fn: Function = self.lua.globals().get("event")?;
-            lua_event_fn.call::<()>(input)?;
+            lua_event_fn.call::<()>((input, elapsed))?;
             Ok(())
         })
     }

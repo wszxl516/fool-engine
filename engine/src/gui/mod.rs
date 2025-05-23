@@ -18,7 +18,8 @@ pub struct Gui {
     lua: LuaBindings,
 }
 use crate::resource::ResourceManager;
-use std::sync::{Arc, Mutex};
+use parking_lot::Mutex;
+use std::sync::Arc;
 pub struct EguiContext {
     pub context: Context,
     pub width: f32,

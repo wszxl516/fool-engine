@@ -4,6 +4,7 @@ local logger = LOG:new("graphics", "debug", true, true)
 local Sprite = require("engine.sprite")
 local graphics = {}
 local global_physics = physics_init(0, 900)
+local key_event = require("engine.input.key")
 local side_attr = {
     body_attr = {
         body_type = "Fixed",
@@ -102,7 +103,11 @@ local player_attr = {
             active_events = "all",
             active_hooks = "all"
         },
-        key_event = { Up = { x = 0, y = -400 }, Down = { x = 0, y = 400 }, Left = { x = -100, y = 0 }, Right = { x = 100, y = 0 } }
+        key_event = { { { x = 0, y = -200 }, key_event.new("Up", 0.1) },
+            { { x = 0, y = 200 },  key_event.new("Down", 0.1) },
+            { { x = -50, y = 0 },  key_event.new("Left", 0.1) },
+            { { x = 50, y = 0 },   key_event.new("Right", 0.1) } },
+        key_delay = 0
     },
     texture = nil
 }
@@ -144,18 +149,20 @@ function graphics:draw(canvas)
         utils:merge_table(shape, side_attr.shape_attr)
         shape["position"] = { x = value.position.x, y = value.position.y }
         shape["width"] = value.shape.Cuboid.width
-        shape["heigth"] = value.shape.Cuboid.height
+        shape["height"] = value.shape.Cuboid.height
         canvas:draw_rect(shape)
     end
     player_attr.sprite:draw_frame(canvas, -350, 340, 1, 1)
 end
 
-function graphics:event(input)
+---@param dt number -- delay time
+---@param input Input
+function graphics:event(input, dt)
     -- Left, Up, Right, Down
     for key, value in pairs(player_attr.physics.key_event) do
-        local m = input:key_pressed(tostring(key))
-        if m then
-            global_physics:apply_impulse(player_attr.physics.handle, value)
+        local result = value[2]:update(input, dt)
+        if result == "hold" then
+            global_physics:apply_impulse(player_attr.physics.handle, value[1])
         end
     end
 end

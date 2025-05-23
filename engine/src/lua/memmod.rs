@@ -1,6 +1,7 @@
 use crate::resource::ResourceManager;
 use mlua::{Lua, Table, Value};
-use std::sync::{Arc, Mutex};
+use parking_lot::Mutex;
+use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 #[derive(Debug, Clone)]
 pub struct MemoryModule {
@@ -54,7 +55,7 @@ impl MemoryModule {
         Ok(())
     }
     fn load_lua_modules(&mut self, res_mgr: Arc<Mutex<ResourceManager>>) -> mlua::Result<()> {
-        let lock = res_mgr.lock().unwrap();
+        let lock = res_mgr.lock();
         for (name, content) in lock.all_memory_resource() {
             let mod_path = Path::new(&name);
             if let Some(extension) = mod_path.extension() {

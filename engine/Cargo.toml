@@ -22,6 +22,7 @@ zip = { workspace = true }
 clap = { workspace = true }
 find_folder ={ workspace = true}
 packtool = { path = "../packtool"}
+parking_lot = {workspace = true}
 #graphics
 nannou = { workspace = true }
 nannou_egui = { workspace = true }

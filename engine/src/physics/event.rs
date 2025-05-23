@@ -1,12 +1,13 @@
 use super::LuaRigidBodyHandle;
 use mlua::{FromLua, LuaSerdeExt, UserData, Value};
+use parking_lot::Mutex;
 use rapier2d::{
     geometry::CollisionEventFlags,
     pipeline::EventHandler,
     prelude::{ColliderSet, CollisionEvent, ContactPair, RigidBodySet},
 };
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum LuaCollisionEvent {
@@ -100,22 +101,17 @@ pub struct LuaPhyEventHandler {
 
 impl LuaPhyEventHandler {
     pub fn reset_all(&self) {
-        if let Ok(ref mut data) = self.collision_event.lock() {
-            data.clear();
-        };
-        if let Ok(ref mut data) = self.contact_force_event.lock() {
-            data.clear();
-        };
+        self.collision_event.lock().clear();
+        self.contact_force_event.lock().clear();
     }
     pub fn handle_collision_event(&self, f: impl Fn(&LuaCollisionEvent)) {
-        if let Ok(data) = self.collision_event.lock() {
-            data.iter().for_each(move |e| f(e));
-        }
+        self.collision_event.lock().iter().for_each(move |e| f(e));
     }
     pub fn handle_contact_force_event(&self, f: impl Fn(&LuaContactForceEvent)) {
-        if let Ok(data) = self.contact_force_event.lock() {
-            data.iter().for_each(move |e| f(e));
-        }
+        self.contact_force_event
+            .lock()
+            .iter()
+            .for_each(move |e| f(e));
     }
 }
 impl EventHandler for LuaPhyEventHandler {
@@ -132,14 +128,14 @@ impl EventHandler for LuaPhyEventHandler {
                     colliders.get(handle1).and_then(|col| col.parent()),
                     colliders.get(handle2).and_then(|col| col.parent()),
                 ) {
-                    if let Ok(ref mut data) = self.collision_event.lock() {
-                        data.push(LuaCollisionEvent::Started {
+                    self.collision_event
+                        .lock()
+                        .push(LuaCollisionEvent::Started {
                             b1: LuaRigidBodyHandle(rb1),
                             b2: LuaRigidBodyHandle(rb2),
                             sensor: flags.contains(CollisionEventFlags::SENSOR),
                             removed: flags.contains(CollisionEventFlags::REMOVED),
-                        });
-                    }
+                        })
                 }
             }
             CollisionEvent::Stopped(handle1, handle2, flags) => {
@@ -147,14 +143,14 @@ impl EventHandler for LuaPhyEventHandler {
                     colliders.get(handle1).and_then(|col| col.parent()),
                     colliders.get(handle2).and_then(|col| col.parent()),
                 ) {
-                    if let Ok(ref mut data) = self.collision_event.lock() {
-                        data.push(LuaCollisionEvent::Stopped {
+                    self.collision_event
+                        .lock()
+                        .push(LuaCollisionEvent::Stopped {
                             b1: LuaRigidBodyHandle(rb1),
                             b2: LuaRigidBodyHandle(rb2),
                             sensor: flags.contains(CollisionEventFlags::SENSOR),
                             removed: flags.contains(CollisionEventFlags::REMOVED),
-                        });
-                    }
+                        })
                 }
             }
         }
@@ -175,14 +171,12 @@ impl EventHandler for LuaPhyEventHandler {
                 .get(contact_pair.collider2)
                 .and_then(|col| col.parent()),
         ) {
-            if let Ok(ref mut data) = self.contact_force_event.lock() {
-                data.push(LuaContactForceEvent {
-                    h1: LuaRigidBodyHandle(handle1),
-                    h2: LuaRigidBodyHandle(handle2),
-                    dt,
-                    total_force_magnitude,
-                });
-            }
+            self.contact_force_event.lock().push(LuaContactForceEvent {
+                h1: LuaRigidBodyHandle(handle1),
+                h2: LuaRigidBodyHandle(handle2),
+                dt,
+                total_force_magnitude,
+            });
         }
     }
 }

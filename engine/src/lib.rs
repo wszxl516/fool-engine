@@ -10,9 +10,9 @@ use input::InputState;
 use log::error;
 use lua::LuaBindings;
 use nannou::{prelude::*, wgpu::Backends};
+use parking_lot::Mutex;
 use resource::ResourceManager;
-use std::sync::{Arc, Mutex};
-
+use std::sync::Arc;
 struct Engine {
     resource: Arc<Mutex<ResourceManager>>,
     lua: LuaBindings,
@@ -50,6 +50,7 @@ impl Engine {
                 .transparent(true)
                 .raw_event(|_app, model: &mut Engine, event| {
                     model.gui.event(event);
+                    model.input.handle_event(event);
                 })
                 .build(),
             "init window failed: {}"
@@ -72,21 +73,13 @@ impl Engine {
         model.gui.end(&frame).unwrap();
     }
     fn update(_app: &App, model: &mut Engine, _update: Update) {
+        model.input.begin_frame();
         model
             .lua
             .run_update_fn()
             .unwrap_or_else(|e| error!("run lua run_update_fn failed: {:?}", e));
     }
     fn event(_app: &App, model: &mut Engine, _event: Event) {
-        model.input.begin_frame();
-        match _event {
-            Event::WindowEvent { id: _, simple } => {
-                if let Some(e) = simple {
-                    model.input.handle_event(&e);
-                }
-            }
-            _ => {}
-        }
         model
             .lua
             .run_event_fn(&model.input)

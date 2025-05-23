@@ -1039,6 +1039,7 @@ dependencies = [
  "nannou",
  "nannou_egui",
  "packtool",
+ "parking_lot",
  "rapier2d",
  "rolllog",
  "serde",

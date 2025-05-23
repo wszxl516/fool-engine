@@ -377,6 +377,12 @@ local Window = {}
 function Window:set_cursor_grab(grabbed)
 end
 
+---@param enable boolean
+function Window:set_ime_allowed(enable)
+end
+---@param position LuaPoint
+function Window:set_ime_position(position)
+end
 ---@param icon string
 ---   [Default, Crosshair, Hand, Arrow, Move,
 ---    Text, Wait, Help, Progress, NotAllowed, ContextMenu, Cell, VerticalText,
@@ -564,14 +570,18 @@ function Input:key_pressed(key) end
 ---@return boolean
 function Input:key_released(key) end
 
+---@param key string
+---@return boolean
+function Input:key_held(key) end
+
 ---@return table {x = number, y = number}
 function Input:get_mouse_position() end
 
----@param button string "left"、"right"、"middle"
+---@param button string "Left"、"Right"、"Middle"
 ---@return boolean
 function Input:mouse_pressed(button) end
 
----@param button string "left"、"right"、"middle"
+---@param button string "Left"、"Right"、"Middle"
 ---@return boolean
 function Input:mouse_released(button) end
 
@@ -590,6 +600,15 @@ function Input:mouse_entered() end
 
 ---@return boolean
 function Input:focused() end
+---@class Preedit
+---@field content string
+---@field pos nil| LuaPoint
+---@class State
+---@field state string "enabled" | "disabled" | "preedit" | "commit"
+---@field preedit Preedit
+---@field commit string
+---@return State
+function Input:ime_state() end
 
 ---@class LuaResponse
 local LuaResponse = {}

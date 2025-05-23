@@ -2,12 +2,13 @@ mod tee;
 use chrono::{DateTime, Utc};
 use path_slash::PathExt;
 use serde::{Deserialize, Serialize};
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
     fmt::Display,
     fs::File,
     io::{BufWriter, Read, Seek, SeekFrom, Write},
-    os::unix::fs::MetadataExt,
     path::PathBuf,
 };
 use tee::{TeeReader, TeeWriter, WriteCounter};
@@ -166,7 +167,10 @@ impl ResourcePackage {
         out_file.write_all(&footer)?;
 
         out_file.sync_data()?;
-        self.total_size = out_file.metadata()?.size();
+        #[cfg(target_os = "linux")]
+        {
+            self.total_size = out_file.metadata()?.size();
+        }
         Ok(())
     }
 }
@@ -191,8 +195,10 @@ impl ResourcePackage {
 
         let header: PackageHeader = bincode::deserialize(&buf[..header_len as usize])?;
         let entries: Vec<FileEntry> = bincode::deserialize(&buf[header_len as usize..])?;
+        #[cfg(target_os = "linux")]
         let size = file.metadata().and_then(|s| Ok(s.size())).unwrap_or(0);
-
+        #[cfg(not(target_os = "linux"))]
+        let size = 0;
         Ok(Self {
             files: HashMap::new(),
             entrys: entries,
@@ -235,7 +241,10 @@ impl ResourcePackage {
                 anyhow::bail!("SHA256 checksum mismatch for file: {}", full_path.display());
             }
             f.flush()?;
+            #[cfg(target_os = "linux")]
             let size = f.metadata().and_then(|s| Ok(s.size())).unwrap_or(0);
+            #[cfg(not(target_os = "linux"))]
+            let size = 0;
             log::debug!("unpack file: {}, size: {}", full_path.display(), size);
         }
 

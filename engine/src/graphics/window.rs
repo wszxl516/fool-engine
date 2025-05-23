@@ -22,6 +22,17 @@ pub struct LuaWindow<'a> {
 impl UserData for LuaWindow<'_> {
     //cursor
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("set_ime_allowed", |_lua, this, enable: bool| {
+            this.window.winit_window().set_ime_allowed(enable);
+            Ok(())
+        });
+        methods.add_method("set_ime_position", |_lua, this, pos: LuaPoint<f32>| {
+            let win_size = this.window.inner_size_points();
+            let x_c = win_size.0 / 2.0 + pos.x;
+            let y_c = win_size.1 / 2.0 - pos.y;
+            this.window.set_ime_position_points(x_c, y_c);
+            Ok(())
+        });
         methods.add_method("set_cursor_grab", |_lua, this, rgba: bool| {
             map2lua_error!(
                 this.window.set_cursor_grab(rgba),
