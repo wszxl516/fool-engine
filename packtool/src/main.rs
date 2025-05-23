@@ -15,6 +15,9 @@ pub struct PackArgs {
     /// compress Assets ?
     #[arg(short = 'c', long, default_value_t = true)]
     compress: bool,
+    /// compress level
+    #[arg(short = 'p', long, default_value_t = 10)]
+    compress_level: u32,
     /// off, error, warn, info, debug, trace,
     #[arg(short = 'l', long, default_value = "info")]
     log_level: String,
@@ -59,7 +62,12 @@ fn main() -> anyhow::Result<()> {
             let level = LevelFilter::from_str(args.log_level.as_str())
                 .unwrap_or_else(|_| LevelFilter::Info);
             rolllog::log_init(level, args.verbose, &args.file_log, &["packtool"])?;
-            let mut gp = ResourcePackage::new(args.input_assets_dir, args.output, args.compress);
+            let mut gp = ResourcePackage::create_pak(
+                args.input_assets_dir,
+                args.output,
+                args.compress,
+                args.compress_level as i32,
+            );
             gp.pack()?;
             dump_info(&gp);
         }
@@ -68,11 +76,11 @@ fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|_| LevelFilter::Info);
             rolllog::log_init(level, args.verbose, &args.file_log, &["packtool"])?;
             if args.show {
-                let gp = ResourcePackage::get_info_from_file(args.input)?;
+                let gp = ResourcePackage::from_pak(args.input)?;
                 dump_info(&gp);
                 dump_files(&gp);
             } else {
-                let gp = ResourcePackage::unpack_from_file(args.input)?;
+                let gp = ResourcePackage::from_pak(&args.input)?;
                 gp.unpack2dir(args.out_put)?;
             }
         }
@@ -85,12 +93,21 @@ pub fn dump_info(gp: &ResourcePackage) {
     let adjusted_byte = byte.get_appropriate_unit(byte_unit::UnitType::Binary);
     let info = gp.info();
     let mut table = Table::new();
-    table.set_titles(row!["version", "file count", "compressed", "size", "date"]);
+    table.set_titles(row![
+        "version",
+        "file count",
+        "compressed",
+        "level",
+        "size",
+        "date"
+    ]);
     table.add_row(Row::new(vec![
         Cell::new(info.version_string().as_str()).with_style(Attr::ForegroundColor(color::WHITE)),
         Cell::new(format!("{}", info.file_count).as_str())
             .with_style(Attr::ForegroundColor(color::BRIGHT_GREEN)),
-        Cell::new(format!("{}", gp.compress).as_str())
+        Cell::new(format!("{}", gp.header.compress).as_str())
+            .with_style(Attr::ForegroundColor(color::BRIGHT_YELLOW)),
+        Cell::new(format!("{}", gp.header.compress_level).as_str())
             .with_style(Attr::ForegroundColor(color::BRIGHT_YELLOW)),
         Cell::new(format!("{:0.2}", adjusted_byte).as_str())
             .with_style(Attr::ForegroundColor(color::BRIGHT_YELLOW)),

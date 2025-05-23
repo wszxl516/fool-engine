@@ -103,7 +103,7 @@ impl UserData for LuaCancvas {
                 this.draw
                     .rect()
                     .x_y(polygon_options.position.x, polygon_options.position.y)
-                    .w_h(polygon_options.width, polygon_options.heigth)
+                    .w_h(polygon_options.width, polygon_options.height)
                     .color::<LinearRrgba>(polygon_options.color.unwrap_or_default().into())
                     .x_radians(polygon_options.radians.x)
                     .y_radians(polygon_options.radians.y)
@@ -119,7 +119,7 @@ impl UserData for LuaCancvas {
                 this.draw
                     .ellipse()
                     .x_y(polygon_options.position.x, polygon_options.position.y)
-                    .w_h(polygon_options.width, polygon_options.heigth)
+                    .w_h(polygon_options.width, polygon_options.height)
                     .color::<LinearRrgba>(polygon_options.color.unwrap_or_default().into())
                     .x_radians(polygon_options.radians.x)
                     .y_radians(polygon_options.radians.y)

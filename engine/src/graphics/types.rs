@@ -180,7 +180,7 @@ pub struct LuaPolygonOptions {
     #[serde(default)]
     pub width: f32,
     #[serde(default)]
-    pub heigth: f32,
+    pub height: f32,
     #[serde(default)]
     pub no_fill: bool,
     #[serde(default)]

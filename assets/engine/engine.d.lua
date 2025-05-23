@@ -54,7 +54,7 @@ end
 ---@class LuaPolygonOptions
 ---@field position? {x: number, y: number, z: number}
 ---@field width? number
----@field heigth? number
+---@field height? number
 ---@field no_fill? boolean
 ---@field stroke_color? Color
 ---@field color? Color

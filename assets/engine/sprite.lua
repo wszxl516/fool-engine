@@ -12,6 +12,8 @@
 ---@field playing boolean
 ---@field debug boolean
 ---@field last_uv table
+---@field default_frame number
+
 local Sprite = {}
 Sprite.__index = Sprite
 ---@param image Texture
@@ -22,8 +24,9 @@ Sprite.__index = Sprite
 ---@param row number
 ---@param total_frames number
 ---@param speed number
+---@param default_frame number
 ---@return Sprite
-function Sprite.new(image, frame_w, frame_h, sheet_w, sheet_h, row, total_frames, speed)
+function Sprite.new(image, frame_w, frame_h, sheet_w, sheet_h, row, total_frames, speed, default_frame)
     local self = setmetatable({}, Sprite)
     self.image = image
     self.frame_w = frame_w
@@ -38,33 +41,40 @@ function Sprite.new(image, frame_w, frame_h, sheet_w, sheet_h, row, total_frames
     self.playing = true
     self.debug = false
     self.last_uv = { { 0, 0 }, { 0, 0 } } -- area_x, area_y
+    self.all_uv = {}
+    self.default_frame = default_frame
     return self
 end
 
 function Sprite:update()
-    if not self.playing then return end
+    if not self.playing then 
+        self.last_uv = self:get_frame(self.default_frame)
+        return 
+    end
     self.tick = self.tick + 1
     if self.tick % self.speed == 0 then
         self.current_frame = (self.current_frame + 1) % self.total_frames
-
-        local fx = self.frame_w / self.sheet_w
-        local fy = self.frame_h / self.sheet_h
-
-        local x1 = self.current_frame * fx
-        local x2 = x1 + fx
-        local y1 = self.row * fy
-        local y2 = y1 + fy
-
-        self.last_uv = { { x1, x2 }, { y1, y2 } }
+        self.last_uv = self:get_frame(self.current_frame)
     end
 end
-
+function Sprite:get_frame(n)
+    if self.all_uv[n] then
+        return self.all_uv[n]
+    end
+    local fx = self.frame_w / self.sheet_w
+    local fy = self.frame_h / self.sheet_h
+    local x1 = n * fx
+    local x2 = x1 + fx
+    local y1 = self.row * fy
+    local y2 = y1 + fy
+    return { { x1, x2 }, { y1, y2 } }
+end
 function Sprite:draw_debug(canvas, x, y, w, h)
     canvas:draw_rect(
         {
             position = { x = x, y = y, z = 0 },
             width = w,
-            heigth = h,
+            height = h,
             no_fill = true,
             stroke_color = { r = 255, g = 0, b = 0, a = 255 },
             color = { r = 255, g = 0, b = 0, a = 255 },

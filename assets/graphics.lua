@@ -72,14 +72,14 @@ local side_attr = {
     physics_handle = {}
 }
 local player_attr = {
-    sprite = nil,
+    sprite = Sprite,
     physics = {
         x = 100.0,
-        y = 100.0,
+        y = -345.0,
         handle = nil,
         config = {
             user_data = 0,
-            position = { x = 100.0, y = 100.0 },
+            position = { x = 100.0, y = -345.0 },
             shape = {
                 Cuboid = {
                     width = 80.0,
@@ -109,7 +109,7 @@ local player_attr = {
 ---@diagnostic disable-next-line: lowercase-global
 function graphics:init()
     player_attr.texture = ResourceManager:load_texture("player.png")
-    player_attr.sprite = Sprite.new(player_attr.texture, 80.0, 110.1, 720.0, 330.0, 1, 9.0, 10.0)
+    player_attr.sprite = Sprite.new(player_attr.texture, 80.0, 110.0, 720.0, 330.0, 1.0, 9.0, 10.0, 0.0)
     player_attr.physics.handle = global_physics:add_body(player_attr.physics.config)
     for index, value in ipairs(side_attr.physics) do
         local args = utils:deepcopy(value)
@@ -126,7 +126,7 @@ function graphics:update(value)
     if body then
         player_attr.physics.x = body.pos.x
         player_attr.physics.y = body.pos.y
-        if math.floor(math.abs(body.linvel.x)) == 0 and math.floor(math.abs(body.linvel.y)) == 0 then
+        if math.floor(math.abs(body.linvel.x)) == 0 then
             player_attr.sprite:pause()
         else
             player_attr.sprite:play()

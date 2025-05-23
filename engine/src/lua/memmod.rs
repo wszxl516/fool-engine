@@ -55,7 +55,7 @@ impl MemoryModule {
     }
     fn load_lua_modules(&mut self, res_mgr: Arc<Mutex<ResourceManager>>) -> mlua::Result<()> {
         let lock = res_mgr.lock().unwrap();
-        for (name, content) in lock.memory_resource.all_resource() {
+        for (name, content) in lock.all_memory_resource() {
             let mod_path = Path::new(&name);
             if let Some(extension) = mod_path.extension() {
                 if extension.to_str() == Some("lua") || mod_path.ends_with("init.lua") {

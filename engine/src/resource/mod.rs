@@ -5,6 +5,8 @@ use nannou_egui::egui::Context;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub mod lua;
 pub mod types;
+#[cfg(not(feature = "debug"))]
+use packtool::MemResource;
 use types::{LuaFont, LuaTexture};
 pub enum Resource {
     Image(DynamicImage),
@@ -14,7 +16,7 @@ pub enum Resource {
 pub struct ResourceManager {
     resources: HashMap<String, Resource>,
     #[cfg(not(feature = "debug"))]
-    pub memory_resource: packtool::ResourcePackage,
+    pub memory_resource: MemResource,
     #[cfg(feature = "debug")]
     assets_path: PathBuf,
     dev: Arc<DeviceQueuePair>,
@@ -43,7 +45,7 @@ impl ResourceManager {
         let assets_path = resource_path()?;
         #[cfg(not(feature = "debug"))]
         let resource_pack =
-            packtool::ResourcePackage::unpack_from_file(assets_path.join("assets.pak"))?;
+            packtool::ResourcePackage::from_pak(assets_path.join("assets.pak"))?.unpack2memory()?;
         Ok(Self {
             resources: HashMap::new(),
             #[cfg(not(feature = "debug"))]
@@ -57,12 +59,12 @@ impl ResourceManager {
     #[cfg(not(feature = "debug"))]
     pub fn load_bytes_from_memory(&self, path: &String) -> &[u8] {
         self.memory_resource
-            .get_file(path)
+            .get(path)
             .expect(&format!("resource {} not found!", path))
     }
     #[cfg(not(feature = "debug"))]
     pub fn all_memory_resource(&self) -> &HashMap<String, Vec<u8>> {
-        self.memory_resource.all_resource()
+        &self.memory_resource
     }
     pub fn load_image(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
