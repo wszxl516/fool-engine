@@ -1,11 +1,11 @@
 use crate::lua::types::LuaPoint;
 use mlua::{
-    LuaSerdeExt, UserData, UserDataMethods,
+    Function, LuaSerdeExt, UserData, UserDataMethods,
     Value::{self, Nil},
 };
 use std::collections::HashSet;
 use winit::event::{Ime, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode, WindowEvent};
-pub struct InputState {
+pub struct EventState {
     pub keys_pressed: HashSet<VirtualKeyCode>,
     pub keys_released: HashSet<VirtualKeyCode>,
     pub keys_held: HashSet<VirtualKeyCode>,
@@ -17,8 +17,10 @@ pub struct InputState {
     pub ime: Ime,
     pub mouse_entered: bool,
     pub focused: bool,
+    on_exit: Option<Function>,
+    pub is_exit: bool,
 }
-impl Default for InputState {
+impl Default for EventState {
     fn default() -> Self {
         Self {
             keys_pressed: Default::default(),
@@ -32,10 +34,12 @@ impl Default for InputState {
             mouse_entered: false,
             focused: false,
             ime: Ime::Disabled,
+            on_exit: None,
+            is_exit: false,
         }
     }
 }
-impl InputState {
+impl EventState {
     pub fn begin_frame(&mut self) {
         self.keys_pressed.clear();
         self.keys_released.clear();
@@ -94,18 +98,37 @@ impl InputState {
                 self.ime = ime.clone();
             }
             WindowEvent::ReceivedCharacter(c) => self.char = Some(*c),
+            WindowEvent::CloseRequested | WindowEvent::Destroyed => {
+                if let Some(func) = &self.on_exit {
+                    log::debug!("exit call from lua");
+                    let _ = func.call::<()>(());
+                }
+                self.is_exit = true
+            }
             _ => {}
         }
     }
 }
 
-impl UserData for &InputState {
+impl UserData for &mut EventState {
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("key_pressed", |lua, this, key: Value| {
             let key: VirtualKeyCode = lua.from_value(key)?;
             Ok(this.keys_pressed.contains(&key))
         });
-
+        methods.add_method_mut("on_exit", |_lua, this, function: Function| {
+            this.on_exit.replace(function);
+            Ok(())
+        });
+        methods.add_method_mut("exit", |_lua, this, (): ()| {
+            log::debug!("exit call from lua");
+            if let Some(func) = &this.on_exit {
+                log::debug!("call exit callback from lua");
+                let _ = func.call::<()>(());
+            }
+            this.is_exit = true;
+            Ok(())
+        });
         methods.add_method("key_released", |lua, this, key: Value| {
             let key: VirtualKeyCode = lua.from_value(key)?;
             Ok(this.keys_released.contains(&key))

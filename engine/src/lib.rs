@@ -1,12 +1,12 @@
+pub mod event;
 pub mod graphics;
 mod gui;
-pub mod input;
 pub mod lua;
 pub mod physics;
 pub mod resource;
 pub mod utils;
+use event::EventState;
 use gui::Gui;
-use input::InputState;
 use log::error;
 use lua::LuaBindings;
 use nannou::{prelude::*, wgpu::Backends};
@@ -16,12 +16,13 @@ use std::sync::Arc;
 struct Engine {
     resource: Arc<Mutex<ResourceManager>>,
     lua: LuaBindings,
-    input: InputState,
+    event_state: EventState,
     gui: Gui,
 }
 impl Engine {
     pub fn new(app: &App) -> anyhow::Result<Self> {
         app.set_exit_on_escape(false);
+        // app.set_loop_mode(mode);
         let mut lua = map2anyhow_error!(LuaBindings::new(), "init LuaBindings failed")?;
         let window_id = Self::init_window(app)?;
         let window = app.window(window_id).unwrap();
@@ -33,11 +34,12 @@ impl Engine {
         map2anyhow_error!(gui.init(), "gui init failed")?;
         lua.setup(resource.clone())?;
         map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
-        map2anyhow_error!(lua.run_init_fn(), "run_init_fn failed: ")?;
+        lua.run_init_fn()
+            .unwrap_or_else(|err| log_error_exit!("{}", err));
         Ok(Engine {
             resource,
             lua,
-            input: InputState::default(),
+            event_state: EventState::default(),
             gui,
         })
     }
@@ -50,7 +52,7 @@ impl Engine {
                 .transparent(true)
                 .raw_event(|_app, model: &mut Engine, event| {
                     model.gui.event(event);
-                    model.input.handle_event(event);
+                    model.event_state.handle_event(event);
                 })
                 .build(),
             "init window failed: {}"
@@ -65,7 +67,7 @@ impl Engine {
             model
                 .lua
                 .run_draw_fn(draw.clone(), ctx.context(), app, model.resource.clone())
-                .unwrap_or_else(|e| error!("run_draw_fn from lua failed: {}", e));
+                .unwrap_or_else(|e| log_error_exit!("run_draw_fn from lua failed: {}", e));
         }
 
         draw.to_frame(app, &frame)
@@ -73,17 +75,22 @@ impl Engine {
         model.gui.end(&frame).unwrap();
     }
     fn update(_app: &App, model: &mut Engine, _update: Update) {
-        model.input.begin_frame();
+        model.event_state.begin_frame();
         model
             .lua
             .run_update_fn()
-            .unwrap_or_else(|e| error!("run lua run_update_fn failed: {:?}", e));
+            .unwrap_or_else(|e| log_error_exit!("run lua run_update_fn failed: {:?}", e));
     }
     fn event(_app: &App, model: &mut Engine, _event: Event) {
         model
             .lua
-            .run_event_fn(&model.input)
-            .unwrap_or_else(|e| error!("run lua run_event_fn failed: {:?}", e));
+            .run_event_fn(&mut model.event_state)
+            .unwrap_or_else(|e| log_error_exit!("run lua run_event_fn failed: {:?}", e));
+        *_app.is_exit.borrow_mut() = model.event_state.is_exit;
+    }
+    fn exit(_app: &App, _model: Engine) {
+        _app.quit();
+        std::process::exit(0);
     }
 }
 
@@ -100,6 +107,14 @@ pub fn init_engine() -> anyhow::Result<()> {
     .backends(Backends::all())
     .size(800, 800)
     .event(Engine::event)
+    .exit(Engine::exit)
     .run();
     Ok(())
+}
+#[macro_export]
+macro_rules! log_error_exit {
+    ($($arg:tt)+) => ({
+        log::error!($($arg)+);
+        std::process::exit(-1);
+    });
 }

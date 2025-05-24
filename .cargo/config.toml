@@ -1,6 +1,12 @@
 [target.'cfg(all(target_os="linux"))']
 rustflags = [
-    # "-Zlocation-detail=none",
+    "-Zlocation-detail=none",
     "-C", "link-args=-Wl,-rpath,$ORIGIN/lib",
 ]
 runner = """mangohud"""
+
+[target.'cfg(all(target_os="windows"))']
+rustflags = [
+    "-Zlocation-detail=none",
+    "-C", "target-feature=+crt-static"
+]

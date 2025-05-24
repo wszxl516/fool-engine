@@ -24,10 +24,9 @@ impl UserData for LuaCancvas {
             "draw_text",
             |_lua,
              this,
-             (text, x, y, font, font_size, color, layout): (
+             (text, point, font, font_size, color, layout): (
                 String,
-                f32,
-                f32,
+                LuaPoint<f32>,
                 Value,
                 Option<u32>,
                 LuaColor,
@@ -56,9 +55,9 @@ impl UserData for LuaCancvas {
                     }
                 };
 
-                let text = this.draw.text(&text).x_y(x, y);
-                let text = if let (Some(w), Some(h)) = (layout.w, layout.h) {
-                    text.w_h(w, h)
+                let text = this.draw.text(&text).x_y(point.x, point.y);
+                let text = if let Some(size) = layout.size {
+                    text.w_h(size.w, size.h)
                 } else {
                     text
                 }

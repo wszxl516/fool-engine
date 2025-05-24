@@ -156,12 +156,13 @@ function graphics:draw(canvas)
 end
 
 ---@param dt number -- delay time
----@param input Input
-function graphics:event(input, dt)
+---@param event Event
+function graphics:event(event, dt)
     -- Left, Up, Right, Down
     for key, value in pairs(player_attr.physics.key_event) do
-        local result = value[2]:update(input, dt)
+        local result = value[2]:update(event, dt)
         if result == "hold" then
+            logger:error("%s", {aa = 11, bb = "bb", cc = init, dd = false, ee = nil})
             global_physics:apply_impulse(player_attr.physics.handle, value[1])
         end
     end

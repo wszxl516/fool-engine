@@ -15,13 +15,13 @@ function KeyInput.new(key, min)
     }, KeyInput)
 end
 
----@param input Input
+---@param window_event Event
 ---@param dt number
 ---@return string "none" | "click" | "hold"
-function KeyInput:update(input, dt)
+function KeyInput:update(window_event, dt)
     local event = "none"
-    local pressed = input:key_pressed(self.key)
-    local released = input:key_released(self.key)
+    local pressed = window_event:key_pressed(self.key)
+    local released = window_event:key_released(self.key)
 
     if pressed and not self.is_down then
         self.is_down = true

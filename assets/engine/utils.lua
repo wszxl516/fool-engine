@@ -5,13 +5,13 @@ utils = {}
 ---@param max_x number
 ---@param min_y number
 ---@param max_y number
----@return LuaPoint
+---@return Point
 function utils:rand_point(min_x, max_x, min_y, max_y)
     return { x = math.random(min_x, max_x), y = math.random(min_y, max_y) }
 end
 
 ---@diagnostic disable-next-line: lowercase-global
----@return LuaPoint
+---@return Point
 function utils:rand_color()
     return { r = math.random(0, 255), g = math.random(0, 255), b = math.random(0, 255), a = math.random(0, 255) }
 end

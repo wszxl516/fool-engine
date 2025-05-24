@@ -1,66 +1,68 @@
 local inspect = require("engine.inspect")
+
 ---@class LOG
-LOG = {name = "", date = false, location = false, level = 0}
+---@field name string
+---@field date boolean
+---@field location boolean
+local LOG = {}
+LOG.__index = LOG
 
 ---@param name string
----@param level string [Trace, Debug, Info, Warn, Error]
 ---@param date boolean
 ---@param location boolean
 ---@return LOG
-function LOG:new(name, level, date, location)
-    local Self = setmetatable({}, self)
-    self.__index = self
-    Self.name = name
-    Self.date = date or false
-    Self.location = location or false
-    return Self
+function LOG.new(name, date, location)
+    local self = setmetatable({}, LOG)
+    self.name = name or ""
+    self.date = date or false
+    self.location = location or false
+    return self
 end
 
----@param fmt string
 function LOG:trace(fmt, ...)
-    self:log(fmt, "Trace", ...)
+    self:log("Trace", fmt, ...)
 end
----@param fmt string
+
 function LOG:debug(fmt, ...)
-    self:log(fmt, "Debug", ...)
+    self:log("Debug", fmt, ...)
 end
 
----@param fmt string
 function LOG:info(fmt, ...)
-    self:log(fmt, "Info", ...)
+    self:log("Info", fmt, ...)
 end
 
----@param fmt string
 function LOG:warn(fmt, ...)
-    self:log(fmt, "Warn", ...)
+    self:log("Warn", fmt, ...)
 end
 
----@param fmt string
 function LOG:error(fmt, ...)
-    self:log(fmt, "Error", ...)
+    self:log("Error", fmt, ...)
 end
 
----@param fmt string
+--- Formats and prints the log message
 ---@param level string
-function LOG:log(fmt, level, ...)
+---@param fmt string
+function LOG:log(level, fmt, ...)
     local args = {...}
-    local len = select('#', ...)
     local formated = {}
-    for ix = 1, len do
-        formated[ix] = inspect(args[ix])
+    for i = 1, select("#", ...) do
+        formated[i] = inspect(args[i])
     end
     local msg = string.format(fmt, table.unpack(formated))
-    -- local info = debug.getinfo(3, "Sl")
-    local info = debug_info(3)
+
     local location_str = ""
     if self.location then
-        location_str = string.format("[line: %d - func: %s]", info.line , info.func)
+        local info = debug_info(3)
+        location_str = string.format("[%s:%d:%s]", info.file, info.line, info.func)
     end
-    local full_msg = string.format("%s %s: %s", self.name, location_str, msg)
-    if _G.__logger then
-        _G.__logger(level, full_msg)
-    else
-        print(full_msg)
+
+    local date_str = ""
+    if self.date then
+        date_str = os.date("[%Y-%m-%d %H:%M:%S]") .. " "
     end
+
+    local full_msg = string.format("%s%s %s: %s", date_str, location_str, self.name, msg)
+    __logger(level, full_msg)
 end
+
 return LOG

@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "debug"), windows_subsystem = "windows")]
 use clap::Parser;
 use engine::init_engine;
 use log::LevelFilter;

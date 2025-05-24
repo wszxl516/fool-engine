@@ -1,6 +1,6 @@
 [workspace]
 resolver = "1"
-members = ["engine", "packtool", "rolllog"]
+members = ["engine", "packtool", "rolllog", "nannou"]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -8,14 +8,13 @@ anyhow = "1.0.98"
 chrono = {version = "0.4.41", features = ["serde"]}
 lazy_static = { version = "1.5.0" }
 rapier2d = { version = "0.25.1", features = ["serde-serialize"] }
-zip = { version = "4.0.0", default-features = true }
 zstd = { version = "0.13.3" }
 sha2 = { version = "0.10.9" }
 hex = {version = "0.4.3"}
 bincode = { version = "1.3.3" }
 walkdir = "2"
 path-slash = "0.2"
-mlua = { version = "0.10.3", features = [
+mlua = { version = "0.10.5", features = [
     "lua54",
     "userdata-wrappers",
     "serialize",
@@ -38,8 +37,11 @@ log4rs = { version = "1.3.0", features = [
 log = "0.4.22"
 rolllog = { path = "rolllog"}
 #graphics
-nannou = { version = "0.19.0" }
-nannou_egui = { version = "0.19.0" }
+nannou = { version = "0.19.0"}
+nannou_egui = { version = "0.19.0"}
+[patch.crates-io]
+nannou = { path = "nannou"}
+
 [profile.release]
 opt-level = "z"
 strip = true

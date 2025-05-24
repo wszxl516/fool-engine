@@ -1,3 +1,6 @@
+local point = require "engine.vector2.point"
+local rgba8 = require("engine.color.rgba8")
+
 ---@class Sprite
 ---@field image Texture
 ---@field frame_w number
@@ -84,7 +87,7 @@ function Sprite:draw_debug(canvas, x, y, w, h)
     )
     local text = string.format("x: %d y: %d", math.floor(x), math.floor(y));
     canvas:draw_text(text,
-        x, y + h / 1.5, nil, 12, { r = 100, g = 0, b = 0, a = 100 },
+        point.new(x, y + h / 1.5), nil, 12, rgba8.new(100, 0, 0, 100),
         {
             line_spacing = 0.0,
             line_wrap = "Whitespace",

@@ -1,4 +1,4 @@
----@class LuaSize
+---@class Size
 ---@field w number
 ---@field h number
 
@@ -6,35 +6,33 @@
 --- Canvas
 ---@class Canvas
 local Canvas = {}
----@class Color
----@field r? number
----@field g? number
----@field b? number
----@field a? number
+-- -@class Color8
+-- -@field r? number
+-- -@field g? number
+-- -@field b? number
+-- -@field a? number
 ---@class LuaTextLayout
 ---@field line_spacing? number
 ---@field line_wrap? string ---[ "Character", "Whitespace", "None"]
----@field w? number
----@field h? number
+---@field size? Size
 ---@field x_align? string ---["Start", "Middle", "End"]
 ---@field y_align? string ---["Start", "Middle", "End"]
 ---@field radians? number
 ---@field gray? number
 ---@param text string
----@param x number
----@param y number
----@param color Color
+---@param point Point
+---@param color Color8
 ---@param font Font | nil
 ---@param font_size number | nil
 ---@param layout LuaTextLayout
-function Canvas:draw_text(text, x, y, font, font_size, color, layout)
+function Canvas:draw_text(text, point, font, font_size, color, layout)
     -- Implementation (in Rust)
 end
 
 ---@param text string,
 ---@param font_name string
 ---@param font_size number
----@return table --{w: number, h: number}
+---@return Point
 function Canvas:measure_text(text, font_name, font_size)
     -- Implementation (in Rust)
     return {}
@@ -56,8 +54,8 @@ end
 ---@field width? number
 ---@field height? number
 ---@field no_fill? boolean
----@field stroke_color? Color
----@field color? Color
+---@field stroke_color? Color8
+---@field color? Color8
 ---@field stroke? StrokeOptions
 ---@param polygon_options LuaPolygonOptions
 function Canvas:draw_rect(polygon_options)
@@ -77,7 +75,7 @@ end
 ---@param head_width number
 ---@param head_length number
 ---@param tolerance number 0.0 ~1.0
----@param color Color
+---@param color Color8
 ---@param polygon_options LuaPolygonOptions
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_arrow(x1, y1, x2, y2, w, head_width, head_length, tolerance, color, polygon_options)
@@ -90,7 +88,7 @@ end
 ---@param y2 number
 ---@param w number
 ---@param tolerance number 0.0 ~1.0
----@param color Color
+---@param color Color8
 ---@param polygon_options LuaPolygonOptions
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_line(x1, y1, x2, y2, w, tolerance, color, polygon_options)
@@ -103,34 +101,34 @@ end
 ---@param y2 number
 ---@param x3 number
 ---@param y3 number
----@param color Color
+---@param color Color8
 ---@param polygon_options LuaPolygonOptions
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_triangle(x1, y1, x2, y2, x3, y3, color, polygon_options)
     -- Implementation (in Rust)
 end
 
----@class LuaPoint
+---@class Point
 ---@field x number
 ---@field y number
----@param points [LuaPoint]
----@param color Color
+---@param points [Point]
+---@param color Color8
 ---@param radians LuaRadians
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_polyline(points, color, radians)
     -- Implementation (in Rust)
 end
 
----@param points [LuaPoint] # Must contain exactly 4 points
----@param color Color
+---@param points [Point] # Must contain exactly 4 points
+---@param color Color8
 ---@param polygon_options LuaPolygonOptions
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_quad(points, color, polygon_options)
     -- Implementation (in Rust)
 end
 
----@param points [LuaPoint]
----@param color Color
+---@param points [Point]
+---@param color Color8
 ---@param polygon_options LuaPolygonOptions
 ---only use radians, start_cap, end_cap, line_join, miter_limit
 function Canvas:draw_polygon(points, color, polygon_options)
@@ -152,20 +150,19 @@ function Canvas:draw_texture(texture, x, y, w, h, layout)
     -- Implementation (in Rust)
 end
 
----@param color Color
+---@param color Color8
 function Canvas:fill_background(color)
     -- Implementation (in Rust)
 end
 
 ---@class LuaColoredPoint
----@field p LuaPoint
----@field c Color
+---@field p Point
+---@field c Color8
 ---@param colored_points [LuaColoredPoint]
 ---@param radians LuaRadians
 function Canvas:draw_points(colored_points, radians)
     -- Implementation (in Rust)
 end
-
 
 ---@diagnostic disable-next-line: lowercase-global
 physics = {}
@@ -206,9 +203,9 @@ physics_mt.__index = physics_mt
 ---@class LuaRigidBodyHandle
 
 ---@class LuaRigidBody
----@field pos LuaPoint --- x, y
+---@field pos Point --- x, y
 ---@field angle number
----@field linvel LuaPoint --- x, y
+---@field linvel Point --- x, y
 ---@field angvel number
 ---@field mass number
 ---@field is_fixed boolean
@@ -256,19 +253,19 @@ function physics_mt:find_body(handle)
 end
 
 ---@param handle LuaRigidBodyHandle
----@param force LuaPoint 
+---@param force Point
 function physics_mt:apply_force(handle, force)
     return nil
 end
 
 ---@param handle LuaRigidBodyHandle
----@param force LuaPoint 
+---@param force Point
 function physics_mt:apply_impulse(handle, force)
     return nil
 end
 
 ---@param handle LuaRigidBodyHandle
----@param linvel LuaPoint
+---@param linvel Point
 function physics_mt:set_linvel(handle, linvel)
     -- set linear velocity
 end
@@ -299,13 +296,12 @@ end
 ---@class CastRayRes
 ---@field handle LuaRigidBodyHandle
 ---@field distance number
----@param origin LuaPoint
----@param dir LuaPoint
+---@param origin Point
+---@param dir Point
 ---@param max_toi number
 ---@return CastRayRes
 function physics_mt:cast_ray(origin, dir, max_toi)
 end
-
 
 ---only for sensor
 ---@return string[]
@@ -380,9 +376,11 @@ end
 ---@param enable boolean
 function Window:set_ime_allowed(enable)
 end
----@param position LuaPoint
+
+---@param position Point
 function Window:set_ime_position(position)
 end
+
 ---@param icon string
 ---   [Default, Crosshair, Hand, Arrow, Move,
 ---    Text, Wait, Help, Progress, NotAllowed, ContextMenu, Cell, VerticalText,
@@ -392,7 +390,7 @@ end
 function Window:set_cursor_icon(icon)
 end
 
----@param position LuaPoint
+---@param position Point
 function Window:set_cursor_position_points(position)
 end
 
@@ -412,7 +410,7 @@ end
 function Window:set_fullscreen(fullscreen)
 end
 
----@param position LuaPoint
+---@param position Point
 function Window:set_ime_position_points(position)
 end
 
@@ -426,7 +424,7 @@ end
 function Window:set_inner_size_points(width, height)
 end
 
----@param size LuaSize|nil
+---@param size Size|nil
 function Window:set_max_inner_size_points(size)
 end
 
@@ -434,7 +432,7 @@ end
 function Window:set_maximized(maximized)
 end
 
----@param size LuaSize|nil
+---@param size Size|nil
 function Window:set_min_inner_size_points(size)
 end
 
@@ -442,7 +440,7 @@ end
 function Window:set_minimized(minimized)
 end
 
----@param position LuaPoint
+---@param position Point
 function Window:set_outer_position_pixels(position)
 end
 
@@ -478,35 +476,35 @@ end
 
 ---@class monitorInfo
 ---@field name string
----@field position LuaPoint
+---@field position Point
 ---@field refresh_rate_millihertz number
 ---@field scale_factor number
----@field size LuaSize
+---@field size Size
 ---@return monitorInfo|nil
 function Window:monitor()
 end
 
----@return LuaSize
+---@return Size
 function Window:inner_size_pixels()
     return {}
 end
 
----@return LuaSize
+---@return Size
 function Window:outer_size_pixels()
     return {}
 end
 
----@return LuaSize
+---@return Size
 function Window:inner_size_points()
     return {}
 end
 
----@return LuaSize
+---@return Size
 function Window:outer_size_points()
     return {}
 end
 
----@return [LuaPoint]
+---@return [Point]
 function Window:rect()
     return {}
 end
@@ -534,11 +532,11 @@ end
 ---@field dark? boolean
 ---@field animation_time? number
 ---@field wrap? boolean
----@field noninteractive_fg_color? Color
----@field hovered_fg_color? Color
----@field active_fg_color? Color
----@field inactive_fg_color? Color,
----@field open_fg_color? Color
+---@field noninteractive_fg_color? Color8
+---@field hovered_fg_color? Color8
+---@field active_fg_color? Color8
+---@field inactive_fg_color? Color8,
+---@field open_fg_color? Color8
 ---@param ctx EguiContext
 ---@param style LuaGuiStyle
 ---@diagnostic disable-next-line: lowercase-global
@@ -546,10 +544,9 @@ function Window:set_gui_style(ctx, style)
 
 end
 
---- Input
----@class Input
-local Input = {}
---- InputState
+--- Event
+---@class Event
+local Event = {}
 ---  [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8, Key9, Key0,
 ---   A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
 ---   Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17, F18, F19, F20, F21, F22, F23, F24,
@@ -564,51 +561,58 @@ local Input = {}
 ---   WebStop, Yen, Copy, Paste, Cut]
 ---@param key string
 ---@return boolean
-function Input:key_pressed(key) end
+function Event:key_pressed(key) end
 
 ---@param key string
 ---@return boolean
-function Input:key_released(key) end
+function Event:key_released(key) end
 
 ---@param key string
 ---@return boolean
-function Input:key_held(key) end
+function Event:key_held(key) end
 
 ---@return table {x = number, y = number}
-function Input:get_mouse_position() end
+function Event:get_mouse_position() end
 
 ---@param button string "Left"、"Right"、"Middle"
 ---@return boolean
-function Input:mouse_pressed(button) end
+function Event:mouse_pressed(button) end
 
 ---@param button string "Left"、"Right"、"Middle"
 ---@return boolean
-function Input:mouse_released(button) end
+function Event:mouse_released(button) end
 
 ---@class mouse_wheel
----@field delta {line: LuaPoint | nil, pixel: LuaPoint | nil}|nil
+---@field delta {line: Point | nil, pixel: Point | nil}|nil
 ---@field touch string | nil
 ---@return mouse_wheel
 ---touch：string，["Started"、"Moved"、"Ended"、"Cancelled"]
-function Input:mouse_wheel() end
+function Event:mouse_wheel() end
 
 ---@return string|nil
-function Input:get_char() end
+function Event:get_char() end
 
 ---@return boolean
-function Input:mouse_entered() end
+function Event:mouse_entered() end
 
 ---@return boolean
-function Input:focused() end
+function Event:focused() end
+
 ---@class Preedit
 ---@field content string
----@field pos nil| LuaPoint
+---@field pos nil| Point
 ---@class State
 ---@field state string "enabled" | "disabled" | "preedit" | "commit"
 ---@field preedit Preedit
 ---@field commit string
 ---@return State
-function Input:ime_state() end
+function Event:ime_state() end
+
+---@param call_back fun():boolean
+function Event:on_exit(call_back) end
+---exit engine
+function Event:exit() end
+
 
 ---@class LuaResponse
 local LuaResponse = {}
@@ -689,14 +693,14 @@ function UIContext:slider(args) end
 ---@field progress number [0.0 ~ 1.0]
 ---@field name string
 ---@field show_percentage boolean
----@field color Color
+---@field color Color8
 ---@field animate boolean
 ---@param args ProgressBar
 ---@return LuaResponse
 function UIContext:progress_bar(args) end
 
 ---@class ColorPicker
----@field color Color
+---@field color Color8
 ---@param color_picker ColorPicker
 ---@return LuaResponse
 function UIContext:color_picker(color_picker) end
@@ -723,7 +727,7 @@ function UIContext:vertical(body) end
 function UIContext:combo_box(combo_box) end
 
 ---@param id string
----@param spacing LuaSize
+---@param spacing Size
 ---@param start_row number
 ---@param body fun(ctx: UIContext)
 ---@return LuaResponse
@@ -763,10 +767,10 @@ function UIContext:selectable_label(selected, label) end
 ---@return LuaResponse
 function UIContext:with_layout(topdown_or_leftright, reverse, body) end
 
----@param size LuaSize
+---@param size Size
 function UIContext:set_max_size(size) end
 
----@param size LuaSize
+---@param size Size
 function UIContext:set_min_size(size) end
 
 ---@param height number
@@ -776,7 +780,7 @@ function UIContext:end_row() end
 
 ---@class ImageConfig
 ---@field show_loading_spinner? boolean
----@field rotate_origin? LuaPoint
+---@field rotate_origin? Point
 ---@field rotate_angle? number
 ---@field w? number
 ---@field h? number
@@ -784,11 +788,11 @@ function UIContext:end_row() end
 ---@field ne? number
 ---@field sw? number
 ---@field se? number
----@field bg_fill? Color
+---@field bg_fill? Color8
 ---only for image_button
 ---@field frame? boolean
 ---@field stroke_width? number
----@field stroke_color? Color
+---@field stroke_color? Color8
 ---@field wrap? boolean
 ---@param texture Texture
 ---@param config ImageConfig
@@ -812,18 +816,18 @@ function UIContext:image_button(texture, config) end
 
 ---@class Shadow
 ---@field extrusion number
----@field color Color
+---@field color Color8
 
 ---@class Stroke
 ---@field width number
----@field color Color
+---@field color Color8
 
 ---@class Frame
 ---@field inner_margin? Margin
 ---@field outer_margin? Margin
 ---@field rounding? Rounding
 ---@field shadow? Shadow
----@field fill? Color
+---@field fill? Color8
 ---@field stroke? Stroke
 ---@class UiConfig
 ---@field title string
@@ -843,25 +847,25 @@ function UIContext:image_button(texture, config) end
 ---@param config UiConfig
 ---@param context EguiContext
 ---@param bg_img Texture|nil
----@param bg_img_color Color|nil
+---@param bg_img_color Color8|nil
 ---@param body fun(ctx: UIContext)
 ---@diagnostic disable-next-line: lowercase-global
 function gui_create_window(config, context, bg_img, bg_img_color, body)
 
 end
 
-
 _G.ResourceManager = {}
 ---@class Texture
 ---@param text string
 ---@param font_name string
 ---@param font_size number
----@return LuaSize
+---@return Size
 function ResourceManager:measure_text(text, font_name, font_size) end
+
 ---@param path string
 ---@return Texture
 function ResourceManager:load_texture(path)
-    
+
 end
 
 ---@class Font

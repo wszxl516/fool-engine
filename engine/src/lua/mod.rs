@@ -5,14 +5,14 @@ use super::graphics::window::LuaWindow;
 use crate::resource::lua::LuaResourceManager;
 use crate::resource::ResourceManager;
 use crate::{
-    graphics::draw::LuaCancvas, gui::EguiContext, input::InputState, map2anyhow_error,
+    event::EventState, graphics::draw::LuaCancvas, gui::EguiContext, map2anyhow_error,
     physics::LuaPhysics,
 };
 use chrono::{Duration, NaiveDate};
 use lazy_static::lazy_static;
 #[cfg(not(feature = "debug"))]
 use memmod::MemoryModule;
-use mlua::{Error as LuaError, Function, Lua, LuaOptions, Result, StdLib, Table, Value};
+use mlua::{Error as LuaError, Function, Lua, LuaOptions, Result, StdLib, Table, Value, Variadic};
 use nannou::{App, Draw};
 use nannou_egui::egui::Context;
 use parking_lot::Mutex;
@@ -28,6 +28,7 @@ pub struct LuaBindings {
     pub script_path: PathBuf,
     #[cfg(not(feature = "debug"))]
     mem_mod: MemoryModule,
+    pub exit: Arc<Mutex<bool>>,
 }
 lazy_static! {
     static ref start_time: Instant = Instant::now();
@@ -61,6 +62,7 @@ impl LuaBindings {
             script_path: crate::resource::resource_path()?,
             #[cfg(not(feature = "debug"))]
             mem_mod: MemoryModule::new(),
+            exit: Arc::new(Mutex::new(false)),
         })
     }
     fn disable_module(&self) -> Result<()> {
@@ -125,12 +127,14 @@ impl LuaBindings {
     pub fn enable_debug(&self) -> anyhow::Result<()> {
         let log_print = map2anyhow_error!(
             self.lua
-                .create_function(move |_, (level, value): (String, Value)| {
+                .create_function(move |_lua, (level, value): (String, Value)| {
                     match log::Level::from_str(&level) {
                         Ok(l) => {
-                            log::log!(l, "{}\n", value.to_string()?)
+                            log::log!(l, "{}", value.to_string()?)
                         }
-                        Err(_) => {}
+                        Err(_) => {
+                            log::debug!("{}", value.to_string()?)
+                        }
                     }
                     Ok(())
                 }),
@@ -138,23 +142,27 @@ impl LuaBindings {
         )?;
         let debug_info = map2anyhow_error!(
             self.lua.create_function(move |lua, value: usize| {
-                use std::borrow::Cow;
                 let res = match lua.inspect_stack(value) {
-                    None => ("".to_string(), 0),
+                    None => ("".to_string(), 0, "".to_owned()),
                     Some(i) => {
-                        let name = i.names().name.unwrap_or(Cow::default()).to_string();
-                        (name, i.curr_line())
+                        let name = i.names().name.unwrap_or("<anonymous>".into()).to_string();
+                        (
+                            name,
+                            i.curr_line(),
+                            i.source().source.unwrap_or("<unknown>".into()).to_string(),
+                        )
                     }
                 };
                 let t = lua.create_table()?;
                 t.set("func", res.0)?;
                 t.set("line", res.1)?;
+                t.set("file", res.2)?;
                 Ok(t)
             }),
             "create_function debug"
         )?;
         map2anyhow_error!(
-            self.lua.globals().set("debug_info", debug_info),
+            self.lua.globals().set("debug_info", &debug_info),
             "globals set debug"
         )?;
 
@@ -162,6 +170,14 @@ impl LuaBindings {
             self.lua.globals().set("__logger", log_print),
             "globals set debug"
         )?;
+        let print = map2anyhow_error!(
+            self.lua.create_function(move |_, value: Variadic<Value>| {
+                log::debug!("{}", lua_values_to_json_string(value)?);
+                Ok(())
+            }),
+            "create_function debug"
+        )?;
+        map2anyhow_error!(self.lua.globals().set("print", print), "globals set print")?;
         Ok(())
     }
     pub fn setup(&mut self, res_mgr: Arc<Mutex<ResourceManager>>) -> anyhow::Result<()> {
@@ -242,10 +258,19 @@ impl LuaBindings {
             "run_update_fn failed"
         )
     }
-    pub fn run_init_fn(&self) -> Result<()> {
-        self.lua.load("if init then init() end").exec()
+    pub fn run_init_fn(&self) -> anyhow::Result<()> {
+        match self.lua.globals().get::<Function>("init") {
+            Ok(init_fn) => {
+                map2anyhow_error!(init_fn.call::<()>(()), "call init fn failed")?;
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("get lua init func failed: {}", err);
+                Ok(())
+            }
+        }
     }
-    pub fn run_event_fn(&self, input: &InputState) -> Result<()> {
+    pub fn run_event_fn(&self, input: &mut EventState) -> Result<()> {
         let elapsed = time_peer_frame();
         self.lua.scope(|scope| {
             let input = scope.create_userdata(input)?;
@@ -270,4 +295,70 @@ impl LuaBindings {
             "run require(\"main\") failed"
         )
     }
+}
+
+use serde_json::Value as JsonValue;
+
+fn lua_values_to_json_string(values: Variadic<Value>) -> Result<String> {
+    fn convert(value: Value) -> Result<JsonValue> {
+        Ok(match value {
+            Value::Nil => JsonValue::Null,
+            Value::Boolean(b) => JsonValue::Bool(b),
+            Value::Integer(i) => JsonValue::Number(i.into()),
+            Value::Number(n) => serde_json::Number::from_f64(n)
+                .map(JsonValue::Number)
+                .unwrap_or(JsonValue::Null),
+            Value::String(s) => JsonValue::String(s.to_str()?.to_string()),
+            Value::Table(t) => {
+                let is_array = t
+                    .clone()
+                    .pairs::<Value, Value>()
+                    .all(|r| matches!(r, Ok((Value::Integer(i), _)) if i >= 1));
+
+                if is_array {
+                    let mut vec = Vec::new();
+                    for v in t.sequence_values::<Value>() {
+                        vec.push(convert(v?)?);
+                    }
+                    JsonValue::Array(vec)
+                } else {
+                    let mut map = serde_json::Map::new();
+                    for entry in t.pairs::<Value, Value>() {
+                        let (k, v) = entry?;
+                        let key = match k {
+                            Value::String(s) => s.to_str()?.to_string(),
+                            Value::Integer(i) => i.to_string(),
+                            Value::Number(n) => n.to_string(),
+                            _ => continue,
+                        };
+                        map.insert(key, convert(v)?);
+                    }
+                    JsonValue::Object(map)
+                }
+            }
+            _ => JsonValue::String(format!("{:?}", value)),
+        })
+    }
+
+    let mut json_array = String::new();
+    for v in values {
+        json_array.push_str(&serde_json::to_string_pretty(&convert(v)?).unwrap_or_default());
+        json_array.push_str(", ");
+    }
+    Ok(json_array)
+}
+
+pub fn dump_lua_stack_trace(lua: &Lua) {
+    log::error!("--- Lua Stack Trace ---");
+    let mut level = 0;
+    while let Some(debug) = lua.inspect_stack(level) {
+        let name = debug.names().name.unwrap_or("<anonymous>".into());
+        let source = debug.source().source.unwrap_or("<unknown>".into());
+        let line = debug.curr_line();
+        let what = debug.event();
+
+        log::error!("#{:<2} [{:?}] {}:{}:{}", level, what, source, line, name);
+        level += 1;
+    }
+    log::error!("--- Lua Stack Trace ---");
 }

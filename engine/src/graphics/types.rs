@@ -113,10 +113,7 @@ pub struct LuaTextLayout {
     pub line_spacing: f32,
     #[serde(default)]
     pub line_wrap: Option<LuaTextWrap>,
-    #[serde(default)]
-    pub w: Option<f32>,
-    #[serde(default)]
-    pub h: Option<f32>,
+    pub size: Option<LuaSize<f32>>,
     #[serde(default)]
     pub x_align: LuaTextAlign,
     #[serde(default)]
