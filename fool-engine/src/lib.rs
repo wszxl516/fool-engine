@@ -14,6 +14,7 @@ use resource::ResourceManager;
 use std::sync::Arc;
 use winit::{
     dpi::{LogicalSize, Size},
+    event_loop::ActiveEventLoop,
     event_loop::EventLoop,
     platform::x11::WindowAttributesExtX11,
     window::Window,
@@ -31,8 +32,6 @@ impl Engine {
         map2anyhow_error!(gui.init(), "gui init failed")?;
         lua.setup(resource.clone())?;
         map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
-        // lua.run_init_fn()
-        //     .unwrap_or_else(|err| log_error_exit!("{}", err));
         Ok(Engine {
             resource,
             lua,
@@ -41,15 +40,24 @@ impl Engine {
     }
 }
 impl AppModel for Engine {
-    fn gui(&mut self, context: &egui::Context, window: &winit::window::Window) {
+    fn init(&mut self, context: &egui::Context, window: Arc<winit::window::Window>) {
+        if let Err(err) = self.lua.run_init_fn(context, window, self.resource.clone()) {
+            log_error_exit!("run lua init failed: {}", err)
+        }
+    }
+    fn gui(&mut self, context: &egui::Context, window: Arc<winit::window::Window>) {
         let resource = self.resource.clone();
         let lua = self.lua.clone();
-        lua.run_draw_fn(context.clone(), resource.clone(), window)
-            .unwrap();
+        if let Err(err) = lua.run_view_fn(context.clone(), resource.clone(), window.clone()) {
+            log_error_exit!("run lua view failed: {}", err)
+        }
     }
     fn window_event(&mut self, event: &winit::event::WindowEvent) {
         self.event_state.begin_frame();
         self.event_state.handle_event(event);
+    }
+    fn event_loop(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = self.resource.lock().load_cursor(event_loop);
     }
 }
 pub fn init_engine() -> anyhow::Result<()> {

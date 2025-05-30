@@ -1,6 +1,7 @@
 #[cfg(not(feature = "debug"))]
 pub mod memmod;
 pub mod types;
+use crate::graphics::window::LuaWindow;
 use crate::resource::lua::LuaResourceManager;
 use crate::resource::ResourceManager;
 use crate::{event::EventState, gui::EguiContext, map2anyhow_error, physics::LuaPhysics};
@@ -16,6 +17,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use winit::window::Window;
 #[derive(Debug, Clone)]
 pub struct LuaBindings {
     pub lua: Lua,
@@ -212,15 +214,19 @@ impl LuaBindings {
         self.lua.globals().set("physics_init", physics_init)?;
         Ok(())
     }
-    pub fn run_draw_fn(
+    pub fn run_view_fn(
         &self,
         context: Context,
         resource: Arc<Mutex<ResourceManager>>,
-        window: &winit::window::Window,
+        window: Arc<winit::window::Window>,
     ) -> anyhow::Result<()> {
         let size = window.inner_size();
         map2anyhow_error!(
-            self.lua.scope(|_| {
+            self.lua.scope(|scope| {
+                let window = scope.create_userdata(LuaWindow {
+                    window: window,
+                    resource: resource.clone(),
+                })?;
                 let ui_context = self.lua.create_userdata(EguiContext {
                     context,
                     width: size.width as f32,
@@ -228,10 +234,10 @@ impl LuaBindings {
                     resource,
                 })?;
                 let lua_view_fn: Function = self.lua.globals().get("view")?;
-                lua_view_fn.call::<()>(ui_context)?;
+                lua_view_fn.call::<()>((window, ui_context))?;
                 Ok(())
             }),
-            "run_draw_fn failed"
+            "run_view_fn failed"
         )
     }
     pub fn run_update_fn(&self) -> anyhow::Result<()> {
@@ -245,10 +251,34 @@ impl LuaBindings {
             "run_update_fn failed"
         )
     }
-    pub fn run_init_fn(&self) -> anyhow::Result<()> {
+    pub fn run_init_fn(
+        &self,
+        ctx: &Context,
+        win: Arc<Window>,
+        resource: Arc<Mutex<ResourceManager>>,
+    ) -> anyhow::Result<()> {
+        let size = win.inner_size();
         match self.lua.globals().get::<Function>("init") {
             Ok(init_fn) => {
-                map2anyhow_error!(init_fn.call::<()>(()), "call init fn failed")?;
+                map2anyhow_error!(
+                    self.lua.scope(|_| {
+                        let window = self.lua.create_userdata(LuaWindow {
+                            window: win,
+                            resource: resource.clone(),
+                        })?;
+                        let ui_context = self.lua.create_userdata(EguiContext {
+                            context: ctx.clone(),
+                            width: size.width as f32,
+                            heigth: size.height as f32,
+                            resource,
+                        })?;
+                        if let Err(err) = init_fn.call::<()>((window, ui_context)) {
+                            log::error!("call lua init fn failed: {}", err);
+                        }
+                        Ok(())
+                    }),
+                    "run_init_fn"
+                )?;
                 Ok(())
             }
             Err(err) => {

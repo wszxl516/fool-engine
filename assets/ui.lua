@@ -49,7 +49,7 @@ end
 ---@param ui_context EguiContext
 ---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
-function UI:view(ui_context, window)
+function UI:view(ui_context)
     -- window:set_title("window")
     -- window:set_resizable(false)
     -- window:set_max_inner_size_points({ w = 800, h = 800 })
@@ -86,6 +86,7 @@ function UI:view(ui_context, window)
         y = 0.0,
         w = 200.0,
         h = 400.0,
+        font_name = "SarasaTermSCNerd-Regular.ttf",
         frame = {
             inner_margin = { left = 5, right = 5, top = 5, bottom = 5 },
             outer_margin = { left = 1, right = 1, top = 1, bottom = 1 },

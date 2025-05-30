@@ -1,10 +1,15 @@
 use crate::map2anyhow_error;
+use egui::{FontData, FontDefinitions};
 use image::DynamicImage;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub mod lua;
 pub mod types;
 #[cfg(not(feature = "debug"))]
 use packtool::MemResource;
+use winit::{
+    event_loop::ActiveEventLoop,
+    window::{CustomCursor, Icon},
+};
 pub enum Resource {
     Image(DynamicImage),
 }
@@ -14,6 +19,9 @@ pub struct ResourceManager {
     pub memory_resource: MemResource,
     #[cfg(feature = "debug")]
     assets_path: PathBuf,
+    pub ui_font: FontDefinitions,
+    pub window_cursor: HashMap<String, Option<CustomCursor>>,
+    pub window_icon: HashMap<String, Icon>,
 }
 
 pub fn resource_path() -> anyhow::Result<PathBuf> {
@@ -45,6 +53,9 @@ impl ResourceManager {
             memory_resource: resource_pack,
             #[cfg(feature = "debug")]
             assets_path,
+            ui_font: FontDefinitions::empty(),
+            window_cursor: Default::default(),
+            window_icon: Default::default(),
         })
     }
     #[cfg(not(feature = "debug"))]
@@ -97,4 +108,99 @@ impl ResourceManager {
             })
             .ok_or_else(|| anyhow::anyhow!("resource is not a image or not found!"))
     }
+    pub fn load_ui_font(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
+        let path: PathBuf = path.into();
+        let id = path.to_string_lossy().to_string();
+        #[cfg(feature = "debug")]
+        {
+            let font_path = self.assets_path.join(&path);
+            let font_data = std::fs::read(&font_path)?;
+            log::debug!("load font {} from disk!", font_path.display());
+            let font_data = Arc::new(FontData::from_owned(font_data));
+            self.ui_font.font_data.insert(id.clone(), font_data);
+        }
+        #[cfg(not(feature = "debug"))]
+        {
+            log::debug!("load imge {} from memory!", &path.display());
+            let font_data = self.load_bytes_from_memory(&path.to_string_lossy().to_string());
+            let font_data = Arc::new(FontData::from_owned(font_data.into()));
+            self.ui_font.font_data.insert(id.clone(), font_data);
+        };
+
+        self.ui_font
+            .families
+            .get_mut(&egui::FontFamily::Proportional)
+            .unwrap()
+            .insert(0, id.clone());
+        self.ui_font
+            .families
+            .get_mut(&egui::FontFamily::Monospace)
+            .unwrap()
+            .push(id);
+        Ok(())
+    }
+    pub fn load_cursor(&mut self, event_loop: &ActiveEventLoop) -> anyhow::Result<()> {
+        let names: Vec<_> = self
+            .window_cursor
+            .iter()
+            .filter_map(|(name, cursor)| {
+                if cursor.is_none() {
+                    Some(name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for name in names {
+            let img = self.get_image(&name)?;
+            match create_cursor(event_loop, img) {
+                Ok(c) => {
+                    self.window_cursor.insert(name.clone(), Some(c));
+                    log::debug!("cursor {} loaded!", name);
+                }
+                Err(err) => {
+                    log::error!("load cursor {} failed: {}", name, err);
+                }
+            }
+        }
+
+        Ok(())
+    }
+    pub fn get_cursor(&self, path: &String) -> Option<&Option<CustomCursor>> {
+        self.window_cursor.get(path)
+    }
+    pub fn load_window_icon(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
+        let path: PathBuf = path.into();
+        let img = self.get_image(&path)?;
+        let width = img.width();
+        let height = img.height();
+        let rgba = img.as_rgba8().ok_or(anyhow::anyhow!(
+            "convert {} to rgba8 failed!",
+            path.display()
+        ))?;
+        let icon = Icon::from_rgba(rgba.clone().into_vec(), width, height)?;
+        self.window_icon
+            .insert(path.to_string_lossy().to_string(), icon);
+        Ok(())
+    }
+    pub fn get_window_icon(&mut self, path: &String) -> anyhow::Result<&Icon> {
+        if !self.window_icon.contains_key(path) {
+            self.load_window_icon(path)?;
+        }
+        self.window_icon
+            .get(path)
+            .ok_or(anyhow::anyhow!("window_icon {} not found!", path))
+    }
+}
+
+pub fn create_cursor(
+    event_loop: &ActiveEventLoop,
+    img: &DynamicImage,
+) -> anyhow::Result<CustomCursor> {
+    let width = img.width() as u16;
+    let height = img.height() as u16;
+    let rgba = img.as_rgba8().cloned().unwrap().into_vec();
+    let cursor = CustomCursor::from_rgba(rgba, width, height, width / 2, height / 2)?;
+    Ok(event_loop.create_custom_cursor(cursor))
 }

@@ -1,11 +1,12 @@
+use crate::graphics::types::LuaColor;
+use egui::{epaint::text::TextWrapMode, FontId, TextStyle};
 use egui::{
     epaint::{CornerRadius, Margin},
     Frame, Shadow, Stroke,
 };
-use mlua::{FromLua, LuaSerdeExt, Value};
+use mlua::{FromLua, IntoLua, Lua, LuaSerdeExt, Result as LuaResult, Value};
 use serde::{Deserialize, Serialize};
-
-use crate::graphics::types::LuaColor;
+use std::{collections::BTreeMap, collections::HashMap};
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub struct LuaShadow {
     #[serde(default)]
@@ -87,6 +88,55 @@ pub struct LuaUIConfig {
 
 impl FromLua for LuaUIConfig {
     fn from_lua(value: Value, lua: &mlua::Lua) -> mlua::Result<Self> {
+        lua.from_value(value)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LuaGuiStyle {
+    pub text: HashMap<std::string::String, f32>,
+    pub dark: bool,
+    #[serde(default)]
+    pub animation_time: f32,
+    #[serde(default)]
+    pub wrap: Option<TextWrapMode>,
+    #[serde(default)]
+    pub noninteractive_fg_color: Option<LuaColor>,
+    #[serde(default)]
+    pub hovered_fg_color: Option<LuaColor>,
+    #[serde(default)]
+    pub active_fg_color: Option<LuaColor>,
+    #[serde(default)]
+    pub inactive_fg_color: Option<LuaColor>,
+    #[serde(default)]
+    pub open_fg_color: Option<LuaColor>,
+}
+impl LuaGuiStyle {
+    pub fn text_style(&self) -> BTreeMap<TextStyle, FontId> {
+        self.text
+            .iter()
+            .map(|s| {
+                let name = match s.0.as_str() {
+                    "Small" => TextStyle::Small,
+                    "Body" => TextStyle::Body,
+                    "Monospace" => TextStyle::Monospace,
+                    "Button" => TextStyle::Button,
+                    "Heading" => TextStyle::Heading,
+                    _ => TextStyle::Name(s.0.as_str().into()),
+                };
+                (name, FontId::proportional(*s.1))
+            })
+            .collect::<BTreeMap<TextStyle, FontId>>()
+    }
+}
+
+impl IntoLua for LuaGuiStyle {
+    fn into_lua(self, lua: &Lua) -> LuaResult<mlua::Value> {
+        lua.to_value(&self)
+    }
+}
+impl FromLua for LuaGuiStyle {
+    fn from_lua(value: mlua::Value, lua: &Lua) -> LuaResult<Self> {
         lua.from_value(value)
     }
 }

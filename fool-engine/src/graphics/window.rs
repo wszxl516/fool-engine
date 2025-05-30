@@ -1,29 +1,92 @@
 pub use super::super::gui::EguiContext;
-use super::types::{LuaGuiStyle, LuaPoint, LuaSize};
-use crate::{map2lua_error, resource::types::LuaImage};
-use egui::{Style, Visuals};
-use mlua::{UserData, Value};
-use winit::window::Icon;
-use winit::window::Window;
-pub struct LuaWindow<'a> {
-    pub window: std::cell::Ref<'a, Window>,
+use super::types::{LuaPoint, LuaSize};
+use crate::map2lua_error;
+
+use crate::resource::ResourceManager;
+use mlua::UserData;
+use parking_lot::Mutex;
+use std::str::FromStr;
+use std::sync::Arc;
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size};
+use winit::window::{CursorGrabMode, CursorIcon, Fullscreen, Window};
+
+pub struct LuaWindow {
+    pub window: Arc<Window>,
+    pub resource: Arc<Mutex<ResourceManager>>,
 }
-impl UserData for LuaWindow<'_> {
+impl UserData for LuaWindow {
     //cursor
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("set_cursor_grab", |_lua, this, enable: String| {
+            let grab = match enable.as_str() {
+                "None" => CursorGrabMode::None,
+                "Confined" => CursorGrabMode::Confined,
+                "Locked" => CursorGrabMode::Locked,
+                _ => CursorGrabMode::None,
+            };
+            map2lua_error!(this.window.set_cursor_grab(grab), "set_cursor_grab")
+        });
         methods.add_method("set_ime_allowed", |_lua, this, enable: bool| {
             this.window.set_ime_allowed(enable);
             Ok(())
         });
-
+        methods.add_method(
+            "set_ime_cursor_area",
+            |_lua, this, (pos, size): (LuaPoint<f64>, LuaSize<f64>)| {
+                this.window.set_ime_cursor_area(
+                    Position::Logical(LogicalPosition::new(pos.x, pos.y)),
+                    Size::Logical(LogicalSize::new(size.w, size.h)),
+                );
+                Ok(())
+            },
+        );
+        methods.add_method("load_cursor_icon", |_lua, this, cursor: String| {
+            let mut res = this.resource.lock();
+            res.window_cursor.insert(cursor, None);
+            Ok(())
+        });
+        methods.add_method("set_cursor_icon", |_lua, this, cursor: String| {
+            if let Some(cursor) = this.resource.lock().get_cursor(&cursor) {
+                if let Some(cur) = cursor {
+                    this.window.set_cursor(cur.clone());
+                }
+            }
+            Ok(())
+        });
+        methods.add_method("set_window_icon", |_lua, this, icon: String| {
+            match this.resource.lock().get_window_icon(&icon) {
+                Ok(icon) => this.window.set_window_icon(Some(icon.clone())),
+                Err(err) => log::error!("failed to get window icon {}, {}", icon, err),
+            }
+            Ok(())
+        });
+        methods.add_method("set_cursor", |_lua, this, cursor: String| {
+            if let Ok(cursor) = CursorIcon::from_str(&cursor) {
+                this.window.set_cursor(cursor);
+            }
+            Ok(())
+        });
         methods.add_method("set_cursor_visible", |_lua, this, visible: bool| {
             this.window.set_cursor_visible(visible);
             Ok(())
         });
-        //window
-
-        methods.add_method("set_decorations", |_lua, this, decorations: bool| {
-            this.window.set_decorations(decorations);
+        methods.add_method("set_fullscreen", |_lua, this, visible: bool| {
+            let c = if visible {
+                Some(Fullscreen::Borderless(this.window.current_monitor()))
+            } else {
+                None
+            };
+            this.window.set_fullscreen(c);
+            Ok(())
+        });
+        methods.add_method("set_max_inner_size", |_lua, this, size: LuaSize<f64>| {
+            this.window
+                .set_max_inner_size(Some(PhysicalSize::new(size.w, size.h)));
+            Ok(())
+        });
+        methods.add_method("set_min_inner_size", |_lua, this, size: LuaSize<f64>| {
+            this.window
+                .set_min_inner_size(Some(PhysicalSize::new(size.w, size.h)));
             Ok(())
         });
 
@@ -31,9 +94,12 @@ impl UserData for LuaWindow<'_> {
             this.window.set_maximized(maximized);
             Ok(())
         });
-
         methods.add_method("set_minimized", |_lua, this, minimized: bool| {
             this.window.set_minimized(minimized);
+            Ok(())
+        });
+        methods.add_method("set_decorations", |_lua, this, decorations: bool| {
+            this.window.set_decorations(decorations);
             Ok(())
         });
 
@@ -50,25 +116,19 @@ impl UserData for LuaWindow<'_> {
             this.window.set_visible(visible);
             Ok(())
         });
-        methods.add_method("set_window_icon", |_lua, this, image: Value| {
-            let img = match image {
-                mlua::Value::UserData(ud) => ud.borrow::<LuaImage>()?,
-                _ => {
-                    return Err(mlua::Error::FromLuaConversionError {
-                        from: image.type_name(),
-                        to: "EguiContext".into(),
-                        message: Some("Expected EguiContext as UserData".into()),
-                    });
-                }
-            };
-            let image = img.image.to_rgba8();
-            let size = image.dimensions();
-            let icon = map2lua_error!(
-                Icon::from_rgba(image.into_raw(), size.0, size.1),
-                "set_window_icon create icon Error: {}"
-            )?;
-            this.window.set_window_icon(Some(icon));
-            Ok(())
+        methods.add_method("inner_size", |_lua, this, (): ()| {
+            let size = this.window.inner_size();
+            Ok(LuaSize {
+                w: size.width,
+                h: size.height,
+            })
+        });
+        methods.add_method("outer_size", |_lua, this, (): ()| {
+            let size = this.window.outer_size();
+            Ok(LuaSize {
+                w: size.width,
+                h: size.height,
+            })
         });
 
         methods.add_method("monitor", |lua, this, ()| {
@@ -100,47 +160,5 @@ impl UserData for LuaWindow<'_> {
                 }
             }
         });
-
-        methods.add_method(
-            "set_gui_style",
-            |_lua, _this, (context, ui_style): (mlua::Value, LuaGuiStyle)| {
-                let context = match context {
-                    mlua::Value::UserData(ud) => ud.borrow::<EguiContext>()?,
-                    _ => {
-                        return Err(mlua::Error::FromLuaConversionError {
-                            from: context.type_name(),
-                            to: "EguiContext".into(),
-                            message: Some("Expected EguiContext as UserData".into()),
-                        });
-                    }
-                };
-                let mut style: Style = (*context.context.style()).clone();
-                style.text_styles = ui_style.text_style();
-                style.visuals = if ui_style.dark {
-                    Visuals::dark()
-                } else {
-                    Visuals::light()
-                };
-                if let Some(color) = ui_style.noninteractive_fg_color {
-                    style.visuals.widgets.noninteractive.fg_stroke.color = color.into();
-                }
-                if let Some(color) = ui_style.hovered_fg_color {
-                    style.visuals.widgets.hovered.fg_stroke.color = color.into();
-                }
-                if let Some(color) = ui_style.active_fg_color {
-                    style.visuals.widgets.active.fg_stroke.color = color.into();
-                }
-                if let Some(color) = ui_style.inactive_fg_color {
-                    style.visuals.widgets.inactive.fg_stroke.color = color.into();
-                }
-                if let Some(color) = ui_style.open_fg_color {
-                    style.visuals.widgets.open.fg_stroke.color = color.into();
-                }
-                style.animation_time = ui_style.animation_time;
-                style.wrap_mode = ui_style.wrap;
-                context.context.set_style(style);
-                Ok(())
-            },
-        );
     }
 }

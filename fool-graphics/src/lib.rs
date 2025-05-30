@@ -35,7 +35,11 @@ impl App {
             model,
         }
     }
-    pub fn init(&mut self, window: Arc<Window>) -> anyhow::Result<()> {
+    pub fn init(
+        &mut self,
+        window: Arc<Window>,
+        event_loop: &ActiveEventLoop,
+    ) -> anyhow::Result<()> {
         self.window.replace(window.clone());
         self.render.init(window.clone())?;
         if let Some(r) = &self.render.context {
@@ -46,6 +50,10 @@ impl App {
                 window,
             ));
         }
+        if let (Some(egui), Some(win)) = (&self.egui_render, &self.window) {
+            self.model.init(egui.context(), win.clone());
+        }
+        self.model.event_loop(event_loop);
         Ok(())
     }
     pub fn create_window(
@@ -81,11 +89,11 @@ impl App {
         let scene = self.render.scene_mut();
         scene.clear();
         if let Some(window) = &self.window {
-            self.model.graphics(scene.scene(), &window);
+            self.model.graphics(scene.scene(), window.clone());
             if let Some(egui) = &mut self.egui_render {
                 self.render.render(|encoder, dev, view| {
                     egui.run(&dev.device, &dev.queue, encoder, view, |ctx| {
-                        self.model.gui(ctx, &window)
+                        self.model.gui(ctx, window.clone())
                     });
                 });
             }
@@ -97,7 +105,8 @@ impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
             let window = Self::create_window(event_loop, &self.window_attr);
-            self.init(window.clone()).expect("app init failed");
+            self.init(window.clone(), event_loop)
+                .expect("app init failed");
         }
         event_loop.set_control_flow(ControlFlow::Wait);
     }
@@ -134,11 +143,14 @@ impl ApplicationHandler for App {
     }
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.trigger_redraw(event_loop);
+        self.model.event_loop(event_loop);
     }
 }
 
 pub trait AppModel {
-    fn graphics(&mut self, _scene: &mut vello::Scene, _window: &winit::window::Window) {}
-    fn gui(&mut self, _context: &egui::Context, _window: &winit::window::Window) {}
+    fn init(&mut self, _context: &egui::Context, _window: Arc<winit::window::Window>) {}
+    fn graphics(&mut self, _scene: &mut vello::Scene, _window: Arc<winit::window::Window>) {}
+    fn gui(&mut self, _context: &egui::Context, _window: Arc<winit::window::Window>) {}
     fn window_event(&mut self, _event: &WindowEvent) {}
+    fn event_loop(&mut self, _event_loop: &ActiveEventLoop) {}
 }

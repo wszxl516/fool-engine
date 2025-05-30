@@ -2,6 +2,7 @@ use anyhow::Result;
 use fool_graphics::App;
 use fool_graphics::AppModel;
 use fool_graphics::graph_vec2;
+use std::sync::Arc;
 use winit::dpi::LogicalSize;
 use winit::dpi::Size;
 use winit::event_loop::EventLoop;
@@ -24,11 +25,11 @@ fn main() -> Result<()> {
 }
 struct TestApp;
 impl AppModel for TestApp {
-    fn graphics(&mut self, scene: &mut vello::Scene, _window: &winit::window::Window) {
+    fn graphics(&mut self, scene: &mut vello::Scene, _window: Arc<winit::window::Window>) {
         test_graph(scene);
     }
-    fn gui(&mut self, context: &egui::Context, window: &winit::window::Window) {
-        test_gui(context, window);
+    fn gui(&mut self, context: &egui::Context, window: Arc<winit::window::Window>) {
+        test_gui(context, &window);
     }
 }
 pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {

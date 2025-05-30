@@ -5,8 +5,9 @@ mod binding;
 mod types;
 use crate::map2anyhow_error;
 use binding::LuaUiContext;
+use egui::Visuals;
 use egui::{pos2, vec2};
-use types::LuaUIConfig;
+use types::{LuaGuiStyle, LuaUIConfig};
 pub struct Gui {
     lua: LuaBindings,
 }
@@ -19,7 +20,46 @@ pub struct EguiContext {
     pub heigth: f32,
     pub resource: Arc<Mutex<ResourceManager>>,
 }
-impl UserData for EguiContext {}
+impl UserData for EguiContext {
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method_mut("set_font", |_lua, this, name: String| {
+            let mut res = this.resource.lock();
+            res.load_ui_font(name).unwrap();
+            let font = res.ui_font.clone();
+            this.context.set_fonts(font);
+            Ok(())
+        });
+        methods.add_method("set_style", |_lua, this, ui_style: LuaGuiStyle| {
+            let context = &this.context;
+            let mut style = context.style().as_ref().clone();
+            style.text_styles = ui_style.text_style();
+            style.visuals = if ui_style.dark {
+                Visuals::dark()
+            } else {
+                Visuals::light()
+            };
+            if let Some(color) = ui_style.noninteractive_fg_color {
+                style.visuals.widgets.noninteractive.fg_stroke.color = color.into();
+            }
+            if let Some(color) = ui_style.hovered_fg_color {
+                style.visuals.widgets.hovered.fg_stroke.color = color.into();
+            }
+            if let Some(color) = ui_style.active_fg_color {
+                style.visuals.widgets.active.fg_stroke.color = color.into();
+            }
+            if let Some(color) = ui_style.inactive_fg_color {
+                style.visuals.widgets.inactive.fg_stroke.color = color.into();
+            }
+            if let Some(color) = ui_style.open_fg_color {
+                style.visuals.widgets.open.fg_stroke.color = color.into();
+            }
+            style.animation_time = ui_style.animation_time;
+            style.wrap_mode = ui_style.wrap;
+            context.set_style(style);
+            Ok(())
+        });
+    }
+}
 
 impl Gui {
     pub fn new(lua: &LuaBindings) -> Self {

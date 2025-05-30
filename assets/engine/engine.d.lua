@@ -369,8 +369,8 @@ end
 --- Window
 ---@class Window
 local Window = {}
----@param grabbed boolean
-function Window:set_cursor_grab(grabbed)
+---@param grab "None"|"Confined"|"Locked"
+function Window:set_cursor_grab(grab)
 end
 
 ---@param enable boolean
@@ -378,70 +378,52 @@ function Window:set_ime_allowed(enable)
 end
 
 ---@param position Point
-function Window:set_ime_position(position)
+---@param size Size
+function Window:set_ime_cursor_area(position, size)
 end
 
 ---@param icon string
----   [Default, Crosshair, Hand, Arrow, Move,
----    Text, Wait, Help, Progress, NotAllowed, ContextMenu, Cell, VerticalText,
----    Alias, Copy, NoDrop, Grab, Grabbing, AllScroll, ZoomIn, ZoomOut, EResize,
----    NResize, NeResize, NwResize, SResize, SeResize, SwResize, WResize, EwResize, NsResize,
----    NeswResize, NwseResize, ColResize, RowResize]
+--- "default" |"context-menu" "help" | "pointer"| "progress"| "wait" "cell" 
+--- "crosshair" | "text" | "vertical-text" | "alias" | "copy" | "move" | "no-drop" 
+--- "not-allowed" | "grab" | "grabbing" | "e-resize" | "n-resize" | "ne-resize" 
+--- "nw-resize" | "s-resize" | "se-resize" | "sw-resize" | "w-resize" | "ew-resize" 
+--- "ns-resize" | "nesw-resize" | "nwse-resize" | "col-resize" | "row-resize" 
+--- "all-scroll" | "zoom-in" | "zoom-out" 
+function Window:set_cursor(icon)
+end
+
+---@param icon string
+function Window:load_cursor_icon(icon)
+end
+
+---@param icon string
 function Window:set_cursor_icon(icon)
 end
-
----@param position Point
-function Window:set_cursor_position_points(position)
+---@param icon string
+function Window:set_window_icon(icon)
 end
-
 ---@param visible boolean
 function Window:set_cursor_visible(visible)
 end
 
----@param always_on_top boolean
-function Window:set_always_on_top(always_on_top)
-end
-
----@param decorations boolean
-function Window:set_decorations(decorations)
-end
 
 ---@param fullscreen boolean
 function Window:set_fullscreen(fullscreen)
 end
 
----@param position Point
-function Window:set_ime_position_points(position)
-end
 
----@param width number
----@param height number
-function Window:set_inner_size_pixels(width, height)
+---@param size Size
+function Window:set_max_inner_size(size)
 end
-
----@param width number
----@param height number
-function Window:set_inner_size_points(width, height)
+---@param size Size
+function Window:set_min_inner_size(size)
 end
-
----@param size Size|nil
-function Window:set_max_inner_size_points(size)
-end
-
 ---@param maximized boolean
 function Window:set_maximized(maximized)
 end
 
----@param size Size|nil
-function Window:set_min_inner_size_points(size)
-end
-
----@param minimized boolean
-function Window:set_minimized(minimized)
-end
-
----@param position Point
-function Window:set_outer_position_pixels(position)
+---@param decorations boolean
+function Window:set_decorations(decorations)
 end
 
 ---@param resizable boolean
@@ -456,22 +438,14 @@ end
 function Window:set_visible(visible)
 end
 
----@param path string|nil
-function Window:set_window_icon(path)
+---@return Size
+function Window:inner_size()
+    return {}
 end
 
----@return integer
-function Window:elapsed_frames()
-    return 0
-end
-
----@return integer
-function Window:msaa_samples()
-    return 0
-end
-
----@param path string
-function Window:capture_frame(path)
+---@return Size
+function Window:outer_size()
+    return {}
 end
 
 ---@class monitorInfo
@@ -484,31 +458,6 @@ end
 function Window:monitor()
 end
 
----@return Size
-function Window:inner_size_pixels()
-    return {}
-end
-
----@return Size
-function Window:outer_size_pixels()
-    return {}
-end
-
----@return Size
-function Window:inner_size_points()
-    return {}
-end
-
----@return Size
-function Window:outer_size_points()
-    return {}
-end
-
----@return [Point]
-function Window:rect()
-    return {}
-end
-
 ---@return boolean
 function Window:is_fullscreen()
     return false
@@ -518,29 +467,6 @@ end
 ---@param font Font
 ---@diagnostic disable-next-line: lowercase-global
 function Window:set_gui_font(ctx, font)
-
-end
-
----@class TextStyle
----@field Small number
----@field Body number
----@field Monospace number
----@field Button number
----@field Heading number
----@class LuaGuiStyle
----@field text? TextStyle
----@field dark? boolean
----@field animation_time? number
----@field wrap? boolean
----@field noninteractive_fg_color? Color8
----@field hovered_fg_color? Color8
----@field active_fg_color? Color8
----@field inactive_fg_color? Color8,
----@field open_fg_color? Color8
----@param ctx EguiContext
----@param style LuaGuiStyle
----@diagnostic disable-next-line: lowercase-global
-function Window:set_gui_style(ctx, style)
 
 end
 
@@ -801,7 +727,32 @@ function UIContext:image(texture, config) end
 ---@param texture Texture
 ---@param config ImageConfig
 function UIContext:image_button(texture, config) end
+---@class EguiContext
+EguiContext = {}
+---@param name string
+function EguiContext:set_font(name)
+end
+---@class TextStyle
+---@field Small number
+---@field Body number
+---@field Monospace number
+---@field Button number
+---@field Heading number
+---@class LuaGuiStyle
+---@field text? TextStyle
+---@field dark? boolean
+---@field animation_time? number
+---@field wrap? "Extend"|"Wrap" |"Truncate"|nil
+---@field noninteractive_fg_color? Color8
+---@field hovered_fg_color? Color8
+---@field active_fg_color? Color8
+---@field inactive_fg_color? Color8,
+---@field open_fg_color? Color8
+---@param style LuaGuiStyle
+---@diagnostic disable-next-line: lowercase-global
+function EguiContext:set_style(style)
 
+end
 ---@class Margin
 ---@field left number
 ---@field right number
@@ -842,7 +793,6 @@ function UIContext:image_button(texture, config) end
 ---@field y number
 ---@field w number
 ---@field h number
----@class EguiContext
 ---@param config UiConfig
 ---@param context EguiContext
 ---@param bg_img Texture|nil
