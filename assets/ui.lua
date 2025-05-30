@@ -1,6 +1,7 @@
 local utils = require("engine.utils")
 local LOG = require("engine.log")
-local logger = LOG:new("ui", "debug", true, true)
+local rgba8 = require("engine.color.rgba8")
+local logger = LOG.new("ui", true, true)
 local ui_data = {
     combo_box = { selected = "aa", id = "combo_box", items = { "bb", "aa", "cc" } },
     radio = { { selected = false, text = "aaa" }, { selected = true, text = "bbb" } },
@@ -49,28 +50,29 @@ end
 ---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
 function UI:view(ui_context, window)
-    window:set_title("window")
-    window:set_resizable(false)
-    window:set_max_inner_size_points({ w = 800, h = 800 })
-    window:set_min_inner_size_points({ w = 800, h = 800 })
-    window:set_gui_font(ui_context, self.data.font)
-    window:set_gui_style(ui_context, {
-        text = {
-            Heading = 22.0,
-            Body = 18.0,
-            Button = 18.0,
-            Small = 16.0,
-            Monospace = 18.0
-        },
-        dark = true,
-        animation_time = 0.2,
-        wrap = true,
-        -- noninteractive_fg_color = { r = 255, g = 0, b = 0, a = 0 },
-        -- hovered_fg_color =  { r = 255, g = 255, b = 255, a = 0 },
-        active_fg_color = { r = 0, g = 0, b = 0, a = 0 },
-        inactive_fg_color = { r = 200, g = 200, b = 200, a = 200 },
-        -- open_fg_color = {r = 200}
-    })
+    -- window:set_title("window")
+    -- window:set_resizable(false)
+    -- window:set_max_inner_size_points({ w = 800, h = 800 })
+    -- window:set_min_inner_size_points({ w = 800, h = 800 })
+    -- window:set_gui_font(ui_context, self.data.font)
+    -- window:set_gui_style(ui_context, {
+    --     text = {
+    --         Heading = 22.0,
+    --         Body = 18.0,
+    --         Button = 18.0,
+    --         Small = 16.0,
+    --         Monospace = 18.0
+    --     },
+    --     dark = true,
+    --     animation_time = 0.2,
+    --     wrap = true,
+    --     -- noninteractive_fg_color = { r = 255, g = 0, b = 0, a = 0 },
+    --     -- hovered_fg_color =  { r = 255, g = 255, b = 255, a = 0 },
+    --     active_fg_color = { r = 0, g = 0, b = 0, a = 0 },
+    --     inactive_fg_color = { r = 200, g = 200, b = 200, a = 200 },
+    --     -- open_fg_color = {r = 200}
+    -- })
+
     gui_create_window({
         title = "test windows",
         collapsible = false,
@@ -88,11 +90,12 @@ function UI:view(ui_context, window)
             inner_margin = { left = 5, right = 5, top = 5, bottom = 5 },
             outer_margin = { left = 1, right = 1, top = 1, bottom = 1 },
             rounding = { nw = 5, ne = 5, sw = 5, se = 5 },
-            shadow = { extrusion = 1, color = { r = 0, g = 0, b = 0, a = 0 } },
-            fill = { r = 0, g = 0, b = 0, a = 0 },
-            stroke = { color = { r = 50, g = 50, b = 50, a = 50 }, width = 1 }
+            shadow = { offset = { 1, 2 }, blur = 1, spread = 1, color = rgba8.new(0, 0, 0, 0) },
+            fill = rgba8.new(0, 0, 0, 0),
+            stroke_width = 1,
+            stroke_color = rgba8.new(50, 50, 50, 50)
         }
-    }, ui_context, nil, { r = 10, g = 10, b = 10, a = 10 }, function (ui)
+    }, ui_context, function(ui)
         gui_run(self.data, ui)
     end)
 end
@@ -110,18 +113,18 @@ end
 function gui_run(data, ui)
     ui:set_row_height(20)
     ui:with_layout(true, function(image_ui)
-        local btn = image_ui:image_button(data.linux_texture, {
-            w = 100,
-            h = 100,
-            show_loading_spinner = true,
-            frame = true,
-            stroke_width = 2.0,
-            stroke_color = { r = 10, g = 10, b = 10, a = 0 },
-            wrap = false
-        })
-        if btn:clicked() then
-            logger:info("image_button clicked")
-        end
+        -- local btn = image_ui:image_button(data.linux_texture, {
+        --     w = 100,
+        --     h = 100,
+        --     show_loading_spinner = true,
+        --     frame = true,
+        --     stroke_width = 2.0,
+        --     stroke_color = { r = 10, g = 10, b = 10, a = 0 },
+        --     wrap = false
+        -- })
+        -- if btn:clicked() then
+        --     logger:info("image_button clicked")
+        -- end
     end)
     ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)
         grid_ui:with_layout(true, function(center_ui)

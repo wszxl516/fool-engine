@@ -1,0 +1,34 @@
+[package]
+name = "fool-engine"
+version = "0.1.0"
+edition = "2021"
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "fool-engine"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+lazy_static = { workspace = true }
+log = { workspace = true }
+rolllog = { workspace = true}
+mlua = { workspace = true }
+rapier2d = { workspace = true }
+clap = { workspace = true }
+find_folder ={ workspace = true}
+packtool = { path = "../packtool"}
+parking_lot = {workspace = true}
+winit = { workspace = true}
+egui = { workspace = true}
+#graphics
+fool-graphics = { path = "../fool-graphics"}
+serde_json ={ version = "*"}
+image ={ workspace = true}
+epaint = {version = "0.31.1", optional = true}
+[features]
+default = ["epaint/serde"]
+debug = []

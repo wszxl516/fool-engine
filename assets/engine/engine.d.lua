@@ -815,11 +815,9 @@ function UIContext:image_button(texture, config) end
 ---@field se number
 
 ---@class Shadow
----@field extrusion number
----@field color Color8
-
----@class Stroke
----@field width number
+---@field offset number[]
+---@field blur number
+---@field spread number
 ---@field color Color8
 
 ---@class Frame
@@ -828,7 +826,8 @@ function UIContext:image_button(texture, config) end
 ---@field rounding? Rounding
 ---@field shadow? Shadow
 ---@field fill? Color8
----@field stroke? Stroke
+---@field stroke_width? number
+---@field stroke_color? Color8
 ---@class UiConfig
 ---@field title string
 ---@field collapsible? boolean
@@ -850,7 +849,7 @@ function UIContext:image_button(texture, config) end
 ---@param bg_img_color Color8|nil
 ---@param body fun(ctx: UIContext)
 ---@diagnostic disable-next-line: lowercase-global
-function gui_create_window(config, context, bg_img, bg_img_color, body)
+function gui_create_window(config, context, body)
 
 end
 

@@ -1,0 +1,39 @@
+[package]
+name = "fool-graphics"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "fool_graphics"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fool-graphics"
+path = "src/main.rs"
+
+[dependencies]
+winit = { workspace = true}
+wgpu = {workspace = true}
+pollster = {version = "0.4.0"}
+vello = {version = "0.5.0", features = []}
+vello_encoding = {version = "0.5.0"}
+image = {workspace = true}
+anyhow ={ workspace = true}
+egui-winit = {workspace = true}
+egui = {workspace = true}
+egui-wgpu = { workspace = true }
+serde = { workspace = true}
+# Text
+parking_lot = {workspace = true}
+skrifa ={ version = "0.31.3"}
+bytemuck = {version = "1.23.0"}
+
+kurbo = {version = "0.11.2", optional = true}
+peniko = {version = "0.4.0", optional = true}
+[features]
+default = ["kurbo/serde", "peniko/serde"]
+debug = []
+
+[dependencies.rusttype]
+version = "0.9.3"
+features = ["gpu_cache"]
