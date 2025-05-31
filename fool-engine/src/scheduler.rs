@@ -1,5 +1,9 @@
+#![allow(dead_code)]
 use std::time::{Duration, Instant};
 
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
+
+#[derive(Debug)]
 pub struct Scheduler {
     frame_interval: Duration,
     pub next_frame_time: Instant,
@@ -15,14 +19,27 @@ impl Scheduler {
         }
     }
 
-    pub fn should_redraw(&self) -> bool {
-        Instant::now() >= self.next_frame_time
-    }
     pub fn advance(&mut self) {
         self.next_frame_time = Instant::now() + self.frame_interval;
     }
     pub fn reset(&mut self) {
         let now = Instant::now();
         self.next_frame_time = now + self.frame_interval;
+    }
+    pub fn trigger_redraw(&mut self, event_loop: &ActiveEventLoop) -> bool {
+        let mut redraw = false;
+        let now = std::time::Instant::now();
+        if now >= self.next_frame_time {
+            redraw = true;
+            self.advance();
+        }
+        let next = self.next_frame_time;
+        let wait = if next > now {
+            next
+        } else {
+            now + std::time::Duration::from_millis(1)
+        };
+        event_loop.set_control_flow(ControlFlow::WaitUntil(wait));
+        return redraw;
     }
 }

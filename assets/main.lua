@@ -67,12 +67,15 @@ end
 
 ---@param dt number -- delay time
 ---@param event Event
+---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
-function event(event, dt)
+function event(event, window, dt)
     graphics:event(event, dt)
+    if event:key_pressed("Escape") then
+        print("Escape")
+        window:exit()
+    end
     event:on_exit(function()
-        logger:debug("exit at dt %s", dt)
-        return false
+        logger:debug("exit from lua")
     end)
-    -- event:exit()
 end

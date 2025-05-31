@@ -2,6 +2,7 @@ pub use super::super::gui::EguiContext;
 use super::types::{LuaPoint, LuaSize};
 use crate::map2lua_error;
 
+use crate::event::EngineEventLoop;
 use crate::resource::ResourceManager;
 use mlua::UserData;
 use parking_lot::Mutex;
@@ -13,10 +14,15 @@ use winit::window::{CursorGrabMode, CursorIcon, Fullscreen, Window};
 pub struct LuaWindow {
     pub window: Arc<Window>,
     pub resource: Arc<Mutex<ResourceManager>>,
+    pub event_loop: EngineEventLoop,
 }
 impl UserData for LuaWindow {
     //cursor
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("exit", |_lua, this, ()| {
+            this.event_loop.exit_window();
+            Ok(())
+        });
         methods.add_method("set_cursor_grab", |_lua, this, enable: String| {
             let grab = match enable.as_str() {
                 "None" => CursorGrabMode::None,
@@ -41,15 +47,12 @@ impl UserData for LuaWindow {
             },
         );
         methods.add_method("load_cursor_icon", |_lua, this, cursor: String| {
-            let mut res = this.resource.lock();
-            res.window_cursor.insert(cursor, None);
+            this.event_loop.load_cursor(cursor);
             Ok(())
         });
         methods.add_method("set_cursor_icon", |_lua, this, cursor: String| {
             if let Some(cursor) = this.resource.lock().get_cursor(&cursor) {
-                if let Some(cur) = cursor {
-                    this.window.set_cursor(cur.clone());
-                }
+                this.window.set_cursor(cursor.clone());
             }
             Ok(())
         });
@@ -139,23 +142,17 @@ impl UserData for LuaWindow {
                     let info = lua.create_table()?;
                     info.set("name", m.name())?;
                     let position = m.position();
-                    info.set(
-                        "position",
-                        LuaPoint {
-                            x: position.x,
-                            y: position.y,
-                        },
-                    )?;
+                    let pos_table = lua.create_table()?;
+                    pos_table.set("x", position.x)?;
+                    pos_table.set("y", position.y)?;
+                    info.set("position", pos_table)?;
                     info.set("refresh_rate_millihertz", m.refresh_rate_millihertz())?;
                     info.set("scale_factor", m.scale_factor())?;
                     let size = m.size();
-                    info.set(
-                        "size",
-                        LuaSize {
-                            w: size.width,
-                            h: size.height,
-                        },
-                    )?;
+                    let size_table = lua.create_table()?;
+                    size_table.set("w", size.width)?;
+                    size_table.set("h", size.height)?;
+                    info.set("size", size_table)?;
                     Ok(Some(info))
                 }
             }

@@ -20,7 +20,7 @@ pub struct ResourceManager {
     #[cfg(feature = "debug")]
     assets_path: PathBuf,
     pub ui_font: FontDefinitions,
-    pub window_cursor: HashMap<String, Option<CustomCursor>>,
+    pub window_cursor: HashMap<String, CustomCursor>,
     pub window_icon: HashMap<String, Icon>,
 }
 
@@ -139,35 +139,25 @@ impl ResourceManager {
             .push(id);
         Ok(())
     }
-    pub fn load_cursor(&mut self, event_loop: &ActiveEventLoop) -> anyhow::Result<()> {
-        let names: Vec<_> = self
-            .window_cursor
-            .iter()
-            .filter_map(|(name, cursor)| {
-                if cursor.is_none() {
-                    Some(name.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for name in names {
-            let img = self.get_image(&name)?;
-            match create_cursor(event_loop, img) {
-                Ok(c) => {
-                    self.window_cursor.insert(name.clone(), Some(c));
-                    log::debug!("cursor {} loaded!", name);
-                }
-                Err(err) => {
-                    log::error!("load cursor {} failed: {}", name, err);
-                }
+    pub fn load_cursor(
+        &mut self,
+        name: &String,
+        event_loop: &ActiveEventLoop,
+    ) -> anyhow::Result<()> {
+        let img = self.get_image(&name)?;
+        match create_cursor(event_loop, img) {
+            Ok(c) => {
+                self.window_cursor.insert(name.clone(), c);
+                log::debug!("cursor {} loaded!", name);
+            }
+            Err(err) => {
+                log::error!("load cursor {} failed: {}", name, err);
             }
         }
 
         Ok(())
     }
-    pub fn get_cursor(&self, path: &String) -> Option<&Option<CustomCursor>> {
+    pub fn get_cursor(&self, path: &String) -> Option<&CustomCursor> {
         self.window_cursor.get(path)
     }
     pub fn load_window_icon(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {

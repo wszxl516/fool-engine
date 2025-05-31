@@ -1,4 +1,4 @@
-pub use super::super::lua::types::{LuaPoint, LuaSize};
+pub use super::super::types::{LuaPoint, LuaSize};
 use egui::Color32;
 use mlua::{FromLua, IntoLua, Lua, LuaSerdeExt, Result as LuaResult};
 use serde::{Deserialize, Serialize};

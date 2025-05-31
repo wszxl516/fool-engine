@@ -1,12 +1,16 @@
+pub mod graphics;
+pub mod gui;
 #[cfg(not(feature = "debug"))]
 pub mod memmod;
 pub mod types;
-use crate::graphics::window::LuaWindow;
+use crate::event::EngineEventLoop;
 use crate::resource::lua::LuaResourceManager;
 use crate::resource::ResourceManager;
-use crate::{event::EventState, gui::EguiContext, map2anyhow_error, physics::LuaPhysics};
+use crate::{event::EventState, map2anyhow_error, physics::LuaPhysics};
 use chrono::{Duration, NaiveDate};
 use egui::Context;
+use graphics::window::LuaWindow;
+pub use gui::EguiContext;
 use lazy_static::lazy_static;
 #[cfg(not(feature = "debug"))]
 use memmod::MemoryModule;
@@ -219,6 +223,7 @@ impl LuaBindings {
         context: Context,
         resource: Arc<Mutex<ResourceManager>>,
         window: Arc<winit::window::Window>,
+        event_loop_proxy: EngineEventLoop,
     ) -> anyhow::Result<()> {
         let size = window.inner_size();
         map2anyhow_error!(
@@ -226,6 +231,7 @@ impl LuaBindings {
                 let window = scope.create_userdata(LuaWindow {
                     window: window,
                     resource: resource.clone(),
+                    event_loop: event_loop_proxy,
                 })?;
                 let ui_context = self.lua.create_userdata(EguiContext {
                     context,
@@ -256,6 +262,7 @@ impl LuaBindings {
         ctx: &Context,
         win: Arc<Window>,
         resource: Arc<Mutex<ResourceManager>>,
+        event_loop_proxy: EngineEventLoop,
     ) -> anyhow::Result<()> {
         let size = win.inner_size();
         match self.lua.globals().get::<Function>("init") {
@@ -265,6 +272,7 @@ impl LuaBindings {
                         let window = self.lua.create_userdata(LuaWindow {
                             window: win,
                             resource: resource.clone(),
+                            event_loop: event_loop_proxy,
                         })?;
                         let ui_context = self.lua.create_userdata(EguiContext {
                             context: ctx.clone(),
@@ -287,12 +295,23 @@ impl LuaBindings {
             }
         }
     }
-    pub fn run_event_fn(&self, input: &mut EventState) -> Result<()> {
+    pub fn run_event_fn(
+        &self,
+        input: &mut EventState,
+        win: Arc<Window>,
+        resource: Arc<Mutex<ResourceManager>>,
+        event_loop_proxy: EngineEventLoop,
+    ) -> Result<()> {
         let elapsed = time_peer_frame();
         self.lua.scope(|scope| {
+            let window = self.lua.create_userdata(LuaWindow {
+                window: win,
+                resource: resource.clone(),
+                event_loop: event_loop_proxy,
+            })?;
             let input = scope.create_userdata(input)?;
             let lua_event_fn: Function = self.lua.globals().get("event")?;
-            lua_event_fn.call::<()>((input, elapsed))?;
+            lua_event_fn.call::<()>((input, window, elapsed))?;
             Ok(())
         })
     }

@@ -1,5 +1,6 @@
 // use super::LuaTextureHandle;
-use crate::{graphics::types::LuaColor, lua::types::LuaSize, lua_table_get};
+use super::super::{graphics::types::LuaColor, types::LuaSize};
+use crate::lua_table_get;
 use egui::{
     vec2, Align, Color32, ComboBox, Grid, Layout, ProgressBar, Response, Slider, TextEdit, Ui,
     Widget,

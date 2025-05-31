@@ -7,10 +7,6 @@ edition = "2024"
 name = "fool_graphics"
 path = "src/lib.rs"
 
-[[bin]]
-name = "fool-graphics"
-path = "src/main.rs"
-
 [dependencies]
 winit = { workspace = true}
 wgpu = {workspace = true}

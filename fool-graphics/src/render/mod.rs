@@ -9,31 +9,26 @@ mod scene;
 use context::ContextRender;
 use scene::SceneBuilder;
 
-pub struct Render {
-    pub context: Option<ContextRender>,
+pub struct VelloRender {
+    context: ContextRender,
     scene: SceneBuilder,
 }
 
-impl Render {
-    pub fn new() -> Self {
-        Self {
-            context: None,
+impl VelloRender {
+    pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
+        let context = ContextRender::new(window)
+            .map_err(|err| anyhow::anyhow!("Failed to create vello surface:{}", err))?;
+        Ok(Self {
+            context,
             scene: SceneBuilder::new(),
-        }
-    }
-    pub fn init(&mut self, window: Arc<Window>) -> anyhow::Result<()> {
-        self.context = Some(
-            ContextRender::new(window)
-                .map_err(|err| anyhow::anyhow!("Failed to create vello surface:{}", err))?,
-        );
-        Ok(())
+        })
     }
     pub fn render(
         &mut self,
         f: impl FnOnce(&mut CommandEncoder, &DeviceHandle, &wgpu::TextureView),
     ) {
         let scene = self.scene.build();
-        let device = self.context.as_mut().unwrap();
+        let device = &mut self.context;
         let surface = &mut device.surface;
         let device_handle = &device.context.devices[surface.dev_id];
         device
@@ -47,7 +42,7 @@ impl Render {
                     base_color: palette::css::BLACK,
                     width: surface.config.width,
                     height: surface.config.height,
-                    antialiasing_method: AaConfig::Area,
+                    antialiasing_method: AaConfig::Msaa16,
                 },
             )
             .expect("Render failed");
@@ -84,6 +79,13 @@ impl Render {
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {
-        self.context.as_mut().unwrap().resize(w, h);
+        self.context.resize(w, h);
+    }
+
+    pub fn device_handle(&self) -> &DeviceHandle {
+        self.context.device_handle()
+    }
+    pub fn format(&self) -> wgpu::TextureFormat {
+        self.context.format()
     }
 }

@@ -1,4 +1,4 @@
-use crate::graphics::types::LuaColor;
+use super::super::graphics::types::LuaColor;
 use egui::{epaint::text::TextWrapMode, FontId, TextStyle};
 use egui::{
     epaint::{CornerRadius, Margin},

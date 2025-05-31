@@ -1,10 +1,9 @@
 local utils = require("engine.utils")
 local LOG = require("engine.log")
-local logger = LOG:new("graphics", "debug", true, true)
+local logger = LOG.new("graphics", true, true)
 local Sprite = require("engine.sprite")
 local graphics = {}
 local global_physics = physics_init(0, 900)
-local key_event = require("engine.input.key")
 local side_attr = {
     body_attr = {
         body_type = "Fixed",
@@ -103,10 +102,6 @@ local player_attr = {
             active_events = "all",
             active_hooks = "all"
         },
-        key_event = { { { x = 0, y = -200 }, key_event.new("Up", 0.1) },
-            { { x = 0, y = 200 },  key_event.new("Down", 0.1) },
-            { { x = -50, y = 0 },  key_event.new("Left", 0.1) },
-            { { x = 50, y = 0 },   key_event.new("Right", 0.1) } },
         key_delay = 0
     },
     texture = nil
@@ -159,13 +154,6 @@ end
 ---@param event Event
 function graphics:event(event, dt)
     -- Left, Up, Right, Down
-    for key, value in pairs(player_attr.physics.key_event) do
-        local result = value[2]:update(event, dt)
-        if result == "hold" then
-            logger:error("%s", {aa = 11, bb = "bb", cc = init, dd = false, ee = nil})
-            global_physics:apply_impulse(player_attr.physics.handle, value[1])
-        end
-    end
 end
 
 return graphics

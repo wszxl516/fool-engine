@@ -1,37 +1,5 @@
-use anyhow::Result;
-use fool_graphics::App;
-use fool_graphics::AppModel;
-use fool_graphics::graph_vec2;
-use std::sync::Arc;
-use winit::dpi::LogicalSize;
-use winit::dpi::Size;
-use winit::event_loop::EventLoop;
-use winit::platform::x11::WindowAttributesExtX11;
-use winit::window::Window;
-fn main() -> Result<()> {
-    let attr = Window::default_attributes()
-        .with_base_size(Size::Logical(LogicalSize {
-            width: 800.0,
-            height: 600.0,
-        }))
-        .with_resizable(true)
-        .with_title("Vello Shapes");
-    let mut app = App::new(30, attr, Box::new(TestApp));
-    let event_loop = EventLoop::new()?;
-    event_loop
-        .run_app(&mut app)
-        .expect("Couldn't run event loop");
-    Ok(())
-}
-struct TestApp;
-impl AppModel for TestApp {
-    fn graphics(&mut self, scene: &mut vello::Scene, _window: Arc<winit::window::Window>) {
-        test_graph(scene);
-    }
-    fn gui(&mut self, context: &egui::Context, window: Arc<winit::window::Window>) {
-        test_gui(context, &window);
-    }
-}
+use crate::graph_vec2;
+
 pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {
     egui::Window::new("test")
         .default_pos(egui::pos2(400.0, 400.0))
@@ -50,8 +18,8 @@ pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {
         });
 }
 pub fn test_graph(sc: &mut vello::Scene) {
-    use fool_graphics::canvas::StokeStyle;
-    use fool_graphics::canvas::{SceneGraph, SceneNode, Style, load_image_from_file};
+    use crate::canvas::StokeStyle;
+    use crate::canvas::{SceneGraph, SceneNode, Style, load_image_from_file};
     use kurbo::{PathEl, Point, RoundedRectRadii, Vec2};
     use kurbo::{Size, Stroke};
     use peniko::Color;
@@ -163,8 +131,8 @@ pub fn test_graph(sc: &mut vello::Scene) {
     root.add_child(&SceneNode::text(
         graph_vec2!(0.0, 0.0),
         "Hello!".to_string(),
-        fool_graphics::canvas::Style::default()
-            .with_align(Some(fool_graphics::canvas::TextAlign::Left))
+        crate::canvas::Style::default()
+            .with_align(Some(crate::canvas::TextAlign::Left))
             .with_fill(Some(Color::from_rgba8(255, 0, 0, 50)))
             .with_font_size(Some(22.0)),
     ));

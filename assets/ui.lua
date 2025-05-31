@@ -143,7 +143,7 @@ function gui_run(data, ui)
             end
             local resp = center_ui:checkbox(data.checkbox)
             if resp:changed() then
-                logger:info("checkbox changed %s",data.checkbox.checked)
+                logger:info("checkbox changed %s", data.checkbox.checked)
             end
             center_ui:radio(data.radio, false)
             center_ui:end_row()

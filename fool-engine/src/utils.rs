@@ -4,6 +4,14 @@ macro_rules! lua_table_get {
         $table.get($name).unwrap_or($default)
     };
 }
+
+#[macro_export]
+macro_rules! log_error_exit {
+    ($($arg:tt)+) => ({
+        log::error!($($arg)+);
+        std::process::exit(-1);
+    });
+}
 #[cfg(feature = "debug")]
 #[macro_export]
 macro_rules! map2anyhow_error {
