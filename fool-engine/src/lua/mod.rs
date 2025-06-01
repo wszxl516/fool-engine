@@ -181,7 +181,11 @@ impl LuaBindings {
         map2anyhow_error!(self.lua.globals().set("print", print), "globals set print")?;
         Ok(())
     }
-    pub fn setup(&mut self, res_mgr: Arc<Mutex<ResourceManager>>) -> anyhow::Result<()> {
+    pub fn setup(
+        &mut self,
+        res_mgr: Arc<Mutex<ResourceManager>>,
+        event_loop: EngineEventLoop,
+    ) -> anyhow::Result<()> {
         #[cfg(not(feature = "debug"))]
         map2anyhow_error!(
             self.mem_mod.init(&self.lua, res_mgr.clone()),
@@ -200,9 +204,10 @@ impl LuaBindings {
         map2anyhow_error!(self.physics_module(), "setup lua module physics failed: {}")?;
         self.enable_debug()?;
         map2anyhow_error!(
-            self.lua
-                .globals()
-                .set("ResourceManager", LuaResourceManager::new(res_mgr.clone())),
+            self.lua.globals().set(
+                "ResourceManager",
+                LuaResourceManager::new(res_mgr.clone(), event_loop)
+            ),
             "setup lua module EngineTools failed: {}"
         )?;
         Ok(())

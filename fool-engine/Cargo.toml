@@ -24,6 +24,7 @@ packtool = { path = "../packtool"}
 parking_lot = {workspace = true}
 winit = { workspace = true}
 egui = { workspace = true}
+egui_extras = {workspace = true}
 vello = {version = "0.5.0", features = []}
 #graphics
 fool-graphics = { path = "../fool-graphics"}

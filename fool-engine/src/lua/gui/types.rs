@@ -1,3 +1,5 @@
+use crate::lua::types::{LuaPoint, LuaSize};
+
 use super::super::graphics::types::LuaColor;
 use egui::{epaint::text::TextWrapMode, FontId, TextStyle};
 use egui::{
@@ -84,6 +86,10 @@ pub struct LuaUIConfig {
     pub w: f32,
     #[serde(default)]
     pub h: f32,
+    #[serde(default)]
+    pub bg_img: Option<String>,
+    #[serde(default)]
+    pub bg_img_color: Option<LuaColor>,
 }
 
 impl FromLua for LuaUIConfig {
@@ -137,6 +143,61 @@ impl IntoLua for LuaGuiStyle {
 }
 impl FromLua for LuaGuiStyle {
     fn from_lua(value: mlua::Value, lua: &Lua) -> LuaResult<Self> {
+        lua.from_value(value)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Rotate {
+    pub angle: f32,
+    pub origin: LuaPoint<f32>,
+}
+impl FromLua for Rotate {
+    fn from_lua(value: Value, lua: &mlua::Lua) -> mlua::Result<Self> {
+        lua.from_value(value)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UV {
+    pub min: LuaPoint<f32>,
+    pub max: LuaPoint<f32>,
+}
+impl FromLua for UV {
+    fn from_lua(value: Value, lua: &mlua::Lua) -> mlua::Result<Self> {
+        lua.from_value(value)
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ImageButtonConfig {
+    #[serde(default)]
+    pub img: String,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub show_loading_spinner: Option<bool>,
+    #[serde(default)]
+    pub img_bg_fill: Option<LuaColor>,
+    #[serde(default)]
+    pub img_max_size: Option<LuaSize<f32>>,
+    #[serde(default)]
+    pub img_rotate: Option<Rotate>,
+    #[serde(default)]
+    pub frame: Option<bool>,
+    #[serde(default)]
+    pub tint: Option<LuaColor>,
+    #[serde(default)]
+    pub selected: Option<bool>,
+    #[serde(default)]
+    pub corner_radius: Option<CornerRadius>,
+    #[serde(default)]
+    pub uv: Option<UV>,
+    #[serde(default)]
+    pub sense: Option<String>,
+}
+
+impl FromLua for ImageButtonConfig {
+    fn from_lua(value: Value, lua: &mlua::Lua) -> mlua::Result<Self> {
         lua.from_value(value)
     }
 }

@@ -1,3 +1,4 @@
+use egui::Pos2;
 use mlua::{FromLua, IntoLua, Lua, LuaSerdeExt, Result as LuaResult, UserData};
 use rapier2d::prelude::*;
 
@@ -31,6 +32,12 @@ pub struct LuaPoint<T> {
 impl Into<Point<f32>> for LuaPoint<f32> {
     fn into(self) -> Point<f32> {
         Point::new(self.x, self.y)
+    }
+}
+
+impl Into<egui::Pos2> for LuaPoint<f32> {
+    fn into(self) -> egui::Pos2 {
+        Pos2::new(self.x, self.y)
     }
 }
 impl<T: Sized + DeserializeOwned> FromLua for LuaPoint<T> {

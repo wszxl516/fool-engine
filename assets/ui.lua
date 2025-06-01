@@ -95,7 +95,9 @@ function UI:view(ui_context)
             fill = rgba8.new(0, 0, 0, 0),
             stroke_width = 1,
             stroke_color = rgba8.new(50, 50, 50, 50)
-        }
+        },
+        bg_img = "linux.png",
+        bg_img_color = rgba8.new(100,100,100, 50)
     }, ui_context, function(ui)
         gui_run(self.data, ui)
     end)
@@ -103,30 +105,29 @@ end
 
 ---@diagnostic disable-next-line: lowercase-global
 function UI:init()
-    if self.data.linux_texture == nil then
-        self.data.linux_texture = ResourceManager:load_texture("linux.png")
-        self.data.gear_texture = ResourceManager:load_texture("gear.png")
-        self.data.font = ResourceManager:load_font("SarasaTermSCNerd-Regular.ttf")
-    end
+    ResourceManager:load_texture("linux.png")
 end
 
 ---@diagnostic disable-next-line: lowercase-global
 function gui_run(data, ui)
     ui:set_row_height(20)
     ui:with_layout(true, function(image_ui)
-        -- local btn = image_ui:image_button(data.linux_texture, {
-        --     w = 100,
-        --     h = 100,
-        --     show_loading_spinner = true,
-        --     frame = true,
-        --     stroke_width = 2.0,
-        --     stroke_color = { r = 10, g = 10, b = 10, a = 0 },
-        --     wrap = false
-        -- })
-        -- if btn:clicked() then
-        --     logger:info("image_button clicked")
-        -- end
+        local btn = image_ui:image_button(
+        {
+            img = "linux.png",
+            tint = rgba8.new(100,100,100, 50),
+            img_bg_fill = rgba8.new(0,0,0, 100),
+            img_max_size = {w = 100, h = 100},
+            img_rotate = {angle = 3.14, origin = {x = 0.5, y = 0.5}},
+            sense = "CLICK",
+            -- corner_radius = {sw = 10,se = 10, nw = 10, ne = 10},
+            frame = false,
+        })
+        if btn:clicked() then
+            print("image_button clicked")
+        end
     end)
+    
     ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)
         grid_ui:with_layout(true, function(center_ui)
             center_ui:collapsing(data.label_text, function(collapsing_ui)

@@ -42,9 +42,9 @@ impl Engine {
         let gui = Gui::new(&lua);
         let resource = Arc::new(Mutex::new(ResourceManager::new()?));
         map2anyhow_error!(gui.init(), "gui init failed")?;
-        lua.setup(resource.clone())?;
-        map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
         let event_proxy = EngineEventLoop::new(event_proxy);
+        lua.setup(resource.clone(), event_proxy.clone())?;
+        map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
         Ok(Engine {
             resource,
             lua,
@@ -72,6 +72,7 @@ impl Engine {
         ) {
             log_error_exit!("run lua init failed: {}", err)
         }
+        egui_extras::install_image_loaders(render.gui_context());
         self.render.replace(render);
         Ok(())
     }
@@ -144,6 +145,17 @@ impl Engine {
             EngineEvent::ExitWindow => {
                 log::debug!("exit window");
                 event_loop.exit()
+            }
+            EngineEvent::LoadUITexture(path) => {
+                if let Some(render) = &self.render {
+                    if let Err(err) = self
+                        .resource
+                        .lock()
+                        .load_ui_texture(&path, render.gui_context())
+                    {
+                        log::error!("load uitexture {} failed: {}", path, err)
+                    }
+                }
             }
             _ => {}
         }

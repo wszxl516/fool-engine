@@ -40,6 +40,7 @@ rolllog = { path = "rolllog"}
 winit = { version = "0.30.11", features = ["serde"]}
 egui-winit = {version = "0.31.1"}
 egui = {version = "0.31.1"}
+egui_extras = { version = "0.31.1", features = ["image", "serde"] }
 egui-wgpu = { version = "0.31.1",features = ["winit"] }
 wgpu = {version = "24.0.5"}
 image = {version = "0.25.6"}

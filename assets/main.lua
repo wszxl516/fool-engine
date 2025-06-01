@@ -25,7 +25,7 @@ function view(window, ui_context)
     -- window:set_cursor_grab("None")
     -- window:set_cursor("move")
     -- window:set_cursor_visible(false)
-    window:set_cursor_icon("linux.png")
+    -- window:set_cursor_icon("linux.png")
 end
 
 ---@param dt number -- delay time
@@ -41,7 +41,7 @@ function init(window, ui_context)
     ui_context:set_font("SarasaTermSCNerd-Regular.ttf")
     window:set_title("aaaaaaaa")
     window:set_fullscreen(false)
-    window:load_cursor_icon("linux.png")
+    -- window:load_cursor_icon("linux.png")
     window:set_window_icon("linux.png")
     ui_context:set_style({
         text = {
@@ -61,7 +61,7 @@ function init(window, ui_context)
         open_fg_color = rgba8.new(200, 0, 0, 0)
     })
     print(window:monitor())
-    -- ui:init()
+    ui:init()
     -- graphics:init()
 end
 

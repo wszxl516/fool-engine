@@ -1,14 +1,22 @@
 // use super::LuaTextureHandle;
 use super::super::{graphics::types::LuaColor, types::LuaSize};
-use crate::lua_table_get;
+use super::types::ImageButtonConfig;
+use crate::resource::ResourceManager;
+use crate::{lua_table_get, map2lua_error};
 use egui::{
-    vec2, Align, Color32, ComboBox, Grid, Layout, ProgressBar, Response, Slider, TextEdit, Ui,
-    Widget,
+    vec2, Align, Color32, ComboBox, Grid, ImageButton, ImageSource, Layout, ProgressBar, Rect,
+    Response, Sense, Slider, TextEdit, Ui, Vec2, Widget,
 };
-use mlua::{FromLua, Function, LuaSerdeExt, Table, UserData, UserDataMethods, Value};
+use mlua::{
+    FromLua, Function, LuaSerdeExt, Table, UserData, UserDataMethods,
+    Value::{self},
+};
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 pub struct LuaUiContext<'a> {
     pub ui: &'a mut Ui,
+    pub resource: Arc<Mutex<ResourceManager>>,
 }
 
 pub struct LuaResponse {
@@ -49,7 +57,177 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             let response = this.ui.label(text);
             lua.create_userdata(LuaResponse { response })
         });
+        methods.add_method_mut("image", |lua, this, config: ImageButtonConfig| {
+            let mut res = this.resource.lock();
+            let texture =
+                map2lua_error!(res.get_ui_texture(&config.img), "image_button get texture")?;
+            let img_src = ImageSource::from(texture);
+            let img = egui::Image::from(img_src);
 
+            let img = if let Some(show) = config.show_loading_spinner {
+                img.show_loading_spinner(show)
+            } else {
+                img
+            };
+            let img = if let Some(label) = config.label {
+                img.alt_text(label)
+            } else {
+                img
+            };
+            let img = if let Some(tint) = config.tint {
+                img.tint(tint)
+            } else {
+                img
+            };
+            let img = if let Some(bg_fill) = config.img_bg_fill {
+                img.bg_fill(bg_fill)
+            } else {
+                img
+            };
+            let img = if let Some(max_size) = config.img_max_size {
+                img.max_size(Vec2::new(max_size.w, max_size.h))
+            } else {
+                img
+            };
+            let img = if let Some(ref sense) = config.sense {
+                let sense = match sense.to_ascii_uppercase().as_str() {
+                    "ALL" => Sense::all(),
+                    "HOVER" => Sense::HOVER,
+                    "CLICK" => Sense::CLICK,
+                    "DRAG" => Sense::DRAG,
+                    "FOCUSABLE" => Sense::FOCUSABLE,
+                    _ => Sense::empty(),
+                };
+                img.sense(sense)
+            } else {
+                img
+            };
+            let img = if let Some(img_rotate) = config.img_rotate {
+                img.rotate(
+                    img_rotate.angle,
+                    Vec2::new(img_rotate.origin.x, img_rotate.origin.y),
+                )
+            } else {
+                img
+            };
+            let img = if let Some(uv) = config.uv.clone() {
+                img.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
+            } else {
+                img
+            };
+            let img = if let Some(corner_radius) = config.corner_radius {
+                img.corner_radius(corner_radius)
+            } else {
+                img
+            };
+            let response = this.ui.add(img);
+            lua.create_userdata(LuaResponse { response })
+        });
+        methods.add_method_mut("image_button", |lua, this, config: ImageButtonConfig| {
+            let mut res = this.resource.lock();
+            let texture =
+                map2lua_error!(res.get_ui_texture(&config.img), "image_button get texture")?;
+            let img_src = ImageSource::from(texture);
+            let img = egui::Image::from(img_src);
+            let img = if let Some(show) = config.show_loading_spinner {
+                img.show_loading_spinner(show)
+            } else {
+                img
+            };
+            let img = if let Some(label) = config.label {
+                img.alt_text(label)
+            } else {
+                img
+            };
+            let img = if let Some(tint) = config.tint {
+                img.tint(tint)
+            } else {
+                img
+            };
+            let img = if let Some(bg_fill) = config.img_bg_fill {
+                img.bg_fill(bg_fill)
+            } else {
+                img
+            };
+            let img = if let Some(max_size) = config.img_max_size {
+                img.max_size(Vec2::new(max_size.w, max_size.h))
+            } else {
+                img
+            };
+            let img = if let Some(ref sense) = config.sense {
+                let sense = match sense.to_ascii_uppercase().as_str() {
+                    "ALL" => Sense::all(),
+                    "HOVER" => Sense::HOVER,
+                    "CLICK" => Sense::CLICK,
+                    "DRAG" => Sense::DRAG,
+                    "FOCUSABLE" => Sense::FOCUSABLE,
+                    _ => Sense::empty(),
+                };
+                img.sense(sense)
+            } else {
+                img
+            };
+            let img = if let Some(corner_radius) = config.corner_radius {
+                img.corner_radius(corner_radius)
+            } else {
+                img
+            };
+            let img = if let Some(img_rotate) = config.img_rotate {
+                img.rotate(
+                    img_rotate.angle,
+                    Vec2::new(img_rotate.origin.x, img_rotate.origin.y),
+                )
+            } else {
+                img
+            };
+            let img = if let Some(uv) = config.uv.clone() {
+                img.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
+            } else {
+                img
+            };
+
+            let img_btn = ImageButton::new(img);
+            let img_btn = if let Some(frame) = config.frame {
+                img_btn.frame(frame)
+            } else {
+                img_btn
+            };
+            let img_btn = if let Some(color) = config.tint {
+                img_btn.tint(color)
+            } else {
+                img_btn
+            };
+            let img_btn = if let Some(selected) = config.selected {
+                img_btn.selected(selected)
+            } else {
+                img_btn
+            };
+            let img_btn = if let Some(corner_radius) = config.corner_radius {
+                img_btn.corner_radius(corner_radius)
+            } else {
+                img_btn
+            };
+            let img_btn = if let Some(uv) = config.uv {
+                img_btn.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
+            } else {
+                img_btn
+            };
+            let img_btn = if let Some(sense) = config.sense {
+                let sense = match sense.to_ascii_uppercase().as_str() {
+                    "ALL" => Sense::all(),
+                    "HOVER" => Sense::HOVER,
+                    "CLICK" => Sense::CLICK,
+                    "DRAG" => Sense::DRAG,
+                    "FOCUSABLE" => Sense::FOCUSABLE,
+                    _ => Sense::empty(),
+                };
+                img_btn.sense(sense)
+            } else {
+                img_btn
+            };
+            let response = this.ui.add(img_btn);
+            lua.create_userdata(LuaResponse { response })
+        });
         methods.add_method_mut("button", |lua, this, label: String| {
             let response = this.ui.button(label);
             lua.create_userdata(LuaResponse { response })
@@ -186,10 +364,11 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             "collapsing",
             |lua, this, (label, func): (String, Function)| {
                 let lua_cloned = lua.clone();
+                let resource = this.resource.clone();
                 let response = this.ui.collapsing(label, move |ui| {
                     lua_cloned
                         .scope(|scope| {
-                            let ctx = LuaUiContext { ui };
+                            let ctx = LuaUiContext { ui, resource };
                             let ctx = scope.create_userdata(ctx)?;
                             func.call::<()>(ctx)?;
                             Ok(())
@@ -204,9 +383,10 @@ impl<'lua> UserData for LuaUiContext<'lua> {
 
         methods.add_method_mut("horizontal", |lua, this, func: Function| {
             let lua_cloned = lua.clone();
+            let resource = this.resource.clone();
             let response = this.ui.horizontal(move |ui| {
                 let _ = lua_cloned.scope(|scope| {
-                    let ctx = LuaUiContext { ui };
+                    let ctx = LuaUiContext { ui, resource };
                     let ctx = scope.create_userdata(ctx)?;
                     func.call::<()>(ctx)?;
                     Ok(())
@@ -219,10 +399,11 @@ impl<'lua> UserData for LuaUiContext<'lua> {
 
         methods.add_method_mut("vertical", |lua, this, func: Function| {
             let lua_cloned = lua.clone();
+            let resource = this.resource.clone();
             let response = this.ui.vertical(move |ui| {
                 lua_cloned
                     .scope(|scope| {
-                        let ctx = LuaUiContext { ui };
+                        let ctx = LuaUiContext { ui, resource };
                         let ctx = scope.create_userdata(ctx)?;
                         func.call::<()>(ctx)?;
                         Ok(())
@@ -270,13 +451,15 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             "grid",
             |lua, this, (id, spacing, start_row, func): (String, LuaSize<f32>, usize, Function)| {
                 let lua_cloned = lua.clone();
+                let resource = this.resource.clone();
+
                 let response = Grid::new(id)
                     .spacing([spacing.w, spacing.h])
                     .start_row(start_row)
                     .show(this.ui, move |ui| {
                         lua_cloned
                             .scope(|scope| {
-                                let ctx = LuaUiContext { ui };
+                                let ctx = LuaUiContext { ui, resource };
                                 let ctx = scope.create_userdata(ctx)?;
                                 func.call::<()>(ctx)?;
                                 Ok(())
@@ -377,7 +560,10 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                 let lua = lua.clone();
                 let response = this.ui.with_layout(layout, |ui| {
                     lua.scope(|scope| {
-                        let ctx = scope.create_userdata(LuaUiContext { ui })?;
+                        let ctx = scope.create_userdata(LuaUiContext {
+                            ui,
+                            resource: this.resource.clone(),
+                        })?;
                         func.call::<()>(ctx)?;
                         Ok(())
                     })

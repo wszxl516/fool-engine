@@ -4,6 +4,7 @@ use image::DynamicImage;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub mod lua;
 pub mod types;
+use egui::epaint::TextureHandle;
 #[cfg(not(feature = "debug"))]
 use packtool::MemResource;
 use winit::{
@@ -22,6 +23,7 @@ pub struct ResourceManager {
     pub ui_font: FontDefinitions,
     pub window_cursor: HashMap<String, CustomCursor>,
     pub window_icon: HashMap<String, Icon>,
+    pub ui_texture: HashMap<String, TextureHandle>,
 }
 
 pub fn resource_path() -> anyhow::Result<PathBuf> {
@@ -56,6 +58,7 @@ impl ResourceManager {
             ui_font: FontDefinitions::empty(),
             window_cursor: Default::default(),
             window_icon: Default::default(),
+            ui_texture: Default::default(),
         })
     }
     #[cfg(not(feature = "debug"))]
@@ -182,6 +185,23 @@ impl ResourceManager {
             .get(path)
             .ok_or(anyhow::anyhow!("window_icon {} not found!", path))
     }
+    pub fn load_ui_texture(
+        &mut self,
+        path: impl Into<PathBuf>,
+        ctx: &egui::Context,
+    ) -> anyhow::Result<()> {
+        let path: PathBuf = path.into();
+        let id = path.to_string_lossy().to_string();
+        let img = self.get_image(&path)?;
+        let texture = texture_from_image(&id, img, ctx)?;
+        self.ui_texture.insert(id, texture);
+        Ok(())
+    }
+    pub fn get_ui_texture(&mut self, path: &String) -> anyhow::Result<&TextureHandle> {
+        self.ui_texture
+            .get(path)
+            .ok_or_else(|| anyhow::anyhow!("resource is not a texture or not found!"))
+    }
 }
 
 pub fn create_cursor(
@@ -193,4 +213,29 @@ pub fn create_cursor(
     let rgba = img.as_rgba8().cloned().unwrap().into_vec();
     let cursor = CustomCursor::from_rgba(rgba, width, height, width / 2, height / 2)?;
     Ok(event_loop.create_custom_cursor(cursor))
+}
+
+pub fn texture_from_image(
+    name: &String,
+    img: &image::DynamicImage,
+    ctx: &egui::Context,
+) -> anyhow::Result<TextureHandle> {
+    use egui::ColorImage;
+    use egui::TextureOptions;
+    use image::GenericImageView;
+    let rgba_image = img.to_rgba8();
+    let (width, height) = (rgba_image.width() as usize, rgba_image.height() as usize);
+    let pixels: Vec<egui::Color32> = img
+        .pixels()
+        .map(|p| egui::Color32::from_rgba_premultiplied(p.2 .0[0], p.2 .0[1], p.2 .0[2], p.2 .0[3]))
+        .collect();
+    let color_image = ColorImage {
+        size: [width as usize, height as usize],
+        pixels,
+    };
+
+    let ui_texture = ctx.load_texture(name, color_image, TextureOptions::default());
+    // let t:egui::ImageSource = (&ui_texture).into();
+    // let img: egui::Image = t.into();
+    Ok(ui_texture)
 }

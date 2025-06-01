@@ -1,8 +1,7 @@
-use image::DynamicImage;
+use egui::epaint::TextureHandle;
 use mlua::UserData;
-
 #[derive(Clone)]
 pub struct LuaImage {
-    pub image: DynamicImage,
+    pub image: TextureHandle,
 }
 impl UserData for LuaImage {}

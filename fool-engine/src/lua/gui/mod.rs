@@ -1,3 +1,4 @@
+use crate::lua::graphics::types::LuaColor;
 use crate::lua::LuaBindings;
 use egui::Context;
 use mlua::{Function, Lua, UserData, Value};
@@ -82,6 +83,8 @@ impl Gui {
                 let y_c = context.heigth / 2.0 - config.y - config.h / 2.0;
                 let pos = pos2(x_c, y_c);
                 let size = vec2(config.w, config.h);
+                let resource = context.resource.clone();
+                let texture = config.bg_img;
                 egui::containers::Window::new(config.title)
                     .collapsible(config.collapsible)
                     .constrain(config.constrain)
@@ -95,30 +98,33 @@ impl Gui {
                     .movable(config.movable)
                     .frame(config.frame.into())
                     .show(&context.context, |ui| {
-                        // if let Some(texture) = texture {
-                        //     match texture {
-                        //         mlua::Value::UserData(ud) => match ud.borrow::<LuaTexture>() {
-                        //             Ok(t) => {
-                        //                 let rect = ui.available_rect_before_wrap();
-                        //                 ui.painter().image(
-                        //                     t.ui.id(),
-                        //                     rect,
-                        //                     Rect {
-                        //                         min: pos2(0.0, 0.0),
-                        //                         max: pos2(1.0, 1.0),
-                        //                     },
-                        //                     img_color,
-                        //                 );
-                        //             }
-                        //             Err(err) => log::error!("borrow LuaTextureHandle failed: {}", err),
-                        //         },
-                        //         _ => {
-                        //             log::error!("Wrong LuaTextureHandle type!")
-                        //         }
-                        //     };
-                        // };
+                        if let Some(texture) = texture {
+                            match context.resource.lock().get_ui_texture(&texture) {
+                                Ok(texture) => {
+                                    let rect = ui.available_rect_before_wrap();
+                                    ui.painter().image(
+                                        texture.id(),
+                                        rect,
+                                        egui::Rect {
+                                            min: pos2(0.0, 0.0),
+                                            max: pos2(1.0, 1.0),
+                                        },
+                                        config
+                                            .bg_img_color
+                                            .unwrap_or(LuaColor {
+                                                r: 255,
+                                                g: 255,
+                                                b: 255,
+                                                a: 100,
+                                            })
+                                            .into(),
+                                    );
+                                }
+                                Err(err) => log::error!("load texture failed: {}", err),
+                            }
+                        };
                         lua.scope(|scope| {
-                            let ui_ctx = scope.create_userdata(LuaUiContext { ui })?;
+                            let ui_ctx = scope.create_userdata(LuaUiContext { ui, resource })?;
                             func.call::<()>(ui_ctx)?;
                             Ok(())
                         })

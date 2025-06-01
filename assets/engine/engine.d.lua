@@ -713,30 +713,31 @@ function UIContext:set_min_size(size) end
 function UIContext:set_row_height(height) end
 
 function UIContext:end_row() end
+---@class Rotate
+---@field angle number 0.0 - 2π
+---@field origin Point 0.0 - 1.0
+---@class UV 
+---@field min Point
+---@field max Point
+---@class ImageButtonConfig
+---@field img string
+---@field label string|nil
+---@field show_loading_spinner boolean|nil
+---@field img_bg_fill Color8 | nil
+---@field img_max_size Size | nil
+---@field img_rotate Rotate
+---@field frame boolean| nil
+---@field tint Color8 | nil
+---@field selected boolean | nil
+---@field corner_radius Rounding| nil
+---@field uv UV|nil
+---@field sense "HOVER" | "CLICK" | "DRAG" | "FOCUSABLE" | "ALL" | nil
+---@param config ImageButtonConfig
+function UIContext:image_button(config) end
 
----@class ImageConfig
----@field show_loading_spinner? boolean
----@field rotate_origin? Point
----@field rotate_angle? number
----@field w? number
----@field h? number
----@field nw? number
----@field ne? number
----@field sw? number
----@field se? number
----@field bg_fill? Color8
----only for image_button
----@field frame? boolean
----@field stroke_width? number
----@field stroke_color? Color8
----@field wrap? boolean
----@param texture Texture
----@param config ImageConfig
-function UIContext:image(texture, config) end
+---@param config ImageButtonConfig
+function UIContext:image(config) end
 
----@param texture Texture
----@param config ImageConfig
-function UIContext:image_button(texture, config) end
 ---@class EguiContext
 EguiContext = {}
 ---@param name string
@@ -803,10 +804,10 @@ end
 ---@field y number
 ---@field w number
 ---@field h number
+---@field bg_img string|nil
+---@field bg_img_color Color8|nil
 ---@param config UiConfig
 ---@param context EguiContext
----@param bg_img Texture|nil
----@param bg_img_color Color8|nil
 ---@param body fun(ctx: UIContext)
 ---@diagnostic disable-next-line: lowercase-global
 function gui_create_window(config, context, body)
@@ -814,15 +815,7 @@ function gui_create_window(config, context, body)
 end
 
 _G.ResourceManager = {}
----@class Texture
----@param text string
----@param font_name string
----@param font_size number
----@return Size
-function ResourceManager:measure_text(text, font_name, font_size) end
-
 ---@param path string
----@return Texture
 function ResourceManager:load_texture(path)
 
 end
