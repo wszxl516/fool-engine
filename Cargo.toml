@@ -1,6 +1,6 @@
 [workspace]
 resolver = "1"
-members = ["fool-engine", "packtool", "rolllog", "fool-graphics"]
+members = ["fool-engine", "packtool", "rolllog", "fool-graphics", "fool-script"]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }

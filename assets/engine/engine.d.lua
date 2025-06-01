@@ -835,3 +835,14 @@ end
 function ResourceManager:load_image(path)
     -- Implementation (in Rust)
 end
+
+---@class DSLModule
+---@field name string
+---@field kind "Init" | "UI"
+---@field state table
+---@field init fun(table)
+---@field update fun(table)
+---@param module DSLModule
+---@diagnostic disable-next-line: lowercase-global
+function register_module(module)end
+    
