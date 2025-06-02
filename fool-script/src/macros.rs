@@ -15,7 +15,7 @@ macro_rules! log_error_exit {
 #[cfg(feature = "debug")]
 #[macro_export]
 macro_rules! map2anyhow_error {
-    ($code:expr, $msg:literal) => {{
+    ($code:expr, $msg:expr) => {{
         let loc = std::panic::Location::caller();
         $code.map_err(|e| {
             anyhow::anyhow!("{}, at {}:{} reason: {}", $msg, loc.file(), loc.line(), e)
@@ -26,7 +26,7 @@ macro_rules! map2anyhow_error {
 #[cfg(feature = "debug")]
 #[macro_export]
 macro_rules! map2lua_error {
-    ($code:expr, $msg:literal) => {{
+    ($code:expr, $msg:expr) => {{
         let loc = std::panic::Location::caller();
         $code.map_err(|e| {
             mlua::Error::RuntimeError(format!(
@@ -43,11 +43,11 @@ macro_rules! map2lua_error {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules! map2anyhow_error {
-    ($code:expr, $msg:literal) => {{ $code.map_err(|e| anyhow::anyhow!("{}, reason: {}", $msg, e)) }};
+    ($code:expr, $msg:expr) => {{ $code.map_err(|e| anyhow::anyhow!("{}, reason: {}", $msg, e)) }};
 }
 
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules! map2lua_error {
-    ($code:expr, $msg:literal) => {{ $code.map_err(|e| mlua::Error::RuntimeError(format!("{}, reason: {}", e, $msg))) }};
+    ($code:expr, $msg:expr) => {{ $code.map_err(|e| mlua::Error::RuntimeError(format!("{}, reason: {}", e, $msg))) }};
 }

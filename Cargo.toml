@@ -20,7 +20,9 @@ mlua = { version = "0.10.5", features = [
     "serialize",
     "macros",
     "vendored",
+    "send"
 ] }
+mlua-gen = "0.2.2"
 #tools
 find_folder ={ version = "0.3.0"}
 clap = { version = "4.5.13", features = ["derive"] }

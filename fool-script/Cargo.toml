@@ -20,7 +20,10 @@ chrono = {workspace = true}
 parking_lot = {workspace = true}
 clap = { workspace = true }
 log = {workspace = true}
+bson = { version = "2.15.0"}
 serde_json ={ version = "1.0.140"}
 env_logger ={ version = "0.11.8"}
+rayon = "1.10.0"
+crossbeam-channel = "0.5.15"
 [features]
 debug = []

@@ -63,3 +63,30 @@ pub fn dump_lua_stack_trace(lua: &Lua) {
     }
     log::error!("--- Lua Stack Trace ---");
 }
+
+pub fn set_module_name(value: Value, path: &str, lua: &Lua) -> mlua::Result<Value> {
+    let value = match &value {
+        Value::Table(t) => {
+            t.set("__modname", path)?;
+            Value::Table(t.clone())
+        }
+        Value::UserData(u) => {
+            let wrapper = lua.create_table()?;
+            let mt = lua.create_table()?;
+            mt.set("__index", u.clone())?;
+            wrapper.set_metatable(Some(mt));
+            wrapper.set("__modname", path)?;
+            Value::Table(wrapper)
+        }
+        Value::LightUserData(u) => {
+            let wrapper = lua.create_table()?;
+            let mt = lua.create_table()?;
+            mt.set("__index", u.clone())?;
+            wrapper.set_metatable(Some(mt));
+            wrapper.set("__modname", path)?;
+            Value::Table(wrapper)
+        }
+        _ => value,
+    };
+    Ok(value)
+}
