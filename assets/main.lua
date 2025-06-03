@@ -1,48 +1,38 @@
-local graphics = require("graphics")
 local UI = require("ui")
 local point = require("engine.vector2.point")
+local size  = require("engine.vector2.size")
 local ui = UI:new()
 local LOG = require("engine.log")
 local rgba8 = require("engine.color.rgba8")
 local logger = LOG.new("main", true, true)
--- ---@param canvas Canvas
--- ---@param ui_context EguiContext
--- ---@param window Window
--- ---@diagnostic disable-next-line: lowercase-global
--- function view(canvas, ui_context, window)
---     ui:view(ui_context, window)
---     graphics:draw(canvas)
---     window:set_ime_allowed(true)
---     window:set_ime_position(point.new(100,100))
---     canvas:draw_text("OK!", point.new(-100, 100), nil, nil, rgba8.new(100,100,0,100), {})
--- end
 
 ---@param window Window
 ---@param ui_context EguiContext
 ---@diagnostic disable-next-line: lowercase-global
 function view(window, ui_context)
-    ui:view(ui_context)
-    -- window:set_cursor_grab("None")
+    ui:view(ui_context, window)
+    -- window:set_ime_allowed(true)
+    -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
+    window:set_cursor_grab("None")
     -- window:set_cursor("move")
     -- window:set_cursor_visible(false)
-    -- window:set_cursor_icon("linux.png")
+    window:set_cursor_icon("image/cursor.png")
 end
 
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function update(dt)
-    graphics:update(ui.data.slider.current)
 end
 
 ---@param window Window
 ---@param ui_context EguiContext
 ---@diagnostic disable-next-line: lowercase-global
 function init(window, ui_context)
-    ui_context:set_font("SarasaTermSCNerd-Regular.ttf")
+    ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
     window:set_title("aaaaaaaa")
     window:set_fullscreen(false)
-    -- window:load_cursor_icon("linux.png")
-    window:set_window_icon("linux.png")
+    window:load_cursor_icon("image/cursor.png")
+    window:set_window_icon("image/linux.png")
     ui_context:set_style({
         text = {
             Heading = 22.0,
@@ -70,7 +60,6 @@ end
 ---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
 function event(event, window, dt)
-    graphics:event(event, dt)
     if event:key_pressed("Escape") then
         print("Escape")
         window:exit()

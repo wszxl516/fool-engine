@@ -1,15 +1,15 @@
-pub use super::super::gui::EguiContext;
+use super::super::gui::{create_window, LuaUIConfig};
 use super::types::{LuaPoint, LuaSize};
-use crate::map2lua_error;
-
 use crate::event::EngineEventLoop;
+use crate::map2lua_error;
 use crate::resource::ResourceManager;
-use mlua::UserData;
+use mlua::{Function, UserData, UserDataMethods, Value};
 use parking_lot::Mutex;
-use std::str::FromStr;
-use std::sync::Arc;
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size};
-use winit::window::{CursorGrabMode, CursorIcon, Fullscreen, Window};
+use std::{str::FromStr, sync::Arc};
+use winit::{
+    dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size},
+    window::{CursorGrabMode, CursorIcon, Fullscreen, Window},
+};
 
 pub struct LuaWindow {
     pub window: Arc<Window>,
@@ -18,7 +18,7 @@ pub struct LuaWindow {
 }
 impl UserData for LuaWindow {
     //cursor
-    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+    fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("exit", |_lua, this, ()| {
             this.event_loop.exit_window();
             Ok(())
@@ -157,5 +157,11 @@ impl UserData for LuaWindow {
                 }
             }
         });
+        methods.add_method(
+            "gui_window",
+            |lua, _, (config, context, func): (LuaUIConfig, Value, Function)| {
+                create_window(lua, config, context, func)
+            },
+        );
     }
 }

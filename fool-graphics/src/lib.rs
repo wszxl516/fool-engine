@@ -7,9 +7,12 @@ use render::VelloRender;
 use std::sync::Arc;
 use winit::event::WindowEvent;
 use winit::window::Window;
+
+use crate::render::FrameContext;
 pub struct GraphRender {
     vello: VelloRender,
     egui: EguiRenderer,
+    frame: Option<FrameContext>,
 }
 
 impl GraphRender {
@@ -21,20 +24,29 @@ impl GraphRender {
             None,
             window.clone(),
         );
-        Ok(Self { vello, egui })
+        Ok(Self {
+            vello,
+            egui,
+            frame: None,
+        })
     }
-    pub fn clear_view(&mut self) {
-        self.vello.scene_mut().clear();
+
+    pub fn draw_scene(&mut self, scene: &vello::Scene) {
+        self.vello.draw_scene(scene);
     }
-    pub fn graphics(&mut self, graph_fn: impl FnOnce(&mut vello::Scene)) {
-        let scene = self.vello.scene_mut();
-        graph_fn(scene.scene());
+
+    pub fn begin_frame(&mut self) -> &egui::Context {
+        self.frame.replace(self.vello.begin_frame());
+        self.egui.begin_frame()
     }
-    pub fn gui(&mut self, ui_fn: impl FnOnce(&egui::Context)) {
-        self.vello.render(|encoder, dev, view| {
-            self.egui
-                .run(&dev.device, &dev.queue, encoder, view, |ctx| ui_fn(ctx));
-        });
+    pub fn end_frame(&mut self) -> anyhow::Result<()> {
+        if let Some(mut frame_ctx) = self.frame.take() {
+            self.egui.end_frame(&mut frame_ctx);
+            self.vello.end_frame(frame_ctx);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("call begin_frame first!"))
+        }
     }
     pub fn gui_context(&self) -> &egui::Context {
         self.egui.context()

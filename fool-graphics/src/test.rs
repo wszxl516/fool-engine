@@ -17,13 +17,13 @@ pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {
             });
         });
 }
-pub fn test_graph(sc: &mut vello::Scene) {
+pub fn test_graph() -> vello::Scene {
     use crate::canvas::StokeStyle;
     use crate::canvas::{SceneGraph, SceneNode, Style, load_image_from_file};
     use kurbo::{PathEl, Point, RoundedRectRadii, Vec2};
     use kurbo::{Size, Stroke};
     use peniko::Color;
-
+    let mut sc = vello::Scene::new();
     let mut root = SceneNode::empty();
     root.set_style(&Style::default().with_opacity(0.8));
 
@@ -140,5 +140,6 @@ pub fn test_graph(sc: &mut vello::Scene) {
         root,
         font_mgr: Default::default(),
     };
-    graph.draw(sc);
+    graph.draw(&mut sc);
+    sc
 }

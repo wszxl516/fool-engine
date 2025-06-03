@@ -1,42 +1,33 @@
 #![allow(dead_code)]
 use std::sync::Arc;
 use vello::AaConfig;
-use vello::{peniko::color::palette, util::DeviceHandle};
-use wgpu::CommandEncoder;
+use vello::{Scene, peniko::color::palette, util::DeviceHandle};
 use winit::window::Window;
 mod context;
-mod scene;
+mod frame;
 use context::ContextRender;
-use scene::SceneBuilder;
+pub use frame::FrameContext;
 
 pub struct VelloRender {
     context: ContextRender,
-    scene: SceneBuilder,
 }
 
 impl VelloRender {
     pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let context = ContextRender::new(window)
             .map_err(|err| anyhow::anyhow!("Failed to create vello surface:{}", err))?;
-        Ok(Self {
-            context,
-            scene: SceneBuilder::new(),
-        })
+        Ok(Self { context })
     }
-    pub fn render(
-        &mut self,
-        f: impl FnOnce(&mut CommandEncoder, &DeviceHandle, &wgpu::TextureView),
-    ) {
-        let scene = self.scene.build();
-        let device = &mut self.context;
-        let surface = &mut device.surface;
-        let device_handle = &device.context.devices[surface.dev_id];
-        device
+    pub fn draw_scene(&mut self, scene: &Scene) {
+        let context = &mut self.context;
+        let surface = &mut context.surface;
+        let device_handle = &context.context.devices[surface.dev_id];
+        context
             .renderer
             .render_to_texture(
                 &device_handle.device,
                 &device_handle.queue,
-                &scene,
+                scene,
                 &surface.target_view,
                 &vello::RenderParams {
                     base_color: palette::css::BLACK,
@@ -46,10 +37,16 @@ impl VelloRender {
                 },
             )
             .expect("Render failed");
+    }
+    pub fn begin_frame(&mut self) -> FrameContext {
+        let context = &mut self.context;
+        let surface = &mut context.surface;
+        let device_handle = &context.context.devices[surface.dev_id];
         let surface_texture = surface
             .surface
             .get_current_texture()
             .expect("Failed to get texture");
+
         let final_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -67,15 +64,19 @@ impl VelloRender {
             &surface.target_view,
             &final_view,
         );
-
-        f(&mut encoder, device_handle, &final_view);
-        device_handle.queue.submit(Some(encoder.finish()));
-        surface_texture.present();
-        device_handle.device.poll(wgpu::Maintain::Poll);
+        FrameContext {
+            encoder,
+            device: device_handle.device.clone(),
+            queue: device_handle.queue.clone(),
+            target_view: final_view,
+            surface_texture,
+        }
     }
 
-    pub fn scene_mut(&mut self) -> &mut SceneBuilder {
-        &mut self.scene
+    pub fn end_frame(&mut self, ctx: FrameContext) {
+        ctx.queue.submit(Some(ctx.encoder.finish()));
+        ctx.surface_texture.present();
+        ctx.device.poll(wgpu::Maintain::Poll);
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {

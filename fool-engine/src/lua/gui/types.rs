@@ -97,7 +97,11 @@ impl FromLua for LuaUIConfig {
         lua.from_value(value)
     }
 }
-
+impl IntoLua for LuaUIConfig {
+    fn into_lua(self, lua: &Lua) -> LuaResult<Value> {
+        lua.to_value(&self)
+    }
+}
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LuaGuiStyle {
     pub text: HashMap<std::string::String, f32>,

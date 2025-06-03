@@ -49,7 +49,7 @@ end
 ---@param ui_context EguiContext
 ---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
-function UI:view(ui_context)
+function UI:view(ui_context, window)
     -- window:set_title("window")
     -- window:set_resizable(false)
     -- window:set_max_inner_size_points({ w = 800, h = 800 })
@@ -73,7 +73,7 @@ function UI:view(ui_context)
     --     -- open_fg_color = {r = 200}
     -- })
 
-    gui_create_window({
+    window:gui_window({
         title = "test windows",
         collapsible = false,
         constrain = false,
@@ -86,7 +86,7 @@ function UI:view(ui_context)
         y = 0.0,
         w = 200.0,
         h = 400.0,
-        font_name = "SarasaTermSCNerd-Regular.ttf",
+        font_name = "fonts/SarasaTermSCNerd-Regular.ttf",
         frame = {
             inner_margin = { left = 5, right = 5, top = 5, bottom = 5 },
             outer_margin = { left = 1, right = 1, top = 1, bottom = 1 },
@@ -96,7 +96,7 @@ function UI:view(ui_context)
             stroke_width = 1,
             stroke_color = rgba8.new(50, 50, 50, 50)
         },
-        bg_img = "linux.png",
+        bg_img = "image/linux.png",
         bg_img_color = rgba8.new(100,100,100, 50)
     }, ui_context, function(ui)
         gui_run(self.data, ui)
@@ -105,7 +105,7 @@ end
 
 ---@diagnostic disable-next-line: lowercase-global
 function UI:init()
-    ResourceManager:load_texture("linux.png")
+    ResourceManager:load_texture("image/linux.png")
 end
 
 ---@diagnostic disable-next-line: lowercase-global
@@ -114,7 +114,7 @@ function gui_run(data, ui)
     ui:with_layout(true, function(image_ui)
         local btn = image_ui:image_button(
         {
-            img = "linux.png",
+            img = "image/linux.png",
             tint = rgba8.new(100,100,100, 50),
             img_bg_fill = rgba8.new(0,0,0, 100),
             img_max_size = {w = 100, h = 100},

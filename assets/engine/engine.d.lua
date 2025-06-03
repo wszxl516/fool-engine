@@ -471,6 +471,56 @@ end
 
 function Window:exit()
 end
+
+---@class Margin
+---@field left number
+---@field right number
+---@field top number
+---@field bottom number
+
+---@class Rounding
+---@field nw number
+---@field ne number
+---@field sw number
+---@field se number
+
+---@class Shadow
+---@field offset number[]
+---@field blur number
+---@field spread number
+---@field color Color8
+
+---@class Frame
+---@field inner_margin? Margin
+---@field outer_margin? Margin
+---@field rounding? Rounding
+---@field shadow? Shadow
+---@field fill? Color8
+---@field stroke_width? number
+---@field stroke_color? Color8
+---@class UiConfig
+---@field title string
+---@field collapsible? boolean
+---@field constrain? boolean
+---@field default_open? boolean
+---@field drag_to_scroll? boolean
+---@field resizable? boolean
+---@field title_bar? boolean
+---@field movable? boolean
+---@field frame? Frame
+---@field x number
+---@field y number
+---@field w number
+---@field h number
+---@field bg_img string|nil
+---@field bg_img_color Color8|nil
+---@param config UiConfig
+---@param context EguiContext
+---@param body fun(ctx: UIContext)
+---@diagnostic disable-next-line: lowercase-global
+function Window:gui_window(config, context, body)
+
+end
 --- Event
 ---@class Event
 local Event = {}
@@ -762,55 +812,6 @@ end
 ---@param style LuaGuiStyle
 ---@diagnostic disable-next-line: lowercase-global
 function EguiContext:set_style(style)
-
-end
----@class Margin
----@field left number
----@field right number
----@field top number
----@field bottom number
-
----@class Rounding
----@field nw number
----@field ne number
----@field sw number
----@field se number
-
----@class Shadow
----@field offset number[]
----@field blur number
----@field spread number
----@field color Color8
-
----@class Frame
----@field inner_margin? Margin
----@field outer_margin? Margin
----@field rounding? Rounding
----@field shadow? Shadow
----@field fill? Color8
----@field stroke_width? number
----@field stroke_color? Color8
----@class UiConfig
----@field title string
----@field collapsible? boolean
----@field constrain? boolean
----@field default_open? boolean
----@field drag_to_scroll? boolean
----@field resizable? boolean
----@field title_bar? boolean
----@field movable? boolean
----@field frame? Frame
----@field x number
----@field y number
----@field w number
----@field h number
----@field bg_img string|nil
----@field bg_img_color Color8|nil
----@param config UiConfig
----@param context EguiContext
----@param body fun(ctx: UIContext)
----@diagnostic disable-next-line: lowercase-global
-function gui_create_window(config, context, body)
 
 end
 

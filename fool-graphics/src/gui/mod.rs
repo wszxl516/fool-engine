@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use crate::render::FrameContext;
 use egui::Context;
-use egui_wgpu::wgpu::{CommandEncoder, Device, Queue, StoreOp, TextureFormat, TextureView};
+use egui_wgpu::wgpu::{Device, StoreOp, TextureFormat};
 use egui_wgpu::{Renderer, ScreenDescriptor, wgpu};
 use egui_winit::State;
 use winit::event::WindowEvent;
 use winit::window::Window;
-
 pub struct EguiRenderer {
     state: State,
     renderer: Renderer,
@@ -57,18 +57,6 @@ impl EguiRenderer {
         let response = self.state.on_window_event(&self.window, event);
         self.need_repaint = response.repaint
     }
-    pub fn run(
-        &mut self,
-        device: &Device,
-        queue: &Queue,
-        encoder: &mut CommandEncoder,
-        view: &TextureView,
-        f: impl FnOnce(&Context),
-    ) {
-        let ctx = self.begin_frame();
-        f(ctx);
-        self.end_frame(device, queue, encoder, view);
-    }
     pub fn begin_frame(&mut self) -> &Context {
         let raw_input = self.state.take_egui_input(&self.window);
         let ctx = self.state.egui_ctx();
@@ -76,13 +64,7 @@ impl EguiRenderer {
         ctx
     }
 
-    pub fn end_frame(
-        &mut self,
-        device: &Device,
-        queue: &Queue,
-        encoder: &mut CommandEncoder,
-        view: &TextureView,
-    ) {
+    pub fn end_frame(&mut self, ctx: &mut FrameContext) {
         self.context()
             .set_pixels_per_point(self.screen_descriptor.pixels_per_point);
 
@@ -97,13 +79,19 @@ impl EguiRenderer {
             .tessellate(full_output.shapes, self.state.egui_ctx().pixels_per_point());
         for (id, image_delta) in &full_output.textures_delta.set {
             self.renderer
-                .update_texture(device, queue, *id, image_delta);
+                .update_texture(&ctx.device, &ctx.queue, *id, image_delta);
         }
-        self.renderer
-            .update_buffers(device, queue, encoder, &tris, &self.screen_descriptor);
-        let rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        self.renderer.update_buffers(
+            &ctx.device,
+            &ctx.queue,
+            &mut ctx.encoder,
+            &tris,
+            &self.screen_descriptor,
+        );
+        let target_view = &ctx.target_view;
+        let rpass = ctx.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view,
+                view: target_view,
                 resolve_target: None,
                 ops: egui_wgpu::wgpu::Operations {
                     load: egui_wgpu::wgpu::LoadOp::Load,

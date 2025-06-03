@@ -6,7 +6,6 @@ mod scheduler;
 pub mod utils;
 use event::{EngineEvent, EngineEventLoop, EventState};
 use fool_graphics::GraphRender;
-use lua::gui::Gui;
 use lua::LuaBindings;
 use parking_lot::Mutex;
 use resource::ResourceManager;
@@ -39,9 +38,9 @@ impl Engine {
         event_proxy: EventLoopProxy<EngineEvent>,
     ) -> anyhow::Result<Self> {
         let mut lua = map2anyhow_error!(LuaBindings::new(), "init LuaBindings failed")?;
-        let gui = Gui::new(&lua);
+        // let gui = Gui::new(&lua);
         let resource = Arc::new(Mutex::new(ResourceManager::new()?));
-        map2anyhow_error!(gui.init(), "gui init failed")?;
+        // map2anyhow_error!(gui.init(), "gui init failed")?;
         let event_proxy = EngineEventLoop::new(event_proxy);
         lua.setup(resource.clone(), event_proxy.clone())?;
         map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
@@ -80,26 +79,21 @@ impl Engine {
 
 // graphics
 impl Engine {
-    pub fn graphics(&mut self) {
-        if let Some(render) = &mut self.render {
-            render.clear_view();
-            render.graphics(fool_graphics::test::test_graph);
-        }
-    }
-    pub fn gui(&mut self) {
+    pub fn view(&mut self) {
         let resource = self.resource.clone();
+        let lua = self.lua.clone();
         if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
-            render.gui(|ctx| {
-                let lua = self.lua.clone();
-                if let Err(err) = lua.run_view_fn(
-                    ctx.clone(),
-                    resource.clone(),
-                    window.clone(),
-                    self.engine_event_loop.clone(),
-                ) {
-                    log_error_exit!("run lua view failed: {}", err)
-                }
-            });
+            let egui_ctx = render.begin_frame();
+            if let Err(err) = lua.run_view_fn(
+                egui_ctx.clone(),
+                resource.clone(),
+                window.clone(),
+                self.engine_event_loop.clone(),
+            ) {
+                log_error_exit!("run lua view failed: {}", err)
+            }
+            render.draw_scene(&fool_graphics::test::test_graph());
+            render.end_frame().unwrap();
         }
     }
 }
@@ -128,10 +122,7 @@ impl Engine {
                     window.request_redraw();
                 }
             }
-            WindowEvent::RedrawRequested => {
-                self.graphics();
-                self.gui()
-            }
+            WindowEvent::RedrawRequested => self.view(),
             _ => {}
         }
     }
