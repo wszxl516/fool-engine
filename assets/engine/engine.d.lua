@@ -463,12 +463,6 @@ function Window:is_fullscreen()
     return false
 end
 
----@param ctx EguiContext
----@param font Font
----@diagnostic disable-next-line: lowercase-global
-function Window:set_gui_font(ctx, font)
-end
-
 function Window:exit()
 end
 
@@ -839,9 +833,12 @@ end
 
 ---@class DSLModule
 ---@field name string
----@field kind "Init" | "UI"
+---@field kind "Init" | "Core"
+---@field deps string[]
 ---@field state table
----@field init fun(table)
+---self.state
+---@field init fun(state)
+---deps.state
 ---@field update fun(table)
 ---@param module DSLModule
 ---@diagnostic disable-next-line: lowercase-global

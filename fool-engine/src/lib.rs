@@ -6,7 +6,8 @@ mod scheduler;
 pub mod utils;
 use event::{EngineEvent, EngineEventLoop, EventState};
 use fool_graphics::GraphRender;
-use lua::LuaBindings;
+use fool_script::{thread::AsyncScheduler, FoolScript};
+use lua::{run_event_fn, run_init_fn, run_update_fn, run_view_fn, setup_modules};
 use parking_lot::Mutex;
 use resource::ResourceManager;
 use scheduler::Scheduler;
@@ -21,13 +22,14 @@ use winit::{
 };
 struct Engine {
     resource: Arc<Mutex<ResourceManager>>,
-    lua: LuaBindings,
+    script: FoolScript,
     event_state: EventState,
-    pub window_attr: WindowAttributes,
-    pub window: Option<Arc<Window>>,
-    pub render: Option<GraphRender>,
+    window_attr: WindowAttributes,
+    window: Option<Arc<Window>>,
+    render: Option<GraphRender>,
     engine_event_loop: EngineEventLoop,
     scheduler: Scheduler,
+    script_scheduler: AsyncScheduler,
 }
 
 //init
@@ -37,22 +39,33 @@ impl Engine {
         window_attr: WindowAttributes,
         event_proxy: EventLoopProxy<EngineEvent>,
     ) -> anyhow::Result<Self> {
-        let mut lua = map2anyhow_error!(LuaBindings::new(), "init LuaBindings failed")?;
-        // let gui = Gui::new(&lua);
-        let resource = Arc::new(Mutex::new(ResourceManager::new()?));
-        // map2anyhow_error!(gui.init(), "gui init failed")?;
+        let resource = ResourceManager::new()?;
+        let mut script = FoolScript::new(resource.assets_path.clone())?;
         let event_proxy = EngineEventLoop::new(event_proxy);
-        lua.setup(resource.clone(), event_proxy.clone())?;
-        map2anyhow_error!(lua.load_main(), "load main.lua failed: ")?;
+        #[cfg(not(feature = "debug"))]
+        {
+            let mem_modules = resource.all_memory_resource();
+            script.setup(mem_modules)?;
+        }
+        #[cfg(feature = "debug")]
+        {
+            use std::collections::HashMap;
+            let mem_modules = &HashMap::<String, Vec<u8>>::new();
+            script.setup(mem_modules)?;
+        }
+        let resource = Arc::new(Mutex::new(resource));
+        setup_modules(&script.lua, resource.clone(), event_proxy.clone())?;
+        map2anyhow_error!(script.load_main(), "load main.lua failed: ")?;
         Ok(Engine {
             resource,
-            lua,
+            script: script.clone(),
             event_state: EventState::new(event_proxy.clone()),
             window: None,
             window_attr,
             render: None,
             scheduler: Scheduler::new(fps),
             engine_event_loop: event_proxy,
+            script_scheduler: AsyncScheduler::new(&script, 1),
         })
     }
 
@@ -63,7 +76,8 @@ impl Engine {
     ) -> anyhow::Result<()> {
         self.window.replace(window.clone());
         let render = GraphRender::new(window.clone())?;
-        if let Err(err) = self.lua.run_init_fn(
+        if let Err(err) = run_init_fn(
+            &self.script.lua,
             render.gui_context(),
             window.clone(),
             self.resource.clone(),
@@ -81,10 +95,10 @@ impl Engine {
 impl Engine {
     pub fn view(&mut self) {
         let resource = self.resource.clone();
-        let lua = self.lua.clone();
         if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
             let egui_ctx = render.begin_frame();
-            if let Err(err) = lua.run_view_fn(
+            if let Err(err) = run_view_fn(
+                &self.script.lua,
                 egui_ctx.clone(),
                 resource.clone(),
                 window.clone(),
@@ -96,6 +110,13 @@ impl Engine {
             render.end_frame().unwrap();
         }
     }
+    pub fn update(&mut self) {
+        self.script_scheduler.run();
+        if let Err(err) = run_update_fn(&self.script.lua) {
+            log_error_exit!("run lua update failed: {}", err)
+        }
+        self.script_scheduler.wait_all().unwrap();
+    }
 }
 //event
 impl Engine {
@@ -106,7 +127,8 @@ impl Engine {
         }
         if let Some(window) = &self.window {
             let resource = self.resource.clone();
-            if let Err(err) = self.lua.run_event_fn(
+            if let Err(err) = run_event_fn(
+                &self.script.lua,
                 &mut self.event_state,
                 window.clone(),
                 resource,
@@ -122,7 +144,10 @@ impl Engine {
                     window.request_redraw();
                 }
             }
-            WindowEvent::RedrawRequested => self.view(),
+            WindowEvent::RedrawRequested => {
+                self.update();
+                self.view()
+            }
             _ => {}
         }
     }

@@ -16,16 +16,8 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 lazy_static! {
     static ref start_time: Instant = Instant::now();
-    static ref last_time: Mutex<Instant> = Mutex::new(Instant::now());
 }
 
-pub fn time_peer_frame() -> f64 {
-    let mut lt = last_time.lock();
-    let now = Instant::now();
-    let dt = now.duration_since(*lt).as_secs_f64();
-    *lt = now;
-    dt
-}
 pub fn init_stdlib(lua: &Lua) -> Result<()> {
     let os_table = lua.create_table()?;
 

@@ -20,6 +20,11 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let level =
         LevelFilter::from_str(args.log_level.as_str()).unwrap_or_else(|_| LevelFilter::Info);
-    rolllog::log_init(level, args.verbose, &args.file_log, &["fool_engine"])?;
+    rolllog::log_init(
+        level,
+        args.verbose,
+        &args.file_log,
+        &["fool_engine", "fool_script"],
+    )?;
     init_engine()
 }

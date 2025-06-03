@@ -18,8 +18,7 @@ pub struct ResourceManager {
     resources: HashMap<String, Resource>,
     #[cfg(not(feature = "debug"))]
     pub memory_resource: MemResource,
-    #[cfg(feature = "debug")]
-    assets_path: PathBuf,
+    pub assets_path: PathBuf,
     pub ui_font: FontDefinitions,
     pub window_cursor: HashMap<String, CustomCursor>,
     pub window_icon: HashMap<String, Icon>,
@@ -53,7 +52,6 @@ impl ResourceManager {
             resources: HashMap::new(),
             #[cfg(not(feature = "debug"))]
             memory_resource: resource_pack,
-            #[cfg(feature = "debug")]
             assets_path,
             ui_font: FontDefinitions::empty(),
             window_cursor: Default::default(),

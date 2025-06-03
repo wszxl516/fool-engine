@@ -1310,6 +1310,7 @@ dependencies = [
  "epaint",
  "find_folder",
  "fool-graphics",
+ "fool-script",
  "image",
  "lazy_static",
  "log",

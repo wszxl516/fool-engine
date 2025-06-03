@@ -5,6 +5,7 @@ pub fn fs_loader(lua: &Lua, script_path: PathBuf) -> mlua::Result<Function> {
     let fs_searcher = lua.create_function(move |lua, modname: String| {
         let relative_path = modname.replace('.', "/") + ".lua";
         let full_path = script_path.join(&relative_path);
+        log::debug!("lua module full_path {} !", full_path.display());
         match std::fs::read_to_string(&full_path) {
             Ok(script) => {
                 let modname_cloned = modname.clone();

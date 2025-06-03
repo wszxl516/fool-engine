@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct FoolScript {
-    lua: Lua,
+    pub lua: Lua,
     script_path: PathBuf,
     mem_mod: MemoryModule,
     dsl_mod: DSLModule,

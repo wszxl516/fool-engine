@@ -28,9 +28,10 @@ egui_extras = {workspace = true}
 vello = {version = "0.5.0", features = []}
 #graphics
 fool-graphics = { path = "../fool-graphics"}
+fool-script = { path = "../fool-script"}
 serde_json ={ version = "1.0.140"}
 image ={ workspace = true}
 epaint = {version = "0.31.1", optional = true}
 [features]
 default = ["epaint/serde"]
-debug = []
+debug = ["fool-script/debug"]

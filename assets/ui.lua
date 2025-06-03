@@ -1,7 +1,8 @@
-local utils = require("engine.utils")
-local LOG = require("engine.log")
-local rgba8 = require("engine.color.rgba8")
-local logger = LOG.new("ui", true, true)
+local utils   = require("engine.utils")
+local LOG     = require("engine.log")
+local rgba8   = require("engine.color.rgba8")
+local size    = require("engine.vector2.size")
+local logger  = LOG.new("ui", true, true)
 local ui_data = {
     combo_box = { selected = "aa", id = "combo_box", items = { "bb", "aa", "cc" } },
     radio = { { selected = false, text = "aaa" }, { selected = true, text = "bbb" } },
@@ -38,8 +39,8 @@ local ui_data = {
     gear_texture = nil,
     font = nil
 }
-local UI = {}
-UI.__index = UI
+local UI      = {}
+UI.__index    = UI
 function UI:new()
     local self = setmetatable({}, UI)
     self.data = utils:deepcopy(ui_data)
@@ -50,29 +51,6 @@ end
 ---@param window Window
 ---@diagnostic disable-next-line: lowercase-global
 function UI:view(ui_context, window)
-    -- window:set_title("window")
-    -- window:set_resizable(false)
-    -- window:set_max_inner_size_points({ w = 800, h = 800 })
-    -- window:set_min_inner_size_points({ w = 800, h = 800 })
-    -- window:set_gui_font(ui_context, self.data.font)
-    -- window:set_gui_style(ui_context, {
-    --     text = {
-    --         Heading = 22.0,
-    --         Body = 18.0,
-    --         Button = 18.0,
-    --         Small = 16.0,
-    --         Monospace = 18.0
-    --     },
-    --     dark = true,
-    --     animation_time = 0.2,
-    --     wrap = true,
-    --     -- noninteractive_fg_color = { r = 255, g = 0, b = 0, a = 0 },
-    --     -- hovered_fg_color =  { r = 255, g = 255, b = 255, a = 0 },
-    --     active_fg_color = { r = 0, g = 0, b = 0, a = 0 },
-    --     inactive_fg_color = { r = 200, g = 200, b = 200, a = 200 },
-    --     -- open_fg_color = {r = 200}
-    -- })
-
     window:gui_window({
         title = "test windows",
         collapsible = false,
@@ -97,7 +75,7 @@ function UI:view(ui_context, window)
             stroke_color = rgba8.new(50, 50, 50, 50)
         },
         bg_img = "image/linux.png",
-        bg_img_color = rgba8.new(100,100,100, 50)
+        bg_img_color = rgba8.new(100, 100, 100, 50)
     }, ui_context, function(ui)
         gui_run(self.data, ui)
     end)
@@ -113,21 +91,21 @@ function gui_run(data, ui)
     ui:set_row_height(20)
     ui:with_layout(true, function(image_ui)
         local btn = image_ui:image_button(
-        {
-            img = "image/linux.png",
-            tint = rgba8.new(100,100,100, 50),
-            img_bg_fill = rgba8.new(0,0,0, 100),
-            img_max_size = {w = 100, h = 100},
-            img_rotate = {angle = 3.14, origin = {x = 0.5, y = 0.5}},
-            sense = "CLICK",
-            -- corner_radius = {sw = 10,se = 10, nw = 10, ne = 10},
-            frame = false,
-        })
+            {
+                img = "image/linux.png",
+                tint = rgba8.new(100, 100, 100, 50),
+                img_bg_fill = rgba8.new(0, 0, 0, 100),
+                img_max_size = { w = 100, h = 100 },
+                img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
+                sense = "CLICK",
+                -- corner_radius = {sw = 10,se = 10, nw = 10, ne = 10},
+                frame = false,
+            })
         if btn:clicked() then
             print("image_button clicked")
         end
     end)
-    
+
     ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)
         grid_ui:with_layout(true, function(center_ui)
             center_ui:collapsing(data.label_text, function(collapsing_ui)

@@ -1,11 +1,16 @@
-local UI = require("ui")
-local point = require("engine.vector2.point")
-local size  = require("engine.vector2.size")
-local ui = UI:new()
-local LOG = require("engine.log")
-local rgba8 = require("engine.color.rgba8")
-local logger = LOG.new("main", true, true)
+local point    = require("engine.vector2.point")
+local size     = require("engine.vector2.size")
+local rgba8    = require("engine.color.rgba8")
 
+local LOG      = require("engine.log")
+local logger   = LOG.new("main", true, true)
+local UI       = require("ui")
+local ui       = UI:new()
+
+local core_mod = require('core_mod')
+local init_mod = require('init_mod')
+register_module(core_mod)
+register_module(init_mod)
 ---@param window Window
 ---@param ui_context EguiContext
 ---@diagnostic disable-next-line: lowercase-global
@@ -22,6 +27,7 @@ end
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function update(dt)
+    print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
 end
 
 ---@param window Window
@@ -29,7 +35,10 @@ end
 ---@diagnostic disable-next-line: lowercase-global
 function init(window, ui_context)
     ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
-    window:set_title("aaaaaaaa")
+    window:set_title("window")
+    window:set_resizable(false)
+    window:set_max_inner_size(size.new(800, 800))
+    window:set_min_inner_size(size.new(800, 800))
     window:set_fullscreen(false)
     window:load_cursor_icon("image/cursor.png")
     window:set_window_icon("image/linux.png")
@@ -52,7 +61,6 @@ function init(window, ui_context)
     })
     print(window:monitor())
     ui:init()
-    -- graphics:init()
 end
 
 ---@param dt number -- delay time

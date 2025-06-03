@@ -51,6 +51,9 @@ impl ModuleFilter {
 }
 impl Filter for ModuleFilter {
     fn filter(&self, record: &log::Record) -> log4rs::filter::Response {
+        if self.module_list.is_empty() {
+            return Response::Reject;
+        }
         let module_name = record.module_path().unwrap_or_default().to_string();
         for mod_name in &self.module_list {
             if module_name.starts_with(mod_name) {
