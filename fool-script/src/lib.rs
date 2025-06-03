@@ -3,7 +3,7 @@ mod modules;
 pub mod thread;
 mod utils;
 use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table};
-use modules::{CloneableConstructor, DSLModule, MemoryModule, UserMod, fs_loader, stdlib};
+use modules::{DSLModule, MemoryModule, UserMod, UserModConstructor, fs_loader, stdlib};
 use std::collections::HashMap;
 use std::path::PathBuf;
 #[derive(Debug, Clone)]
@@ -85,9 +85,7 @@ impl FoolScript {
         )?;
         Ok(())
     }
-    pub fn run_dsl_update(&self) {
-        self.dsl_mod.run_all_update();
-    }
+
     pub fn load_main(&self) -> anyhow::Result<()> {
         #[cfg(feature = "debug")]
         {
@@ -134,7 +132,7 @@ impl FoolScript {
     pub fn register_user_mod(
         &self,
         mod_path: &str,
-        module: impl CloneableConstructor + 'static,
+        module: impl UserModConstructor + 'static,
     ) -> anyhow::Result<()> {
         self.user_mod.register(mod_path, module);
         Ok(())

@@ -1,6 +1,7 @@
 use clap::Parser;
 use fool_script::FoolScript;
-use mlua::{Lua, UserData};
+use fool_script::user_mod_constructor;
+use mlua::UserData;
 use std::collections::HashMap;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -24,9 +25,7 @@ impl UserData for Test {
         });
     }
 }
-pub fn register_test(lua: &Lua) -> mlua::Result<mlua::Value> {
-    Ok(mlua::Value::UserData(lua.create_userdata(Test)?))
-}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let level = if args.verbose {
@@ -50,16 +49,12 @@ fn main() -> anyhow::Result<()> {
         .to_vec(),
     );
     script.setup(&modules)?;
-    script.register_user_mod("a.b.c", register_test)?;
+    script.register_user_mod("a.b.c", user_mod_constructor!(Test))?;
     script.load_main()?;
-    for _ in 0..3 {
-        script.run_dsl_update();
-    }
     let task = fool_script::thread::AsyncScheduler::new(&script, 2);
-    task.run();
-    task.wait_all();
-    for _ in 0..3 {
-        script.run_dsl_update();
+    for _ in 0..10 {
+        task.run();
+        task.wait_all()?;
     }
     println!("lua main fn return: {}", script.run_fun::<f64>("main", ())?);
     Ok(())

@@ -2,12 +2,12 @@ use crate::utils::set_module_name;
 use mlua::{Function, Lua, Value};
 use parking_lot::RwLock;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
-pub trait CloneableConstructor: Send + Sync {
+pub trait UserModConstructor: Send + Sync {
     fn call(&self, lua: &Lua) -> mlua::Result<Value>;
-    fn clone_box(&self) -> Box<dyn CloneableConstructor>;
+    fn clone_box(&self) -> Box<dyn UserModConstructor>;
 }
 
-impl<F> CloneableConstructor for F
+impl<F> UserModConstructor for F
 where
     F: Fn(&Lua) -> mlua::Result<Value> + Send + Sync + Clone + 'static,
 {
@@ -15,21 +15,20 @@ where
         self(lua)
     }
 
-    fn clone_box(&self) -> Box<dyn CloneableConstructor> {
+    fn clone_box(&self) -> Box<dyn UserModConstructor> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<dyn CloneableConstructor> {
+impl Clone for Box<dyn UserModConstructor> {
     fn clone(&self) -> Self {
         self.clone_box()
     }
 }
-pub type ModuleConstructor = Box<dyn CloneableConstructor>;
 #[derive(Default, Clone)]
 struct ModNode {
     children: HashMap<String, ModNode>,
-    constructor: Option<ModuleConstructor>,
+    constructor: Option<Box<dyn UserModConstructor>>,
 }
 
 impl Debug for ModNode {
@@ -62,7 +61,7 @@ impl UserMod {
 
     pub fn register<F>(&self, path: &str, constructor: F)
     where
-        F: CloneableConstructor + 'static,
+        F: UserModConstructor + 'static,
     {
         let parts = path.split('.').collect::<Vec<_>>();
         let mut node = &mut *self.root.write();

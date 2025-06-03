@@ -20,18 +20,19 @@ impl FromLua for ModKind {
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct DSLID {
     pub name: String,
-    pub kind: ModKind,
 }
 impl Display for DSLID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{name: {}, kind: {:?}}}", self.name, self.kind)
+        write!(f, "DSLID {{name: {} }}", self.name)
     }
 }
 #[derive(Debug, Clone)]
 pub struct DSLContent {
+    pub kind: ModKind,
     pub init: Function,
     pub update: Function,
     pub module: Table,
+    pub deps: Vec<DSLID>,
 }
 impl DSLContent {
     pub fn state(&self) -> anyhow::Result<Table> {
@@ -121,32 +122,23 @@ impl DSLModule {
             map2lua_error!(table.get("init"), "Incorrect type of init function")?;
         let update_func: Function =
             map2lua_error!(table.get("update"), "Incorrect type of update function")?;
+        let deps = match table.get::<mlua::Table>("deps") {
+            Ok(table) => table
+                .sequence_values::<String>()
+                .filter_map(|r| r.ok())
+                .map(|name| DSLID { name })
+                .collect::<Vec<_>>(),
+            Err(_) => vec![],
+        };
         Ok((
-            DSLID {
-                name: mod_name,
-                kind: mod_kind,
-            },
+            DSLID { name: mod_name },
             DSLContent {
+                kind: mod_kind,
                 init: init_func,
                 update: update_func,
                 module: table.clone(),
+                deps,
             },
         ))
-    }
-    pub fn run_all_update(&self) {
-        let modules = self.modules.read();
-        for (id, content) in modules.iter() {
-            match content.run_update() {
-                Ok(_) => {
-                    log::debug!("run module {}, {} update fn finished!", content.name(), id)
-                }
-                Err(err) => log::error!(
-                    "run module {}, {} update fn, failed: {}",
-                    content.name(),
-                    id,
-                    err
-                ),
-            }
-        }
     }
 }

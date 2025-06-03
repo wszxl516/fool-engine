@@ -51,3 +51,12 @@ macro_rules! map2anyhow_error {
 macro_rules! map2lua_error {
     ($code:expr, $msg:expr) => {{ $code.map_err(|e| mlua::Error::RuntimeError(format!("{}, reason: {}", e, $msg))) }};
 }
+
+#[macro_export]
+macro_rules! user_mod_constructor {
+    ($t: ident) => {
+        move |lua: &mlua::Lua| -> mlua::Result<mlua::Value> {
+            Ok(mlua::Value::UserData(lua.create_userdata($t)?))
+        }
+    };
+}

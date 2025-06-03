@@ -9,4 +9,4 @@ mod userdata;
 pub use dsl::{DSLContent, DSLID, DSLModule, ModKind};
 pub use fs::fs_loader;
 pub use memory::MemoryModule;
-pub use userdata::{CloneableConstructor, UserMod};
+pub use userdata::{UserMod, UserModConstructor};
