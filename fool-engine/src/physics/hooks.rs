@@ -60,7 +60,6 @@ impl PhysicsHooks for LuaPhysicsHooks {
         if self.intersection_pair_group.is_empty() {
             return true;
         }
-        println!("filter_intersection_pair");
         if let (Some(h1), Some(h2)) = (context.rigid_body1, context.rigid_body2) {
             for (_, group) in &self.intersection_pair_group {
                 if group.contains(&h1) && group.contains(&h2) {

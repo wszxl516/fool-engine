@@ -1,9 +1,9 @@
 pub mod graphics;
 pub mod gui;
 pub mod types;
+use crate::engine::ResourceManager;
 use crate::event::EngineEventLoop;
 use crate::resource::lua::LuaResourceManager;
-use crate::resource::ResourceManager;
 use crate::{event::EventState, map2anyhow_error, physics::LuaPhysics};
 use egui::Context;
 use graphics::window::LuaWindow;
@@ -30,7 +30,7 @@ pub fn run_init_fn(
     lua: &Lua,
     ctx: &Context,
     win: Arc<Window>,
-    resource: Arc<Mutex<ResourceManager>>,
+    resource: ResourceManager,
     event_loop_proxy: EngineEventLoop,
 ) -> anyhow::Result<()> {
     let size = win.inner_size();
@@ -49,10 +49,7 @@ pub fn run_init_fn(
                         heigth: size.height as f32,
                         resource,
                     })?;
-                    if let Err(err) = init_fn.call::<()>((window, ui_context)) {
-                        log::error!("call lua init fn failed: {}", err);
-                    }
-                    Ok(())
+                    init_fn.call::<()>((window, ui_context))
                 }),
                 "run_init_fn"
             )?;
@@ -68,7 +65,7 @@ pub fn run_init_fn(
 pub fn run_view_fn(
     lua: &Lua,
     context: Context,
-    resource: Arc<Mutex<ResourceManager>>,
+    resource: ResourceManager,
     window: Arc<winit::window::Window>,
     event_loop_proxy: EngineEventLoop,
 ) -> anyhow::Result<()> {
@@ -98,7 +95,7 @@ pub fn run_event_fn(
     lua: &Lua,
     input: &mut EventState,
     win: Arc<Window>,
-    resource: Arc<Mutex<ResourceManager>>,
+    resource: ResourceManager,
     event_loop_proxy: EngineEventLoop,
 ) -> Result<()> {
     let elapsed = time_peer_frame();
@@ -129,7 +126,7 @@ pub fn run_update_fn(lua: &Lua) -> anyhow::Result<()> {
 
 pub fn setup_modules(
     lua: &Lua,
-    res_mgr: Arc<Mutex<ResourceManager>>,
+    res_mgr: ResourceManager,
     event_loop: EngineEventLoop,
 ) -> anyhow::Result<()> {
     map2anyhow_error!(

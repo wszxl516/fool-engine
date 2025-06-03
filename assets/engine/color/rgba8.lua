@@ -35,6 +35,11 @@ function Color8:to_float()
     }
 end
 
+---@return table
+function Color8:to_brush()
+    return { Solid = { components = { self.r, self.g, self.b, self.a } } }
+end
+
 ---@return string
 function Color8:__tostring()
     return string.format("rgba(%d,%d,%d,%d)", self.r, self.g, self.b, self.a)

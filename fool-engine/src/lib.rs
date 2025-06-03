@@ -1,221 +1,17 @@
+pub mod engine;
 pub mod event;
 pub mod lua;
 pub mod physics;
 pub mod resource;
 mod scheduler;
 pub mod utils;
-use event::{EngineEvent, EngineEventLoop, EventState};
-use fool_graphics::GraphRender;
-use fool_script::{thread::AsyncScheduler, FoolScript};
-use lua::{run_event_fn, run_init_fn, run_update_fn, run_view_fn, setup_modules};
-use parking_lot::Mutex;
-use resource::ResourceManager;
-use scheduler::Scheduler;
-use std::sync::Arc;
+use event::EngineEvent;
 use winit::{
-    application::ApplicationHandler,
     dpi::{LogicalSize, Size},
-    event::WindowEvent,
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoopBuilder, EventLoopProxy},
+    event_loop::EventLoopBuilder,
     platform::x11::{EventLoopBuilderExtX11, WindowAttributesExtX11},
-    window::{Window, WindowAttributes},
+    window::Window,
 };
-struct Engine {
-    resource: Arc<Mutex<ResourceManager>>,
-    script: FoolScript,
-    event_state: EventState,
-    window_attr: WindowAttributes,
-    window: Option<Arc<Window>>,
-    render: Option<GraphRender>,
-    engine_event_loop: EngineEventLoop,
-    scheduler: Scheduler,
-    script_scheduler: AsyncScheduler,
-}
-
-//init
-impl Engine {
-    pub fn new(
-        fps: u32,
-        window_attr: WindowAttributes,
-        event_proxy: EventLoopProxy<EngineEvent>,
-    ) -> anyhow::Result<Self> {
-        let resource = ResourceManager::new()?;
-        let mut script = FoolScript::new(resource.assets_path.clone())?;
-        let event_proxy = EngineEventLoop::new(event_proxy);
-        #[cfg(not(feature = "debug"))]
-        {
-            let mem_modules = resource.all_memory_resource();
-            script.setup(mem_modules)?;
-        }
-        #[cfg(feature = "debug")]
-        {
-            use std::collections::HashMap;
-            let mem_modules = &HashMap::<String, Vec<u8>>::new();
-            script.setup(mem_modules)?;
-        }
-        let resource = Arc::new(Mutex::new(resource));
-        setup_modules(&script.lua, resource.clone(), event_proxy.clone())?;
-        map2anyhow_error!(script.load_main(), "load main.lua failed: ")?;
-        Ok(Engine {
-            resource,
-            script: script.clone(),
-            event_state: EventState::new(event_proxy.clone()),
-            window: None,
-            window_attr,
-            render: None,
-            scheduler: Scheduler::new(fps),
-            engine_event_loop: event_proxy,
-            script_scheduler: AsyncScheduler::new(&script, 1),
-        })
-    }
-
-    pub fn init(
-        &mut self,
-        window: Arc<Window>,
-        _event_loop: &ActiveEventLoop,
-    ) -> anyhow::Result<()> {
-        self.window.replace(window.clone());
-        let render = GraphRender::new(window.clone())?;
-        if let Err(err) = run_init_fn(
-            &self.script.lua,
-            render.gui_context(),
-            window.clone(),
-            self.resource.clone(),
-            self.engine_event_loop.clone(),
-        ) {
-            log_error_exit!("run lua init failed: {}", err)
-        }
-        egui_extras::install_image_loaders(render.gui_context());
-        self.render.replace(render);
-        Ok(())
-    }
-}
-
-// graphics
-impl Engine {
-    pub fn view(&mut self) {
-        let resource = self.resource.clone();
-        if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
-            let egui_ctx = render.begin_frame();
-            if let Err(err) = run_view_fn(
-                &self.script.lua,
-                egui_ctx.clone(),
-                resource.clone(),
-                window.clone(),
-                self.engine_event_loop.clone(),
-            ) {
-                log_error_exit!("run lua view failed: {}", err)
-            }
-            render.draw_scene(&fool_graphics::test::test_graph());
-            render.end_frame().unwrap();
-        }
-    }
-    pub fn update(&mut self) {
-        self.script_scheduler.run();
-        if let Err(err) = run_update_fn(&self.script.lua) {
-            log_error_exit!("run lua update failed: {}", err)
-        }
-        self.script_scheduler.wait_all().unwrap();
-    }
-}
-//event
-impl Engine {
-    fn window_event(&mut self, event: &winit::event::WindowEvent) {
-        self.event_state.handle_event(event);
-        if let Some(render) = &mut self.render {
-            render.gui_event(&event);
-        }
-        if let Some(window) = &self.window {
-            let resource = self.resource.clone();
-            if let Err(err) = run_event_fn(
-                &self.script.lua,
-                &mut self.event_state,
-                window.clone(),
-                resource,
-                self.engine_event_loop.clone(),
-            ) {
-                log_error_exit!("run lua event failed: {}", err)
-            }
-        }
-        match event {
-            WindowEvent::Resized(size) => {
-                if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
-                    render.resize(size.width, size.height);
-                    window.request_redraw();
-                }
-            }
-            WindowEvent::RedrawRequested => {
-                self.update();
-                self.view()
-            }
-            _ => {}
-        }
-    }
-    fn engine_event(&mut self, event_loop: &ActiveEventLoop, event: EngineEvent) {
-        match event {
-            EngineEvent::LoadCursor(cursor) => {
-                if let Err(err) = self.resource.lock().load_cursor(&cursor, event_loop) {
-                    log::error!("load_cursor {} failed: {}", cursor, err)
-                }
-            }
-            EngineEvent::ExitWindow => {
-                log::debug!("exit window");
-                event_loop.exit()
-            }
-            EngineEvent::LoadUITexture(path) => {
-                if let Some(render) = &self.render {
-                    if let Err(err) = self
-                        .resource
-                        .lock()
-                        .load_ui_texture(&path, render.gui_context())
-                    {
-                        log::error!("load uitexture {} failed: {}", path, err)
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-}
-impl ApplicationHandler<EngineEvent> for Engine {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_none() {
-            let window = event_loop
-                .create_window(self.window_attr.clone())
-                .unwrap_or_else(|err| log_error_exit!("create_window failed: {}", err));
-            let window = Arc::new(window);
-            self.init(window.clone(), event_loop)
-                .unwrap_or_else(|err| log_error_exit!("init engine failed: {}", err));
-        }
-        event_loop.set_control_flow(ControlFlow::Wait);
-    }
-    fn window_event(
-        &mut self,
-        _event_loop: &ActiveEventLoop,
-        _window_id: winit::window::WindowId,
-        event: WindowEvent,
-    ) {
-        self.window_event(&event);
-    }
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if self.scheduler.trigger_redraw(event_loop) {
-            if let Some(window) = &self.window {
-                window.request_redraw();
-            }
-        }
-    }
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineEvent) {
-        self.engine_event(event_loop, event);
-    }
-    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        if let (Some(render), Some(window)) = (self.render.take(), self.window.take()) {
-            drop(window);
-            drop(render);
-        }
-        log::debug!("exiting window");
-    }
-}
-
 pub fn init_engine() -> anyhow::Result<()> {
     let window_attr = Window::default_attributes()
         .with_base_size(Size::Logical(LogicalSize {
@@ -229,7 +25,7 @@ pub fn init_engine() -> anyhow::Result<()> {
         .with_any_thread(true)
         .build()?;
     let event_proxy = event_loop.create_proxy();
-    let mut engine = Engine::new(30, window_attr, event_proxy)?;
+    let mut engine = engine::Engine::new(30, window_attr, event_proxy)?;
     event_loop
         .run_app(&mut engine)
         .expect("Couldn't run event loop");

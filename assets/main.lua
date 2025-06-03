@@ -1,4 +1,3 @@
-local point    = require("engine.vector2.point")
 local size     = require("engine.vector2.size")
 local rgba8    = require("engine.color.rgba8")
 
@@ -6,6 +5,7 @@ local LOG      = require("engine.log")
 local logger   = LOG.new("main", true, true)
 local UI       = require("ui")
 local ui       = UI:new()
+local graphics = require("graphics")
 
 local core_mod = require('core_mod')
 local init_mod = require('init_mod')
@@ -15,6 +15,7 @@ register_module(init_mod)
 ---@param ui_context EguiContext
 ---@diagnostic disable-next-line: lowercase-global
 function view(window, ui_context)
+    graphics:view(window, ui_context)
     ui:view(ui_context, window)
     -- window:set_ime_allowed(true)
     -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
@@ -27,7 +28,8 @@ end
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function update(dt)
-    print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
+    graphics:update(dt)
+    -- print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
 end
 
 ---@param window Window
@@ -60,7 +62,9 @@ function init(window, ui_context)
         open_fg_color = rgba8.new(200, 0, 0, 0)
     })
     print(window:monitor())
+    -- aaaa.aaa()
     ui:init()
+    graphics:init(window, ui_context)
 end
 
 ---@param dt number -- delay time
@@ -75,4 +79,5 @@ function event(event, window, dt)
     event:on_exit(function()
         logger:debug("exit from lua")
     end)
+    graphics:event(event, window, dt)
 end

@@ -2,24 +2,25 @@ pub use super::graphics::types::LuaColor;
 use mlua::{Function, Lua, UserData, Value};
 pub mod binding;
 pub mod types;
-use crate::resource::ResourceManager;
+pub mod macros;
+use crate::engine::ResourceManager;
 pub use binding::LuaUiContext;
 use egui::{pos2, vec2, Context, Visuals};
-use parking_lot::Mutex;
-use std::sync::Arc;
 pub use types::{LuaGuiStyle, LuaUIConfig};
 pub struct EguiContext {
     pub context: Context,
     pub width: f32,
     pub heigth: f32,
-    pub resource: Arc<Mutex<ResourceManager>>,
+    pub resource: ResourceManager,
 }
 impl UserData for EguiContext {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method_mut("set_font", |_lua, this, name: String| {
-            let mut res = this.resource.lock();
-            res.load_ui_font(name).unwrap();
-            let font = res.ui_font.clone();
+            let res = &this.resource;
+            res.load_ui_font(&name).map_err(|err| {
+                mlua::Error::RuntimeError(format!("load font {} failed {}", name, err))
+            })?;
+            let font = res.egui_font.read().clone();
             this.context.set_fonts(font);
             Ok(())
         });
@@ -91,7 +92,7 @@ pub fn create_window(
         .frame(config.frame.into())
         .show(&context.context, |ui| {
             if let Some(texture) = texture {
-                match context.resource.lock().get_ui_texture(&texture) {
+                match context.resource.get_ui_texture(&texture) {
                     Ok(texture) => {
                         let rect = ui.available_rect_before_wrap();
                         ui.painter().image(

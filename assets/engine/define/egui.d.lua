@@ -1,0 +1,313 @@
+
+
+---@class LuaResponse
+local LuaResponse = {}
+---@return boolean
+function LuaResponse:clicked()
+    return true
+end
+
+---@return boolean
+function LuaResponse:changed()
+    return true
+end
+
+---@return boolean
+function LuaResponse:double_clicked()
+    return true
+end
+
+---@return boolean
+function LuaResponse:middle_clicked()
+    return true
+end
+
+---@return boolean
+function LuaResponse:secondary_clicked()
+    return true
+end
+
+---@return boolean
+function LuaResponse:hovered()
+    return true
+end
+
+---@return boolean
+function LuaResponse:dragged()
+    return true
+end
+
+---@return boolean
+function LuaResponse:has_focus()
+    return true
+end
+
+---@return boolean
+function LuaResponse:lost_focus()
+    return true
+end
+
+---@return boolean
+function LuaResponse:gained_focus()
+    return true
+end
+
+---@return boolean
+function LuaResponse:clicked_elsewhere()
+    return true
+end
+
+--- UIContext
+---@class UIContext
+local UIContext = {}
+---@param text string
+---@return LuaResponse
+function UIContext:label(text)
+    return {}
+end
+
+---@param label string
+---@return LuaResponse
+function UIContext:button(label)
+    return {}
+end
+
+---@class Label
+---@field checked boolean
+---@field label string
+---@param args Label
+---@return LuaResponse
+function UIContext:checkbox(args)
+    return {}
+end
+
+---@class TextEdit
+---@field id string
+---@field content string
+---@field single_line boolean
+---@field char_limit number
+---@field clip_text boolean
+---@field rows number
+---@field code_editor boolean
+---@field password boolean
+---@param text_edit TextEdit
+---@return LuaResponse
+function UIContext:text_edit(text_edit)
+    return {}
+end
+
+---@class Slider
+---@field current number
+---@field min number
+---@field max number
+---@field label string
+---@param args Slider
+---@return  LuaResponse
+function UIContext:slider(args)
+    return {}
+end
+
+---@class ProgressBar
+---@field progress number [0.0 ~ 1.0]
+---@field name string
+---@field show_percentage boolean
+---@field color Color8
+---@field animate boolean
+---@param args ProgressBar
+---@return LuaResponse
+function UIContext:progress_bar(args)
+    return {}
+end
+
+---@class ColorPicker
+---@field color Color8
+---@param color_picker ColorPicker
+---@return LuaResponse
+function UIContext:color_picker(color_picker)
+    return {}
+end
+
+---@param label string
+---@param body fun(ctx: UIContext)
+---@return LuaResponse
+function UIContext:collapsing(label, body)
+    return {}
+end
+
+---@param body fun(ctx: UIContext)
+---@return LuaResponse
+function UIContext:horizontal(body)
+    return {}
+end
+
+---@param body fun(ctx: UIContext)
+---@return LuaResponse
+function UIContext:vertical(body)
+    return {}
+end
+
+---@class ComboBox
+---@field id  string
+---@field selected string
+---@field items string[]
+---@param combo_box ComboBox
+---@return LuaResponse
+function UIContext:combo_box(combo_box)
+    return {}
+end
+
+---@param id string
+---@param spacing Size
+---@param start_row number
+---@param body fun(ctx: UIContext)
+---@return LuaResponse
+function UIContext:grid(id, spacing, start_row, body)
+    return {}
+end
+
+---@return LuaResponse
+function UIContext:separator()
+    return {}
+end
+
+---@param text string
+---@return LuaResponse
+function UIContext:heading(text)
+    return {}
+end
+
+---@param url string
+---@return LuaResponse
+function UIContext:hyperlink(url)
+    return {}
+end
+
+---@param text string
+---@return LuaResponse
+function UIContext:small(text)
+    return {}
+end
+
+---@class Radio
+---@field selected boolean
+---@field text string
+---@param args Radio[]
+---@param left_to_right boolean
+---@return LuaResponse
+function UIContext:radio(args, left_to_right)
+    return {}
+end
+
+---@param selected boolean
+---@param label string
+---@return LuaResponse
+function UIContext:selectable_label(selected, label)
+    return {}
+end
+
+---@param topdown_or_leftright boolean
+---@param reverse boolean
+---@param body fun(ctx: UIContext)
+---@return LuaResponse
+function UIContext:with_layout(topdown_or_leftright, reverse, body)
+    return {}
+end
+
+---@param size Size
+function UIContext:set_max_size(size) end
+
+---@param size Size
+function UIContext:set_min_size(size) end
+
+---@param height number
+function UIContext:set_row_height(height) end
+
+function UIContext:end_row() end
+
+---@class Rotate
+---@field angle number 0.0 - 2π
+---@field origin Point 0.0 - 1.0
+---@class UV
+---@field min Point
+---@field max Point
+---@class ImageButtonConfig
+---@field img string
+---@field label string|nil
+---@field show_loading_spinner boolean|nil
+---@field img_bg_fill Color8 | nil
+---@field scale number | nil
+---@field img_rotate Rotate
+---@field frame boolean| nil
+---@field tint Color8 | nil
+---@field selected boolean | nil
+---@field corner_radius Rounding| nil
+---@field uv UV|nil
+---@field sense "HOVER" | "CLICK" | "DRAG" | "FOCUSABLE" | "ALL" | nil
+---@param config ImageButtonConfig
+function UIContext:image_button(config) end
+
+---@param config ImageButtonConfig
+function UIContext:image(config) end
+
+---@class EguiContext
+EguiContext = {}
+---@param name string
+function EguiContext:set_font(name)
+end
+
+---@class TextStyle
+---@field Small number
+---@field Body number
+---@field Monospace number
+---@field Button number
+---@field Heading number
+---@class LuaGuiStyle
+---@field text? TextStyle
+---@field dark? boolean
+---@field animation_time? number
+---@field wrap? "Extend"|"Wrap" |"Truncate"|nil
+---@field noninteractive_fg_color? Color8
+---@field hovered_fg_color? Color8
+---@field active_fg_color? Color8
+---@field inactive_fg_color? Color8,
+---@field open_fg_color? Color8
+---@param style LuaGuiStyle
+---@diagnostic disable-next-line: lowercase-global
+function EguiContext:set_style(style)
+
+end
+
+_G.ResourceManager = {}
+---@param path string
+function ResourceManager:load_texture(path)
+
+end
+
+---@class Font
+---@param path string
+---@return Font
+---@diagnostic disable-next-line: lowercase-global
+function ResourceManager:load_font(path)
+    return {}
+end
+
+---@class Image
+---@param path string
+---@return Image
+---@diagnostic disable-next-line: lowercase-global
+function ResourceManager:load_image(path)
+    return {}
+end
+
+---@class DSLModule
+---@field name string
+---@field kind "Init" | "Core"
+---@field deps string[]
+---@field state table
+---self.state
+---@field init fun(state)
+---deps.state
+---@field update fun(table)
+---@param module DSLModule
+---@diagnostic disable-next-line: lowercase-global
+function register_module(module) end

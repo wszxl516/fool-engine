@@ -1,4 +1,4 @@
-use crate::lua::types::{LuaPoint, LuaSize};
+use crate::lua::types::LuaPoint;
 
 use super::super::graphics::types::LuaColor;
 use egui::{epaint::text::TextWrapMode, FontId, TextStyle};
@@ -183,7 +183,7 @@ pub struct ImageButtonConfig {
     #[serde(default)]
     pub img_bg_fill: Option<LuaColor>,
     #[serde(default)]
-    pub img_max_size: Option<LuaSize<f32>>,
+    pub scale: Option<f32>,
     #[serde(default)]
     pub img_rotate: Option<Rotate>,
     #[serde(default)]

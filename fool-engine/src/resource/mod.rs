@@ -1,28 +1,31 @@
 use crate::map2anyhow_error;
 use egui::{FontData, FontDefinitions};
+use fool_graphics::canvas::SceneGraph;
 use image::DynamicImage;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
+mod fallback;
 pub mod lua;
 pub mod types;
+pub mod utils;
 use egui::epaint::TextureHandle;
-#[cfg(not(feature = "debug"))]
-use packtool::MemResource;
+pub use fool_graphics::canvas::FontManager;
+pub use fool_resource::{Resource, SharedData};
+use parking_lot::RwLock;
+pub use utils::{create_cursor, texture_from_image};
 use winit::{
     event_loop::ActiveEventLoop,
     window::{CustomCursor, Icon},
 };
-pub enum Resource {
-    Image(DynamicImage),
-}
+#[derive(Clone)]
 pub struct ResourceManager {
-    resources: HashMap<String, Resource>,
-    #[cfg(not(feature = "debug"))]
-    pub memory_resource: MemResource,
     pub assets_path: PathBuf,
-    pub ui_font: FontDefinitions,
-    pub window_cursor: HashMap<String, CustomCursor>,
-    pub window_icon: HashMap<String, Icon>,
-    pub ui_texture: HashMap<String, TextureHandle>,
+    pub raw_resource: Resource<String, SharedData>,
+    image: Resource<String, Arc<DynamicImage>>,
+    pub egui_font: Arc<RwLock<FontDefinitions>>,
+    pub egui_texture: Resource<String, TextureHandle>,
+    pub window_cursor: Resource<String, Arc<CustomCursor>>,
+    pub window_icon: Resource<String, Arc<Icon>>,
+    pub scene: Arc<RwLock<SceneGraph>>,
 }
 
 pub fn resource_path() -> anyhow::Result<PathBuf> {
@@ -38,102 +41,90 @@ pub fn resource_path() -> anyhow::Result<PathBuf> {
                 .expect("executable has no parent directory to search")
                 .into())
             .for_folder(RESOURCES_PATH),
-        "get resource_path failed"
+        format!("get resource_path {} failed", RESOURCES_PATH)
     )?;
     Ok(path)
 }
 impl ResourceManager {
     pub fn new() -> anyhow::Result<Self> {
         let assets_path = resource_path()?;
+        #[cfg(feature = "debug")]
+        let raw = {
+            log::debug!(
+                "init resource manager assets_path from {}",
+                assets_path.display()
+            );
+            let fs_fallback = fallback::FSFallBack {
+                asset_path: assets_path.clone(),
+            };
+            Resource::from_fallback(fs_fallback)
+        };
+
         #[cfg(not(feature = "debug"))]
-        let resource_pack =
-            packtool::ResourcePackage::from_pak(assets_path.join("assets.pak"))?.unpack2memory()?;
+        let raw = {
+            let assets_path = assets_path.join("assets.pak");
+            log::debug!(
+                "init resource manager assets_path from {}",
+                assets_path.display()
+            );
+            let resource_pack =
+                packtool::ResourcePackage::from_pak(assets_path)?.unpack2memory()?;
+            let raw = Resource::empty();
+            raw.load_from_map(resource_pack);
+            raw
+        };
+
         Ok(Self {
-            resources: HashMap::new(),
-            #[cfg(not(feature = "debug"))]
-            memory_resource: resource_pack,
+            image: Default::default(),
+            raw_resource: raw,
             assets_path,
-            ui_font: FontDefinitions::empty(),
+            egui_font: Arc::new(RwLock::new(FontDefinitions::empty())),
             window_cursor: Default::default(),
             window_icon: Default::default(),
-            ui_texture: Default::default(),
+            egui_texture: Default::default(),
+            scene: Arc::new(RwLock::new(SceneGraph::default())),
         })
     }
-    #[cfg(not(feature = "debug"))]
-    pub fn load_bytes_from_memory(&self, path: &String) -> &[u8] {
-        self.memory_resource
+    pub fn load_bytes_from_memory(&self, path: &String) -> SharedData {
+        self.raw_resource
             .get(path)
             .expect(&format!("resource {} not found!", path))
+            .clone()
     }
-    #[cfg(not(feature = "debug"))]
-    pub fn all_memory_resource(&self) -> &HashMap<String, Vec<u8>> {
-        &self.memory_resource
-    }
-    pub fn load_image(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
+    pub fn load_image(&self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
-        #[cfg(feature = "debug")]
-        {
-            let img_path = self.assets_path.join(&path);
-            let img = image::open(&img_path)?;
-            log::debug!("load imge {} from disk!", img_path.display());
-            self.resources
-                .insert(path.to_string_lossy().to_string(), Resource::Image(img));
-        }
-        #[cfg(not(feature = "debug"))]
-        {
-            let img = map2anyhow_error!(
-                image::load_from_memory(
-                    self.load_bytes_from_memory(&path.to_string_lossy().to_string())
-                ),
-                "load_image failed"
-            )?;
-            log::debug!("load imge {} from memory!", &path.display());
-            self.resources
-                .insert(path.to_string_lossy().to_string(), Resource::Image(img));
-        }
+
+        let img = map2anyhow_error!(
+            self.load_bytes_from_memory(&path.to_string_lossy().to_string())
+                .to_image(),
+            "load_image failed"
+        )?;
+        self.image
+            .load(path.to_string_lossy().to_string(), Arc::new(img));
+
         Ok(())
     }
-    pub fn get_image(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<&DynamicImage> {
+    pub fn get_image(&self, path: impl Into<PathBuf>) -> anyhow::Result<Arc<DynamicImage>> {
         let path: PathBuf = path.into();
-        if !self
-            .resources
-            .contains_key(&path.to_string_lossy().to_string())
-        {
+        if !self.image.exists(&path.to_string_lossy().to_string()) {
             self.load_image(&path)?;
         }
         let id = path.to_string_lossy().to_string();
-        self.resources
-            .get(&id)
-            .and_then(|res| match res {
-                Resource::Image(image) => Some(image),
-            })
-            .ok_or_else(|| anyhow::anyhow!("resource is not a image or not found!"))
+        self.image.get(&id)
     }
-    pub fn load_ui_font(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
+    pub fn load_ui_font(&self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
         let id = path.to_string_lossy().to_string();
-        #[cfg(feature = "debug")]
-        {
-            let font_path = self.assets_path.join(&path);
-            let font_data = std::fs::read(&font_path)?;
-            log::debug!("load font {} from disk!", font_path.display());
-            let font_data = Arc::new(FontData::from_owned(font_data));
-            self.ui_font.font_data.insert(id.clone(), font_data);
-        }
-        #[cfg(not(feature = "debug"))]
-        {
-            log::debug!("load imge {} from memory!", &path.display());
-            let font_data = self.load_bytes_from_memory(&path.to_string_lossy().to_string());
-            let font_data = Arc::new(FontData::from_owned(font_data.into()));
-            self.ui_font.font_data.insert(id.clone(), font_data);
-        };
-
-        self.ui_font
+        let font_data = self.load_bytes_from_memory(&path.to_string_lossy().to_string());
+        let font_data = Arc::new(FontData::from_owned(font_data.as_ref().to_vec()));
+        let mut egui_font = self.egui_font.write();
+        egui_font.font_data.insert(id.clone(), font_data);
+        egui_font
             .families
             .get_mut(&egui::FontFamily::Proportional)
             .unwrap()
             .insert(0, id.clone());
-        self.ui_font
+        egui_font
             .families
             .get_mut(&egui::FontFamily::Monospace)
             .unwrap()
@@ -146,9 +137,9 @@ impl ResourceManager {
         event_loop: &ActiveEventLoop,
     ) -> anyhow::Result<()> {
         let img = self.get_image(&name)?;
-        match create_cursor(event_loop, img) {
+        match create_cursor(event_loop, &img) {
             Ok(c) => {
-                self.window_cursor.insert(name.clone(), c);
+                self.window_cursor.load(name.clone(), c);
                 log::debug!("cursor {} loaded!", name);
             }
             Err(err) => {
@@ -158,10 +149,10 @@ impl ResourceManager {
 
         Ok(())
     }
-    pub fn get_cursor(&self, path: &String) -> Option<&CustomCursor> {
+    pub fn get_cursor(&self, path: &String) -> anyhow::Result<Arc<CustomCursor>> {
         self.window_cursor.get(path)
     }
-    pub fn load_window_icon(&mut self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
+    pub fn load_window_icon(&self, path: impl Into<PathBuf>) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
         let img = self.get_image(&path)?;
         let width = img.width();
@@ -172,68 +163,28 @@ impl ResourceManager {
         ))?;
         let icon = Icon::from_rgba(rgba.clone().into_vec(), width, height)?;
         self.window_icon
-            .insert(path.to_string_lossy().to_string(), icon);
+            .load(path.to_string_lossy().to_string(), icon);
         Ok(())
     }
-    pub fn get_window_icon(&mut self, path: &String) -> anyhow::Result<&Icon> {
-        if !self.window_icon.contains_key(path) {
+    pub fn get_window_icon(&self, path: &String) -> anyhow::Result<Arc<Icon>> {
+        if !self.window_icon.exists(path) {
             self.load_window_icon(path)?;
         }
-        self.window_icon
-            .get(path)
-            .ok_or(anyhow::anyhow!("window_icon {} not found!", path))
+        self.window_icon.get(path)
     }
     pub fn load_ui_texture(
-        &mut self,
+        &self,
         path: impl Into<PathBuf>,
         ctx: &egui::Context,
     ) -> anyhow::Result<()> {
         let path: PathBuf = path.into();
         let id = path.to_string_lossy().to_string();
         let img = self.get_image(&path)?;
-        let texture = texture_from_image(&id, img, ctx)?;
-        self.ui_texture.insert(id, texture);
+        let texture = texture_from_image(&id, &img, ctx)?;
+        self.egui_texture.load(id, texture);
         Ok(())
     }
-    pub fn get_ui_texture(&mut self, path: &String) -> anyhow::Result<&TextureHandle> {
-        self.ui_texture
-            .get(path)
-            .ok_or_else(|| anyhow::anyhow!("resource is not a texture or not found!"))
+    pub fn get_ui_texture(&self, path: &String) -> anyhow::Result<TextureHandle> {
+        self.egui_texture.get(path)
     }
-}
-
-pub fn create_cursor(
-    event_loop: &ActiveEventLoop,
-    img: &DynamicImage,
-) -> anyhow::Result<CustomCursor> {
-    let width = img.width() as u16;
-    let height = img.height() as u16;
-    let rgba = img.as_rgba8().cloned().unwrap().into_vec();
-    let cursor = CustomCursor::from_rgba(rgba, width, height, width / 2, height / 2)?;
-    Ok(event_loop.create_custom_cursor(cursor))
-}
-
-pub fn texture_from_image(
-    name: &String,
-    img: &image::DynamicImage,
-    ctx: &egui::Context,
-) -> anyhow::Result<TextureHandle> {
-    use egui::ColorImage;
-    use egui::TextureOptions;
-    use image::GenericImageView;
-    let rgba_image = img.to_rgba8();
-    let (width, height) = (rgba_image.width() as usize, rgba_image.height() as usize);
-    let pixels: Vec<egui::Color32> = img
-        .pixels()
-        .map(|p| egui::Color32::from_rgba_premultiplied(p.2 .0[0], p.2 .0[1], p.2 .0[2], p.2 .0[3]))
-        .collect();
-    let color_image = ColorImage {
-        size: [width as usize, height as usize],
-        pixels,
-    };
-
-    let ui_texture = ctx.load_texture(name, color_image, TextureOptions::default());
-    // let t:egui::ImageSource = (&ui_texture).into();
-    // let img: egui::Image = t.into();
-    Ok(ui_texture)
 }

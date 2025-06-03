@@ -1,9 +1,6 @@
----@class Bounds
----@field left number
----@field right number
----@field top number
----@field bottom number
 ---@class Size
+---@field width number
+---@field height number
 local Size = {}
 Size.__index = Size
 
@@ -11,18 +8,18 @@ Size.__index = Size
 ---@param h number
 ---@return Size
 function Size.new(w, h)
-    return setmetatable({ w = w or 0, h = h or 0 }, Size)
+    return setmetatable({ width = w or 0, height = h or 0 }, Size)
 end
 
 ---@return Size
 function Size:copy()
-    return Size.new(self.w, self.h)
+    return Size.new(self.width, self.height)
 end
 
 ---@return Bounds
 function Size:get_bounds()
-    local hw = self.w / 2
-    local hh = self.h / 2
+    local hw = self.width / 2
+    local hh = self.height / 2
     return {
         left   = -hw,
         right  =  hw,
@@ -33,7 +30,7 @@ end
 
 ---@return string
 function Size.__tostring(a)
-    return string.format("LuaSize(w=%.2f, h=%.2f)", a.w, a.h)
+    return string.format("LuaSize(w=%.2f, h=%.2f)", a.width, a.height)
 end
 
 return Size

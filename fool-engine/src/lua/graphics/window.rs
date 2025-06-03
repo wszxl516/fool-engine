@@ -1,19 +1,18 @@
 use super::super::gui::{create_window, LuaUIConfig};
+use super::draw::LuaScene;
 use super::types::{LuaPoint, LuaSize};
+use crate::engine::ResourceManager;
 use crate::event::EngineEventLoop;
 use crate::map2lua_error;
-use crate::resource::ResourceManager;
 use mlua::{Function, UserData, UserDataMethods, Value};
-use parking_lot::Mutex;
 use std::{str::FromStr, sync::Arc};
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size},
     window::{CursorGrabMode, CursorIcon, Fullscreen, Window},
 };
-
 pub struct LuaWindow {
     pub window: Arc<Window>,
-    pub resource: Arc<Mutex<ResourceManager>>,
+    pub resource: ResourceManager,
     pub event_loop: EngineEventLoop,
 }
 impl UserData for LuaWindow {
@@ -41,7 +40,7 @@ impl UserData for LuaWindow {
             |_lua, this, (pos, size): (LuaPoint<f64>, LuaSize<f64>)| {
                 this.window.set_ime_cursor_area(
                     Position::Logical(LogicalPosition::new(pos.x, pos.y)),
-                    Size::Logical(LogicalSize::new(size.w, size.h)),
+                    Size::Logical(LogicalSize::new(size.width, size.height)),
                 );
                 Ok(())
             },
@@ -51,14 +50,14 @@ impl UserData for LuaWindow {
             Ok(())
         });
         methods.add_method("set_cursor_icon", |_lua, this, cursor: String| {
-            if let Some(cursor) = this.resource.lock().get_cursor(&cursor) {
-                this.window.set_cursor(cursor.clone());
+            if let Ok(cursor) = this.resource.get_cursor(&cursor) {
+                this.window.set_cursor(cursor.as_ref().clone());
             }
             Ok(())
         });
         methods.add_method("set_window_icon", |_lua, this, icon: String| {
-            match this.resource.lock().get_window_icon(&icon) {
-                Ok(icon) => this.window.set_window_icon(Some(icon.clone())),
+            match &this.resource.get_window_icon(&icon) {
+                Ok(icon) => this.window.set_window_icon(Some(icon.as_ref().clone())),
                 Err(err) => log::error!("failed to get window icon {}, {}", icon, err),
             }
             Ok(())
@@ -84,12 +83,12 @@ impl UserData for LuaWindow {
         });
         methods.add_method("set_max_inner_size", |_lua, this, size: LuaSize<f64>| {
             this.window
-                .set_max_inner_size(Some(PhysicalSize::new(size.w, size.h)));
+                .set_max_inner_size(Some(PhysicalSize::new(size.width, size.height)));
             Ok(())
         });
         methods.add_method("set_min_inner_size", |_lua, this, size: LuaSize<f64>| {
             this.window
-                .set_min_inner_size(Some(PhysicalSize::new(size.w, size.h)));
+                .set_min_inner_size(Some(PhysicalSize::new(size.width, size.height)));
             Ok(())
         });
 
@@ -122,15 +121,15 @@ impl UserData for LuaWindow {
         methods.add_method("inner_size", |_lua, this, (): ()| {
             let size = this.window.inner_size();
             Ok(LuaSize {
-                w: size.width,
-                h: size.height,
+                width: size.width,
+                height: size.height,
             })
         });
         methods.add_method("outer_size", |_lua, this, (): ()| {
             let size = this.window.outer_size();
             Ok(LuaSize {
-                w: size.width,
-                h: size.height,
+                width: size.width,
+                height: size.height,
             })
         });
 
@@ -163,5 +162,10 @@ impl UserData for LuaWindow {
                 create_window(lua, config, context, func)
             },
         );
+        methods.add_method("draw", |_lua, this, scene: LuaScene| {
+            let node = scene.0;
+            this.resource.scene.write().set_root(node);
+            Ok(())
+        });
     }
 }

@@ -1,5 +1,3 @@
-use crate::graph_vec2;
-
 pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {
     egui::Window::new("test")
         .default_pos(egui::pos2(400.0, 400.0))
@@ -18,10 +16,9 @@ pub fn test_gui(ctx: &egui::Context, _window: &winit::window::Window) {
         });
 }
 pub fn test_graph() -> vello::Scene {
-    use crate::canvas::StokeStyle;
     use crate::canvas::{SceneGraph, SceneNode, Style, load_image_from_file};
+    use kurbo::Size;
     use kurbo::{PathEl, Point, RoundedRectRadii, Vec2};
-    use kurbo::{Size, Stroke};
     use peniko::Color;
     let mut sc = vello::Scene::new();
     let mut root = SceneNode::empty();
@@ -52,12 +49,15 @@ pub fn test_graph() -> vello::Scene {
     ));
     root.add_child(&SceneNode::rect(
         Point::new(250.0, 50.0),
-        Point::new(320.0, 120.0),
+        Size::new(320.0, 120.0),
         &blue,
     ));
     root.add_child(&SceneNode::round_rect(
         Point::new(350.0, 50.0),
-        Point::new(420.0, 120.0),
+        Size {
+            width: 100.0,
+            height: 100.0,
+        },
         RoundedRectRadii::from_single_radius(10.0),
         &semi,
     ));
@@ -97,10 +97,7 @@ pub fn test_graph() -> vello::Scene {
         0.0,
         &green,
     ));
-    let point_fill = red.clone().with_stoke(Some(StokeStyle {
-        stroke: Stroke::new(1.0),
-        brush: Color::from_rgba8(255, 0, 255, 255).into(),
-    }));
+    let point_fill = red.clone();
     let mut p = SceneNode::point(Point::new(500.0, 500.0), &point_fill);
     p.set_style(&point_fill);
     root.add_child(&p);
@@ -129,15 +126,17 @@ pub fn test_graph() -> vello::Scene {
     let img = load_image_from_file("./fool-graphics/linux.png");
     root.add_child(&SceneNode::image(img, &point_fill));
     root.add_child(&SceneNode::text(
-        graph_vec2!(0.0, 0.0),
-        "Hello!".to_string(),
+        Point { x: 0.0, y: 0.0 },
+        "Hello!\n123".to_string(),
         crate::canvas::Style::default()
             .with_align(Some(crate::canvas::TextAlign::Left))
-            .with_fill(Some(Color::from_rgba8(255, 0, 0, 50)))
-            .with_font_size(Some(22.0)),
+            .with_fill(Some(Color::from_rgba8(255, 0, 0, 255)))
+            .with_font_size(Some(22.0))
+            .with_vertical(Some(true)),
     ));
     let graph = SceneGraph {
         root,
+        style: Default::default(),
         font_mgr: Default::default(),
     };
     graph.draw(&mut sc);

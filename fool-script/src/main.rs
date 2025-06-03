@@ -2,7 +2,6 @@ use clap::Parser;
 use fool_script::FoolScript;
 use fool_script::user_mod_constructor;
 use mlua::UserData;
-use std::collections::HashMap;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
@@ -25,30 +24,53 @@ impl UserData for Test {
         });
     }
 }
-
+use fool_resource::{Fallback, Resource, SharedData};
+use std::io::Read;
+#[derive(Debug, Clone)]
+struct FileFallBack {
+    pub asset_path: std::path::PathBuf,
+}
+impl Fallback for FileFallBack {
+    type K = String;
+    type V = SharedData;
+    fn get(&self, key: &Self::K) -> anyhow::Result<Self::V> {
+        let full_path = self.asset_path.join(key);
+        println!("{:?}", full_path);
+        let mut fd = std::fs::File::open(full_path)?;
+        let mut buffer = Vec::new();
+        fd.read_to_end(&mut buffer)?;
+        Ok(SharedData::from(buffer))
+    }
+}
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let level = if args.verbose {
-        log::LevelFilter::Debug
+        log::LevelFilter::Trace
     } else {
         log::LevelFilter::Warn
     };
     env_logger::Builder::new().filter_level(level).init();
-    let mut script = FoolScript::new("./fool-script")?;
-    let mut modules = HashMap::<String, Vec<u8>>::new();
-    modules.insert(
+    let fbk = FileFallBack {
+        asset_path: "/data/works/game_engine/fool-script".into(),
+    };
+    let mut res = Resource::<String, SharedData>::empty();
+    res.set_fall_back(fbk);
+    res.load(
         "mem_module.lua".to_owned(),
-        r#"
+        fool_resource::SharedData::from_vec(
+            r#"
     return {
     main = function ()
         print("mem_module")
     end
     }
     "#
-        .as_bytes()
-        .to_vec(),
+            .as_bytes()
+            .to_vec(),
+        ),
     );
-    script.setup(&modules)?;
+    let mut script = FoolScript::new(res)?;
+    script.setup()?;
     script.register_user_mod("a.b.c", user_mod_constructor!(Test))?;
     script.load_main()?;
     let task = fool_script::thread::AsyncScheduler::new(&script, 2);

@@ -1,6 +1,6 @@
 use crate::{
     map2anyhow_error,
-    utils::{dump_lua_stack_trace, lua_values_to_json_string},
+    utils::{dump_lua_stack_trace, values_to_string},
 };
 use chrono::{Duration, NaiveDate};
 use lazy_static::lazy_static;
@@ -82,7 +82,7 @@ pub fn enable_debug(lua: &Lua) -> anyhow::Result<()> {
                     log::log!(l, "{}", value.to_string()?)
                 }
                 Err(_) => {
-                    log::debug!("{}", value.to_string()?)
+                    log::trace!("{}", value.to_string()?)
                 }
             }
             Ok(())
@@ -121,10 +121,10 @@ pub fn enable_debug(lua: &Lua) -> anyhow::Result<()> {
     )?;
     let print = map2anyhow_error!(
         lua.create_function(move |_, value: Variadic<Value>| {
-            log::debug!("{}", lua_values_to_json_string(value)?);
+            log::trace!("{}", values_to_string(&value)?.join(", "));
             Ok(())
         }),
-        "create_function debug"
+        "create_function print"
     )?;
     map2anyhow_error!(lua.globals().set("print", print), "globals set print")?;
     let stack_trace = map2anyhow_error!(

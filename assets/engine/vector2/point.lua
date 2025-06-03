@@ -1,4 +1,6 @@
 ---@class Point
+---@field x number
+---@field y number
 local Point = {}
 Point.__index = Point
 

@@ -93,17 +93,30 @@ function gui_run(data, ui)
         local btn = image_ui:image_button(
             {
                 img = "image/linux.png",
-                tint = rgba8.new(100, 100, 100, 50),
-                img_bg_fill = rgba8.new(0, 0, 0, 100),
-                img_max_size = { w = 100, h = 100 },
+                tint = rgba8.new(50, 50, 50, 50),
+                img_bg_fill = rgba8.new(10, 10, 10, 50),
+                scale = 0.5,
+                -- uv = {min = {x= 0.1, y = 0.1}, max = {x= 0.9, y = 0.9}},
                 img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
                 sense = "CLICK",
-                -- corner_radius = {sw = 10,se = 10, nw = 10, ne = 10},
+                corner_radius = {sw = 32,se = 32, nw = 32, ne = 32},
                 frame = false,
             })
         if btn:clicked() then
-            print("image_button clicked")
+            logger:info("image_button clicked")
         end
+        image_ui:image(
+        {
+            img = "image/linux.png",
+            tint = rgba8.new(50, 50, 50, 50),
+            img_bg_fill = rgba8.new(10, 10, 10, 50),
+            scale = 0.5,
+            uv = {min = {x= 0.1, y = 0.1}, max = {x= 0.9, y = 0.9}},
+            img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
+            sense = "CLICK",
+            corner_radius = {sw = 32,se = 32, nw = 32, ne = 32},
+            frame = false,
+        })
     end)
 
     ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)

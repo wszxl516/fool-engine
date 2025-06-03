@@ -1,14 +1,15 @@
 pub mod canvas;
 pub mod gui;
 pub mod render;
+pub mod scheduler;
 pub mod test;
+use crate::render::FrameContext;
 use gui::EguiRenderer;
 use render::VelloRender;
+pub use scheduler::Scheduler;
 use std::sync::Arc;
 use winit::event::WindowEvent;
 use winit::window::Window;
-
-use crate::render::FrameContext;
 pub struct GraphRender {
     vello: VelloRender,
     egui: EguiRenderer,

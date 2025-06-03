@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
         level,
         args.verbose,
         &args.file_log,
-        &["fool_engine", "fool_script"],
+        &["fool_engine", "fool_script", "fool_resource"],
     )?;
     init_engine()
 }

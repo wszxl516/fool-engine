@@ -1,8 +1,9 @@
 // use super::LuaTextureHandle;
 use super::super::{graphics::types::LuaColor, types::LuaSize};
 use super::types::ImageButtonConfig;
-use crate::resource::ResourceManager;
-use crate::{lua_table_get, map2lua_error};
+use crate::engine::ResourceManager;
+use crate::lua::gui::types::UV;
+use crate::{apply_if_some, lua_table_get, map2lua_error};
 use egui::{
     vec2, Align, Color32, ComboBox, Grid, ImageButton, ImageSource, Layout, ProgressBar, Rect,
     Response, Sense, Slider, TextEdit, Ui, Vec2, Widget,
@@ -11,12 +12,10 @@ use mlua::{
     FromLua, Function, LuaSerdeExt, Table, UserData, UserDataMethods,
     Value::{self},
 };
-use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 pub struct LuaUiContext<'a> {
     pub ui: &'a mut Ui,
-    pub resource: Arc<Mutex<ResourceManager>>,
+    pub resource: ResourceManager,
 }
 
 pub struct LuaResponse {
@@ -58,103 +57,51 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             lua.create_userdata(LuaResponse { response })
         });
         methods.add_method_mut("image", |lua, this, config: ImageButtonConfig| {
-            let mut res = this.resource.lock();
-            let texture =
-                map2lua_error!(res.get_ui_texture(&config.img), "image_button get texture")?;
-            let img_src = ImageSource::from(texture);
-            let img = egui::Image::from(img_src);
+            let res = &this.resource;
+            let texture = map2lua_error!(res.get_ui_texture(&config.img), "image get texture")?;
+            let img_src = ImageSource::from(&texture);
+            let mut img = egui::Image::from(img_src);
+            apply_if_some!(img, show_loading_spinner, config.show_loading_spinner);
+            apply_if_some!(img, alt_text, config.label);
+            apply_if_some!(img, tint, config.tint);
+            apply_if_some!(img, bg_fill, config.img_bg_fill);
+            apply_if_some!(img, fit_to_original_size, config.scale);
 
-            let img = if let Some(show) = config.show_loading_spinner {
-                img.show_loading_spinner(show)
-            } else {
-                img
-            };
-            let img = if let Some(label) = config.label {
-                img.alt_text(label)
-            } else {
-                img
-            };
-            let img = if let Some(tint) = config.tint {
-                img.tint(tint)
-            } else {
-                img
-            };
-            let img = if let Some(bg_fill) = config.img_bg_fill {
-                img.bg_fill(bg_fill)
-            } else {
-                img
-            };
-            let img = if let Some(max_size) = config.img_max_size {
-                img.max_size(Vec2::new(max_size.w, max_size.h))
-            } else {
-                img
-            };
-            let img = if let Some(ref sense) = config.sense {
-                let sense = match sense.to_ascii_uppercase().as_str() {
+            apply_if_some!(img, sense, config.sense, |sense: &String| {
+                match sense.to_ascii_uppercase().as_str() {
                     "ALL" => Sense::all(),
                     "HOVER" => Sense::HOVER,
                     "CLICK" => Sense::CLICK,
                     "DRAG" => Sense::DRAG,
                     "FOCUSABLE" => Sense::FOCUSABLE,
                     _ => Sense::empty(),
-                };
-                img.sense(sense)
-            } else {
-                img
-            };
-            let img = if let Some(img_rotate) = config.img_rotate {
-                img.rotate(
+                }
+            });
+            if let Some(img_rotate) = config.img_rotate {
+                img = img.rotate(
                     img_rotate.angle,
                     Vec2::new(img_rotate.origin.x, img_rotate.origin.y),
                 )
-            } else {
-                img
-            };
-            let img = if let Some(uv) = config.uv.clone() {
-                img.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
-            } else {
-                img
-            };
-            let img = if let Some(corner_radius) = config.corner_radius {
-                img.corner_radius(corner_radius)
-            } else {
-                img
-            };
+            }
+            apply_if_some!(img, uv, config.uv, |uv: &UV| {
+                Rect::from_points(&[uv.min.clone().into(), uv.max.clone().into()])
+            });
+            apply_if_some!(img, corner_radius, config.corner_radius);
             let response = this.ui.add(img);
             lua.create_userdata(LuaResponse { response })
         });
         methods.add_method_mut("image_button", |lua, this, config: ImageButtonConfig| {
-            let mut res = this.resource.lock();
+            let res = &this.resource;
             let texture =
                 map2lua_error!(res.get_ui_texture(&config.img), "image_button get texture")?;
-            let img_src = ImageSource::from(texture);
-            let img = egui::Image::from(img_src);
-            let img = if let Some(show) = config.show_loading_spinner {
-                img.show_loading_spinner(show)
-            } else {
-                img
-            };
-            let img = if let Some(label) = config.label {
-                img.alt_text(label)
-            } else {
-                img
-            };
-            let img = if let Some(tint) = config.tint {
-                img.tint(tint)
-            } else {
-                img
-            };
-            let img = if let Some(bg_fill) = config.img_bg_fill {
-                img.bg_fill(bg_fill)
-            } else {
-                img
-            };
-            let img = if let Some(max_size) = config.img_max_size {
-                img.max_size(Vec2::new(max_size.w, max_size.h))
-            } else {
-                img
-            };
-            let img = if let Some(ref sense) = config.sense {
+            let img_src = ImageSource::from(&texture);
+            let mut img = egui::Image::from(img_src);
+            apply_if_some!(img, show_loading_spinner, config.show_loading_spinner);
+            apply_if_some!(img, alt_text, config.label);
+            apply_if_some!(img, tint, config.tint);
+            apply_if_some!(img, bg_fill, config.img_bg_fill);
+            apply_if_some!(img, fit_to_original_size, config.scale);
+            if let Some(ref sense) = config.sense {
                 let sense = match sense.to_ascii_uppercase().as_str() {
                     "ALL" => Sense::all(),
                     "HOVER" => Sense::HOVER,
@@ -163,69 +110,52 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                     "FOCUSABLE" => Sense::FOCUSABLE,
                     _ => Sense::empty(),
                 };
-                img.sense(sense)
-            } else {
-                img
-            };
-            let img = if let Some(corner_radius) = config.corner_radius {
-                img.corner_radius(corner_radius)
-            } else {
-                img
-            };
-            let img = if let Some(img_rotate) = config.img_rotate {
-                img.rotate(
+                img = img.sense(sense)
+            }
+            apply_if_some!(img, corner_radius, config.corner_radius);
+            if let Some(img_rotate) = config.img_rotate {
+                img = img.rotate(
                     img_rotate.angle,
                     Vec2::new(img_rotate.origin.x, img_rotate.origin.y),
                 )
-            } else {
-                img
-            };
-            let img = if let Some(uv) = config.uv.clone() {
-                img.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
-            } else {
-                img
-            };
+            }
+            apply_if_some!(img, uv, config.uv, |uv: &UV| {
+                Rect::from_points(&[uv.min.clone().into(), uv.max.clone().into()])
+            });
 
-            let img_btn = ImageButton::new(img);
-            let img_btn = if let Some(frame) = config.frame {
-                img_btn.frame(frame)
-            } else {
-                img_btn
-            };
-            let img_btn = if let Some(color) = config.tint {
-                img_btn.tint(color)
-            } else {
-                img_btn
-            };
-            let img_btn = if let Some(selected) = config.selected {
-                img_btn.selected(selected)
-            } else {
-                img_btn
-            };
-            let img_btn = if let Some(corner_radius) = config.corner_radius {
-                img_btn.corner_radius(corner_radius)
-            } else {
-                img_btn
-            };
-            let img_btn = if let Some(uv) = config.uv {
-                img_btn.uv(Rect::from_points(&[uv.min.into(), uv.max.into()]))
-            } else {
-                img_btn
-            };
-            let img_btn = if let Some(sense) = config.sense {
-                let sense = match sense.to_ascii_uppercase().as_str() {
+            let mut img_btn = ImageButton::new(img);
+            apply_if_some!(img_btn, frame, config.frame);
+            apply_if_some!(img_btn, tint, config.tint);
+            apply_if_some!(img_btn, selected, config.selected);
+            apply_if_some!(img_btn, corner_radius, config.corner_radius);
+            apply_if_some!(img_btn, uv, config.uv, |uv: &UV| {
+                Rect::from_points(&[uv.min.clone().into(), uv.max.clone().into()])
+            });
+
+            apply_if_some!(img_btn, sense, config.sense, |sense: &String| {
+                match sense.to_ascii_uppercase().as_str() {
                     "ALL" => Sense::all(),
                     "HOVER" => Sense::HOVER,
                     "CLICK" => Sense::CLICK,
                     "DRAG" => Sense::DRAG,
                     "FOCUSABLE" => Sense::FOCUSABLE,
                     _ => Sense::empty(),
-                };
-                img_btn.sense(sense)
-            } else {
-                img_btn
-            };
+                }
+            });
             let response = this.ui.add(img_btn);
+            if !config.frame.unwrap_or_default() {
+                let visuals = this.ui.style().interact(&response);
+                let mut bg_stoke = visuals.bg_stroke;
+                bg_stoke.color = bg_stoke.color.gamma_multiply(0.25);
+                this.ui.painter().rect(
+                    response.rect,
+                    config.corner_radius.unwrap_or_default(),
+                    config.img_bg_fill.unwrap_or_default(),
+                    bg_stoke,
+                    egui::StrokeKind::Outside,
+                );
+            }
+
             lua.create_userdata(LuaResponse { response })
         });
         methods.add_method_mut("button", |lua, this, label: String| {
@@ -454,7 +384,7 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                 let resource = this.resource.clone();
 
                 let response = Grid::new(id)
-                    .spacing([spacing.w, spacing.h])
+                    .spacing([spacing.width, spacing.height])
                     .start_row(start_row)
                     .show(this.ui, move |ui| {
                         lua_cloned
@@ -580,11 +510,11 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             Ok(())
         });
         methods.add_method_mut("set_max_size", |_lua, this, size: LuaSize<f32>| {
-            this.ui.set_max_size(vec2(size.w, size.h));
+            this.ui.set_max_size(vec2(size.width, size.height));
             Ok(())
         });
         methods.add_method_mut("set_min_size", |_lua, this, size: LuaSize<f32>| {
-            this.ui.set_min_size(vec2(size.w, size.h));
+            this.ui.set_min_size(vec2(size.width, size.height));
             Ok(())
         });
         methods.add_method_mut("set_row_height", |_lua, this, height: f32| {

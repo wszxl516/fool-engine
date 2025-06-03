@@ -19,7 +19,7 @@ impl<T: Shape + Sized + Debug + Clone + 'static> Drawable for T {
             let brush = stoke.brush.clone().multiply_alpha(style.opacity);
             scene.stroke(
                 &stoke.stroke,
-                style.brush_translation,
+                style.translation,
                 &brush,
                 Some(style.translation),
                 self,

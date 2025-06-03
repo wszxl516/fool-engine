@@ -1,53 +1,44 @@
 use mlua::{Lua, Result, Value, Variadic};
-use serde_json::Value as JsonValue;
-
-pub fn lua_values_to_json_string(values: Variadic<Value>) -> Result<String> {
-    fn convert(value: Value) -> Result<JsonValue> {
-        Ok(match value {
-            Value::Nil => JsonValue::Null,
-            Value::Boolean(b) => JsonValue::Bool(b),
-            Value::Integer(i) => JsonValue::Number(i.into()),
-            Value::Number(n) => serde_json::Number::from_f64(n)
-                .map(JsonValue::Number)
-                .unwrap_or(JsonValue::Null),
-            Value::String(s) => JsonValue::String(s.to_str()?.to_string()),
-            Value::Table(t) => {
-                let is_array = t
-                    .clone()
-                    .pairs::<Value, Value>()
-                    .all(|r| matches!(r, Ok((Value::Integer(i), _)) if i >= 1));
-
-                if is_array {
-                    let mut vec = Vec::new();
-                    for v in t.sequence_values::<Value>() {
-                        vec.push(convert(v?)?);
+fn value_convert(value: &Value, depth: usize) -> String {
+    let indent = "  ".repeat(depth);
+    match value {
+        Value::Nil => "nil".into(),
+        Value::Boolean(b) => b.to_string(),
+        Value::Integer(i) => i.to_string(),
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => s.to_string_lossy().to_string(),
+        Value::Table(t) => {
+            let mut out = String::new();
+            out.push_str("{\n");
+            for pair in t.pairs::<Value, Value>() {
+                match pair {
+                    Ok((k, v)) => {
+                        let key_str = value_convert(&k, depth + 1);
+                        let val_str = value_convert(&v, depth + 1);
+                        out.push_str(&format!("{}  {} = {},\n", indent, key_str, val_str));
                     }
-                    JsonValue::Array(vec)
-                } else {
-                    let mut map = serde_json::Map::new();
-                    for entry in t.pairs::<Value, Value>() {
-                        let (k, v) = entry?;
-                        let key = match k {
-                            Value::String(s) => s.to_str()?.to_string(),
-                            Value::Integer(i) => i.to_string(),
-                            Value::Number(n) => n.to_string(),
-                            _ => continue,
-                        };
-                        map.insert(key, convert(v)?);
-                    }
-                    JsonValue::Object(map)
+                    Err(_) => {}
                 }
             }
-            _ => JsonValue::String(format!("{:?}", value)),
-        })
+            out.push_str(&format!("{}}}", indent));
+            out
+        }
+        Value::Function(f) => {
+            format!("<Function {}>", f.info().name.unwrap_or("<anymous>".into()))
+        }
+        Value::UserData(_) => "<UserData>".into(),
+        Value::LightUserData(_) => "<lightuserdata>".into(),
+        Value::Thread(_) => "<thread>".into(),
+        Value::Error(e) => format!("<error: {}>", e),
+        Value::Other(o) => format!("<other: {:?}>", o),
     }
-
-    let mut json_array = String::new();
-    for v in values {
-        json_array.push_str(&serde_json::to_string_pretty(&convert(v)?).unwrap_or_default());
-        json_array.push_str(", ");
+}
+pub fn values_to_string(values: &Variadic<Value>) -> Result<Vec<String>> {
+    let mut buffer = Vec::new();
+    for val in values.iter() {
+        buffer.push(value_convert(val, 0));
     }
-    Ok(json_array)
+    Ok(buffer)
 }
 
 pub fn dump_lua_stack_trace(lua: &Lua) {

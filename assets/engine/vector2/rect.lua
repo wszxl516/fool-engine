@@ -6,7 +6,7 @@
 local Rect = {}
 Rect.__index = Rect
 
----@param cx number 
+---@param cx number
 ---@param cy number
 ---@param w number
 ---@param h number
@@ -20,6 +20,11 @@ function Rect:copy()
     return Rect.new(self.cx, self.cy, self.w, self.h)
 end
 
+---@class Bounds
+---@field left number
+---@field right number
+---@field top number
+---@field bottom number
 ---@return Bounds
 function Rect:get_bounds()
     local hw = self.w / 2

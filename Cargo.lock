@@ -666,8 +666,6 @@ dependencies = [
 [[package]]
 name = "color"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ae467d04a8a8aea5d9a49018a6ade2e4221d92968e8ce55a48c0b1164e5f698"
 dependencies = [
  "serde",
 ]
@@ -874,6 +872,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "deranged"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -995,6 +1007,12 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "dyn-clone"
+version = "1.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c7a8fb8a9fbf66c1f703fe16184d10ca0ee9d23be5b4436400408ba54a95005"
 
 [[package]]
 name = "ecolor"
@@ -1310,6 +1328,7 @@ dependencies = [
  "epaint",
  "find_folder",
  "fool-graphics",
+ "fool-resource",
  "fool-script",
  "image",
  "lazy_static",
@@ -1336,6 +1355,8 @@ dependencies = [
  "egui-winit",
  "image",
  "kurbo",
+ "log",
+ "ordered-float 5.0.0",
  "parking_lot",
  "peniko",
  "pollster",
@@ -1349,6 +1370,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "fool-resource"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "dyn-clone",
+ "env_logger",
+ "image",
+ "log",
+ "ordered-float 5.0.0",
+ "parking_lot",
+ "skrifa",
+ "vello",
+]
+
+[[package]]
 name = "fool-script"
 version = "0.1.0"
 dependencies = [
@@ -1358,6 +1395,7 @@ dependencies = [
  "clap",
  "crossbeam-channel",
  "env_logger",
+ "fool-resource",
  "lazy_static",
  "log",
  "mlua",
@@ -1365,6 +1403,7 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "ufmt",
 ]
 
 [[package]]
@@ -1594,6 +1633,12 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash 0.7.8",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hashbrown"
@@ -4276,6 +4321,33 @@ name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
+
+[[package]]
+name = "ufmt"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a64846ec02b57e9108d6469d98d1648782ad6bb150a95a9baac26900bbeab9d"
+dependencies = [
+ "ufmt-macros",
+ "ufmt-write",
+]
+
+[[package]]
+name = "ufmt-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d337d3be617449165cb4633c8dece429afd83f84051024079f97ad32a9663716"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ufmt-write"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e87a2ed6b42ec5e28cc3b94c09982969e9227600b2e3dcbc1db927a84c06bd69"
 
 [[package]]
 name = "unicase"

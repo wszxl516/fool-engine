@@ -6,9 +6,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LuaSize<T> {
     #[serde(default)]
-    pub w: T,
+    pub width: T,
     #[serde(default)]
-    pub h: T,
+    pub height: T,
 }
 
 impl<T: Sized + FromLua + DeserializeOwned + Serialize + Default> FromLua for LuaSize<T> {
@@ -19,8 +19,8 @@ impl<T: Sized + FromLua + DeserializeOwned + Serialize + Default> FromLua for Lu
 
 impl<T: IntoLua + Copy> UserData for LuaSize<T> {
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("w", |_lua, this| Ok(this.w));
-        fields.add_field_method_get("h", |_lua, this| Ok(this.h));
+        fields.add_field_method_get("width", |_lua, this| Ok(this.width));
+        fields.add_field_method_get("height", |_lua, this| Ok(this.height));
     }
 }
 

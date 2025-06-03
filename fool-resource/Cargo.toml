@@ -1,0 +1,26 @@
+[package]
+name = "fool-resource"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "fool_resource"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fool-resource"
+path = "src/main.rs"
+
+[dependencies]
+parking_lot = {workspace = true}
+anyhow = {workspace = true}
+image ={ workspace = true}
+log = {workspace = true}
+vello = {workspace = true}
+skrifa ={ workspace = true}
+ordered-float = "5.0.0"
+env_logger ={ version = "0.11.8"}
+dashmap = { workspace = true}
+dyn-clone = {version = "1.0.19"}
+[features]
+debug = []

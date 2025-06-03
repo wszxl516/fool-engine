@@ -127,10 +127,11 @@ impl UserMod {
             match Self::find_module(lua, &modname, &root.read()) {
                 Ok(module) => {
                     let loader = lua.create_function(move |_, ()| Ok(module.clone()))?;
+                    log::trace!("lua module {} found!", modname);
                     Ok((Value::Function(loader), lua.create_string(&modname)?))
                 }
                 Err(e) => {
-                    log::error!("Module error: {}", e);
+                    log::error!("lua module {} not found: {}!", modname, e);
                     Ok((Value::Nil, lua.create_string("not found")?))
                 }
             }

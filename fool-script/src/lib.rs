@@ -2,21 +2,20 @@ mod macros;
 mod modules;
 pub mod thread;
 mod utils;
+use fool_resource::{Resource, SharedData};
 use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table};
-use modules::{DSLModule, MemoryModule, UserMod, UserModConstructor, fs_loader, stdlib};
-use std::collections::HashMap;
-use std::path::PathBuf;
+use modules::{DSLModule, MemoryModule, UserMod, UserModConstructor, stdlib};
 #[derive(Debug, Clone)]
 pub struct FoolScript {
     pub lua: Lua,
-    script_path: PathBuf,
     mem_mod: MemoryModule,
     dsl_mod: DSLModule,
     user_mod: UserMod,
+    resource: Resource<String, SharedData>,
 }
 
 impl FoolScript {
-    pub fn new(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
+    pub fn new(resource: Resource<String, SharedData>) -> anyhow::Result<Self> {
         let lua = map2anyhow_error!(
             Lua::new_with(
                 StdLib::COROUTINE
@@ -31,29 +30,18 @@ impl FoolScript {
         )?;
         Ok(Self {
             lua: lua.clone(),
-            script_path: path.into(),
-            mem_mod: MemoryModule::new(),
+            mem_mod: MemoryModule::new(resource.clone()),
             dsl_mod: DSLModule::new(),
             user_mod: UserMod::new(),
+            resource,
         })
     }
-    pub fn setup<K, V, M>(&mut self, modules: M) -> anyhow::Result<()>
-    where
-        K: Into<String>,
-        V: AsRef<[u8]> + Clone,
-        M: IntoIterator<Item = (K, V)>,
-    {
-        let mem_loader = map2anyhow_error!(
-            self.mem_mod.init(&self.lua, modules),
-            "setup mem loader failed"
-        )?;
-        let fs_loader = map2anyhow_error!(
-            fs_loader(&self.lua, self.script_path.clone()),
-            "setup fs loader failed"
-        )?;
+    pub fn setup(&mut self) -> anyhow::Result<()> {
+        let mem_loader =
+            map2anyhow_error!(self.mem_mod.init(&self.lua), "setup mem loader failed")?;
         let user_loader =
             map2anyhow_error!(self.user_mod.init(&self.lua), "setup fs loader failed")?;
-        self.register_module_searcher(&[mem_loader, fs_loader, user_loader])?;
+        self.register_module_searcher(&[mem_loader, user_loader])?;
         map2anyhow_error!(self.dsl_mod.init(&self.lua), "setup_dsl_lua failed: {}")?;
         map2anyhow_error!(stdlib::init_stdlib(&self.lua), "init_stdlib failed")?;
         stdlib::enable_debug(&self.lua)?;
@@ -87,16 +75,6 @@ impl FoolScript {
     }
 
     pub fn load_main(&self) -> anyhow::Result<()> {
-        #[cfg(feature = "debug")]
-        {
-            use std::io::Read;
-            let script = self.script_path.join("main.lua");
-            let mut fd = map2anyhow_error!(std::fs::File::open(&script), "load main.lua failed")?;
-            let mut script = String::new();
-            fd.read_to_string(&mut script)?;
-            map2anyhow_error!(self.lua.load(&script).exec(), "run main.lua failed")
-        }
-        #[cfg(not(feature = "debug"))]
         map2anyhow_error!(
             self.lua.load("require(\"main\")").exec(),
             "run require(\"main\") failed"
@@ -142,11 +120,11 @@ impl FoolScript {
 impl FoolScript {
     // for multi thread
     pub fn setup_modules_from(other: &Self) -> anyhow::Result<Self> {
-        let mut fs = Self::new(other.script_path.clone())?;
+        let mut fs = Self::new(other.resource.clone())?;
         fs.mem_mod = other.mem_mod.clone();
         fs.dsl_mod = other.dsl_mod.clone();
         fs.user_mod = other.user_mod.clone();
-        fs.setup(HashMap::<String, Vec<u8>>::default())?;
+        fs.setup()?;
         Ok(fs)
     }
 }

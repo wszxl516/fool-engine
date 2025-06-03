@@ -5,7 +5,7 @@ pub fn fs_loader(lua: &Lua, script_path: PathBuf) -> mlua::Result<Function> {
     let fs_searcher = lua.create_function(move |lua, modname: String| {
         let relative_path = modname.replace('.', "/") + ".lua";
         let full_path = script_path.join(&relative_path);
-        log::debug!("lua module full_path {} !", full_path.display());
+        log::trace!("lua module full_path {} !", full_path.display());
         match std::fs::read_to_string(&full_path) {
             Ok(script) => {
                 let modname_cloned = modname.clone();
@@ -17,14 +17,14 @@ pub fn fs_loader(lua: &Lua, script_path: PathBuf) -> mlua::Result<Function> {
                     let value = crate::utils::set_module_name(value, &modname_cloned, lua)?;
                     Ok(value)
                 })?;
-                log::debug!("lua module {} found!", modname);
+                log::trace!("lua module {} found!", modname);
                 Ok((
                     Value::Function(loader),
                     Value::String(lua.create_string(&modname)?),
                 ))
             }
             Err(e) => {
-                log::error!("module {} not found!", modname);
+                log::error!("module {} not found: {}!", modname, e);
                 Ok((
                     Value::Nil,
                     Value::String(

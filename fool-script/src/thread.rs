@@ -50,7 +50,7 @@ impl AsyncScheduler {
         let (tx, rx) = bounded::<anyhow::Result<()>>(1);
         let pool = ThreadPoolBuilder::new()
             .num_threads(thread_num)
-            .thread_name(|n| format!("LuaAsyncTask: {}", n))
+            .thread_name(|n| format!("LuaThread: {}", n))
             .build()
             .expect("Failed to build custom thread pool");
         Self {

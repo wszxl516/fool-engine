@@ -1,38 +1,62 @@
 use super::text::{FontName, TextAlign};
 use serde::{Deserialize, Serialize};
-use vello::{
+pub use vello::{
     kurbo::{Affine, Stroke},
     peniko::{Brush, Color, Fill},
 };
 #[derive(Clone, Deserialize, Serialize, Default, Debug)]
 pub struct StokeStyle {
+    #[serde(default)]
     pub stroke: Stroke,
+    #[serde(default)]
     pub brush: Brush,
+}
+const fn default_fill() -> Fill {
+    Fill::NonZero
+}
+const fn default_opacity() -> f32 {
+    1.0
+}
+const fn default_visible() -> bool {
+    true
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Style {
+    #[serde(default)]
     pub translation: Affine,
-    pub brush_translation: Affine,
+    #[serde(default)]
     pub fill: Option<Brush>,
+    #[serde(default = "default_fill")]
     pub fill_rule: Fill,
+    #[serde(default)]
     pub stoke: Option<StokeStyle>,
+    #[serde(default = "default_opacity")]
     pub opacity: f32,
+    #[serde(default = "default_visible")]
     pub visible: bool,
+    #[serde(default)]
     pub z_index: i32,
+    #[serde(default)]
     pub tag: Option<String>,
     // for text
+    #[serde(default)]
     pub font: Option<FontName>,
+    #[serde(default)]
     pub font_size: Option<f32>,
+    #[serde(default)]
     pub hint: Option<bool>,
+    #[serde(default)]
     pub align: Option<TextAlign>,
+    #[serde(default)]
     pub line_spacing: Option<f32>,
+    #[serde(default)]
+    pub vertical: Option<bool>,
 }
 impl Default for Style {
     fn default() -> Self {
         Self {
             translation: Affine::IDENTITY,
-            brush_translation: Affine::IDENTITY,
             fill: Some(Color::from_rgba8(255, 255, 255, 255).into()),
             fill_rule: Fill::NonZero,
             stoke: Default::default(),
@@ -45,6 +69,7 @@ impl Default for Style {
             hint: None,
             align: None,
             line_spacing: None,
+            vertical: Some(false),
         }
     }
 }
@@ -52,7 +77,6 @@ impl Default for Style {
 impl Style {
     fn mul_ops(&self, child: &Style) -> Style {
         let translation = self.translation * child.translation;
-        let brush_translation = self.brush_translation * child.brush_translation;
         let fill = child.fill.clone();
         let fill_rule = child.fill_rule;
         let stoke = child.stoke.clone();
@@ -65,6 +89,7 @@ impl Style {
         let hint = child.hint.or_else(|| self.hint.clone());
         let align = child.align.clone().or_else(|| self.align.clone());
         let line_spacing = child.line_spacing.or_else(|| self.line_spacing.clone());
+        let vertical = child.vertical.or_else(|| self.vertical);
         Style {
             font,
             font_size,
@@ -72,7 +97,6 @@ impl Style {
             align,
             line_spacing,
             translation,
-            brush_translation,
             fill,
             fill_rule,
             stoke,
@@ -80,6 +104,7 @@ impl Style {
             visible,
             z_index,
             tag,
+            vertical,
         }
     }
 }
@@ -99,11 +124,6 @@ impl<'a> std::ops::Mul<&'a Style> for &'a Style {
 impl Style {
     pub fn with_translation(mut self, translation: Affine) -> Self {
         self.translation = translation;
-        self
-    }
-
-    pub fn with_brush_translation(mut self, brush_translation: Affine) -> Self {
-        self.brush_translation = brush_translation;
         self
     }
 
@@ -164,6 +184,10 @@ impl Style {
 
     pub fn with_line_spacing(mut self, spacing: Option<f32>) -> Self {
         self.line_spacing = spacing;
+        self
+    }
+    pub fn with_vertical(mut self, vertical: Option<bool>) -> Self {
+        self.vertical = vertical;
         self
     }
 }

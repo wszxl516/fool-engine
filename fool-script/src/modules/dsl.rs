@@ -93,7 +93,7 @@ impl DSLModule {
                 let (mod_id, mod_content) = Self::dsl_from_table(&table)?;
                 match mod_content.run_init() {
                     Ok(_) => {
-                        log::debug!("finished init module {}", mod_id);
+                        log::trace!("finished init module {}", mod_id);
                         modules.write().insert(mod_id, mod_content);
                     }
                     Err(err) => {

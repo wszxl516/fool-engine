@@ -24,11 +24,11 @@ pub enum SceneNodeKind {
     },
     Rect {
         p0: Point,
-        p1: Point,
+        size: Size,
     },
     RoundedRect {
         p0: Point,
-        p1: Point,
+        size: Size,
         radii: RoundedRectRadii,
     },
     Triangle {
@@ -76,19 +76,16 @@ pub enum SceneNodeKind {
         darkness_alpha: u8,
     },
     Text {
-        position: Vec2,
+        position: Point,
         text: String,
-        style: Style,
     },
 }
 impl SceneNodeKind {
     pub(crate) fn build(&self, style: &Style) -> BuiltDrawable {
         match self {
-            SceneNodeKind::Text {
-                position,
-                text,
-                style,
-            } => BuiltDrawable::text(*position, text.clone(), style.clone()),
+            SceneNodeKind::Text { position, text } => {
+                BuiltDrawable::text(*position, text.clone(), style.clone())
+            }
             SceneNodeKind::Ellipse {
                 center,
                 radii,
@@ -103,10 +100,10 @@ impl SceneNodeKind {
 
             SceneNodeKind::Line { p0, p1 } => BuiltDrawable::line(*p0, *p1, style),
 
-            SceneNodeKind::Rect { p0, p1 } => BuiltDrawable::rect(*p0, *p1, style),
+            SceneNodeKind::Rect { p0, size } => BuiltDrawable::rect(*p0, *size, style),
 
-            SceneNodeKind::RoundedRect { p0, p1, radii } => {
-                BuiltDrawable::round_rect(*p0, *p1, *radii, style)
+            SceneNodeKind::RoundedRect { p0, size, radii } => {
+                BuiltDrawable::round_rect(*p0, *size, *radii, style)
             }
 
             SceneNodeKind::Triangle { a, b, c } => BuiltDrawable::triangle(*a, *b, *c, style),
@@ -161,13 +158,12 @@ pub(crate) struct BuiltDrawable {
 }
 impl BuiltDrawable {
     #[inline]
-    pub fn text(position: Vec2, text: String, style: Style) -> Self {
+    pub fn text(position: Point, text: String, style: Style) -> Self {
         Self {
             style: Default::default(),
             drawable: Box::new(TextDrawable {
                 position,
                 text,
-                variations: Default::default(),
                 style,
             }),
         }
@@ -195,17 +191,20 @@ impl BuiltDrawable {
         }
     }
     #[inline]
-    pub fn rect(p0: Point, p1: Point, style: &Style) -> Self {
+    pub fn rect(p0: Point, size: Size, style: &Style) -> Self {
         Self {
             style: style.clone(),
-            drawable: Box::new(Rect::from_points(p0, p1)),
+            drawable: Box::new(Rect::from_center_size(p0, size)),
         }
     }
     #[inline]
-    pub fn round_rect(p0: Point, p1: Point, radii: RoundedRectRadii, style: &Style) -> Self {
+    pub fn round_rect(p0: Point, size: Size, radii: RoundedRectRadii, style: &Style) -> Self {
         Self {
             style: style.clone(),
-            drawable: Box::new(RoundedRect::from_rect(Rect::from_points(p0, p1), radii)),
+            drawable: Box::new(RoundedRect::from_rect(
+                Rect::from_center_size(p0, size),
+                radii,
+            )),
         }
     }
     #[inline]

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "1"
-members = ["fool-engine", "packtool", "rolllog", "fool-graphics", "fool-script"]
+members = ["fool-engine", "packtool", "rolllog", "fool-graphics", "fool-script", "fool-resource"]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -20,9 +20,9 @@ mlua = { version = "0.10.5", features = [
     "serialize",
     "macros",
     "vendored",
-    "send"
+    "send",
 ] }
-mlua-gen = "0.2.2"
+dashmap = {version = "6.1.0"}
 #tools
 find_folder ={ version = "0.3.0"}
 clap = { version = "4.5.13", features = ["derive"] }
@@ -39,6 +39,9 @@ log4rs = { version = "1.3.0", features = [
 log = "0.4.22"
 rolllog = { path = "rolllog"}
 #graphics
+vello = {version = "0.5.0", features = []}
+vello_encoding = {version = "0.5.0"}
+skrifa ={ version = "0.31.3"}
 winit = { version = "0.30.11", features = ["serde"]}
 egui-winit = {version = "0.31.1"}
 egui = {version = "0.31.1"}
@@ -58,3 +61,6 @@ codegen-units = 1
 [profile.dev]
 debug = true
 opt-level = "z"
+
+[patch.crates-io]
+color ={ path = "patch/color-0.3.1"}

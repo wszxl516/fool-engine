@@ -12,7 +12,7 @@ return {
     update = function(ctx)
         local self = ctx.self
         self.value = self.value + ctx.core_mod.counter
-        ctx.core_mod.map.x =11
+        -- ctx.core_mod.map.x =11
         print("init_mod access core_mod.counter = " .. ctx.core_mod.counter)
     end
 }
