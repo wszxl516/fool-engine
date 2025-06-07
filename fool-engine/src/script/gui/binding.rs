@@ -2,7 +2,7 @@
 use super::super::{graphics::types::LuaColor, types::LuaSize};
 use super::types::ImageButtonConfig;
 use crate::engine::ResourceManager;
-use crate::lua::gui::types::UV;
+use crate::script::gui::types::UV;
 use crate::{apply_if_some, lua_table_get, map2lua_error};
 use egui::{
     vec2, Align, Color32, ComboBox, Grid, ImageButton, ImageSource, Layout, ProgressBar, Rect,
@@ -146,11 +146,13 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             if !config.frame.unwrap_or_default() {
                 let visuals = this.ui.style().interact(&response);
                 let mut bg_stoke = visuals.bg_stroke;
-                bg_stoke.color = bg_stoke.color.gamma_multiply(0.25);
+                let color =
+                    super::utils::adjust_brightness(config.tint.unwrap_or_default().into(), 1.2);
+                bg_stoke.color = color.into();
                 this.ui.painter().rect(
                     response.rect,
                     config.corner_radius.unwrap_or_default(),
-                    config.img_bg_fill.unwrap_or_default(),
+                    color,
                     bg_stoke,
                     egui::StrokeKind::Outside,
                 );

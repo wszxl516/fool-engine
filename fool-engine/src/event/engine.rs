@@ -6,7 +6,6 @@ pub enum EngineEvent {
     #[default]
     None,
     LoadCursor(String),
-    LoadUITexture(String),
     ExitWindow,
 }
 
@@ -27,9 +26,6 @@ impl EngineEventLoop {
     }
     pub fn load_cursor(&self, name: String) {
         self.send_event(EngineEvent::LoadCursor(name));
-    }
-    pub fn load_ui_texture(&self, name: String) {
-        self.send_event(EngineEvent::LoadUITexture(name));
     }
     pub fn exit_window(&self) {
         self.send_event(EngineEvent::ExitWindow);

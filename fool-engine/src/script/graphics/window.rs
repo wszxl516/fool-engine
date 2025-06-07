@@ -50,13 +50,13 @@ impl UserData for LuaWindow {
             Ok(())
         });
         methods.add_method("set_cursor_icon", |_lua, this, cursor: String| {
-            if let Ok(cursor) = this.resource.get_cursor(&cursor) {
+            if let Ok(cursor) = this.resource.window_cursor.get(&cursor) {
                 this.window.set_cursor(cursor.as_ref().clone());
             }
             Ok(())
         });
         methods.add_method("set_window_icon", |_lua, this, icon: String| {
-            match &this.resource.get_window_icon(&icon) {
+            match &this.resource.window_icon.get(&icon) {
                 Ok(icon) => this.window.set_window_icon(Some(icon.as_ref().clone())),
                 Err(err) => log::error!("failed to get window icon {}, {}", icon, err),
             }
@@ -164,7 +164,7 @@ impl UserData for LuaWindow {
         );
         methods.add_method("draw", |_lua, this, scene: LuaScene| {
             let node = scene.0;
-            this.resource.scene.write().set_root(node);
+            this.resource.scene_graph.write().set_root(node);
             Ok(())
         });
     }

@@ -17,7 +17,7 @@ impl Engine {
                 if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
                     render.resize(size.width, size.height);
                     self.resource
-                        .scene
+                        .scene_graph
                         .write()
                         .center_with_screen_size(size.width as f64, size.height as f64);
                     window.request_redraw();
@@ -33,22 +33,13 @@ impl Engine {
     fn engine_event(&mut self, event_loop: &ActiveEventLoop, event: EngineEvent) {
         match event {
             EngineEvent::LoadCursor(cursor) => {
-                if let Err(err) = self.resource.load_cursor(&cursor, event_loop) {
+                if let Err(err) = self.resource.preload_cursor(&cursor, event_loop) {
                     log::error!("load_cursor {} failed: {}", cursor, err)
                 }
             }
             EngineEvent::ExitWindow => {
                 log::debug!("exit window");
                 event_loop.exit()
-            }
-            EngineEvent::LoadUITexture(path) => {
-                if let Some(render) = &self.render {
-                    let res = { self.resource.load_ui_texture(&path, render.gui_context()) };
-                    if let Err(err) = res {
-                        log::error!("load uitexture {} failed: {}", path, err);
-                        self.stop();
-                    }
-                }
             }
             _ => {}
         }

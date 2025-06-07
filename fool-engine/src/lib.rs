@@ -1,6 +1,6 @@
 pub mod engine;
 pub mod event;
-pub mod lua;
+pub mod script;
 pub mod physics;
 pub mod resource;
 mod scheduler;

@@ -1,4 +1,4 @@
-pub use super::super::lua::types::LuaPoint;
+pub use super::super::script::types::LuaPoint;
 use mlua::{FromLua, IntoLua, Lua, LuaSerdeExt, Result as LuaResult, UserData, Value};
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};

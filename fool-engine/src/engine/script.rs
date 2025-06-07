@@ -1,5 +1,5 @@
 pub use super::Engine;
-use crate::lua::{run_event_fn, run_update_fn, run_view_fn};
+use crate::script::{run_event_fn, run_update_fn, run_view_fn};
 use fool_graphics::canvas::Scene;
 use winit::event_loop::ActiveEventLoop;
 impl Engine {
@@ -8,7 +8,7 @@ impl Engine {
         if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
             let egui_ctx = render.begin_frame();
             if let Err(err) = run_view_fn(
-                &self.script.lua,
+                &self.script,
                 egui_ctx.clone(),
                 resource.clone(),
                 window.clone(),
@@ -18,7 +18,7 @@ impl Engine {
                 self.stop();
                 return;
             }
-            let graph = resource.scene.read();
+            let graph = resource.scene_graph.read();
             let mut scene = Scene::new();
             graph.draw(&mut scene);
             render.draw_scene(&scene);
@@ -30,7 +30,7 @@ impl Engine {
     }
     pub fn update(&mut self, _event_loop: &ActiveEventLoop) {
         self.script_scheduler.run();
-        if let Err(err) = run_update_fn(&self.script.lua) {
+        if let Err(err) = run_update_fn(&self.script) {
             log::error!("run lua update failed: {}", err);
             self.stop();
         }
@@ -47,7 +47,7 @@ impl Engine {
         if let Some(window) = &self.window {
             let resource = self.resource.clone();
             if let Err(err) = run_event_fn(
-                &self.script.lua,
+                &self.script,
                 &mut self.event_state,
                 window.clone(),
                 resource,

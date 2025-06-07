@@ -1,5 +1,6 @@
 use super::Fallback;
 use dashmap::DashMap;
+use parking_lot::RwLock;
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -24,14 +25,14 @@ where
     V: ResData,
 {
     data: Arc<DashMap<K, V>>,
-    fall_back: Option<Box<dyn Fallback<K = K, V = V>>>,
+    fall_back: Arc<RwLock<Option<Box<dyn Fallback<K = K, V = V>>>>>,
 }
 
 impl<K: ResId, V: ResData> Default for Resource<K, V> {
     fn default() -> Resource<K, V> {
         Resource {
             data: Default::default(),
-            fall_back: None,
+            fall_back: Default::default(),
         }
     }
 }
@@ -43,14 +44,14 @@ where
     pub fn from_fallback(fall_back: impl Fallback<K = K, V = V> + 'static) -> Self {
         Self {
             data: Default::default(),
-            fall_back: Some(Box::new(fall_back)),
+            fall_back: Arc::new(RwLock::new(Some(Box::new(fall_back)))),
         }
     }
     pub fn empty() -> Self {
         Self::default()
     }
-    pub fn set_fall_back(&mut self, fall_back: impl Fallback<K = K, V = V> + 'static) {
-        self.fall_back = Some(Box::new(fall_back))
+    pub fn set_fall_back(&self, fall_back: impl Fallback<K = K, V = V> + 'static) {
+        self.fall_back.write().replace(Box::new(fall_back));
     }
     pub fn load_from_map<KK: Into<K>, VV: Into<V>>(&self, map: HashMap<KK, VV>) {
         for (k, v) in map {
@@ -66,7 +67,7 @@ where
         let name = name.into();
         match self.data.get(&name) {
             Some(v) => Ok(v.value().clone()),
-            None => match &self.fall_back {
+            None => match &self.fall_back.read().as_ref() {
                 Some(fb) => match fb.get(&name) {
                     Ok(data) => {
                         let data = data;

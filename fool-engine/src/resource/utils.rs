@@ -1,5 +1,7 @@
+use crate::map2anyhow_error;
 use egui::epaint::TextureHandle;
 use image::DynamicImage;
+use std::path::PathBuf;
 use winit::{event_loop::ActiveEventLoop, window::CustomCursor};
 pub fn create_cursor(
     event_loop: &ActiveEventLoop,
@@ -33,4 +35,19 @@ pub fn texture_from_image(
 
     let ui_texture = ctx.load_texture(name, color_image, TextureOptions::default());
     Ok(ui_texture)
+}
+
+pub fn resource_path() -> anyhow::Result<PathBuf> {
+    let exe_path = std::env::current_exe()?;
+    const RESOURCES_PATH: &str = "assets";
+    let path = map2anyhow_error!(
+        find_folder::Search::ParentsThenKids(5, 3)
+            .of(exe_path
+                .parent()
+                .expect("executable has no parent directory to search")
+                .into())
+            .for_folder(RESOURCES_PATH),
+        format!("get resource_path {} failed", RESOURCES_PATH)
+    )?;
+    Ok(path)
 }

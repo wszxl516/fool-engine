@@ -1,6 +1,6 @@
 use crate::event::EngineEvent;
 use crate::event::{EngineEventLoop, EventState};
-use crate::lua::{run_init_fn, setup_modules};
+use crate::script::{run_init_fn, setup_modules};
 use crate::map2anyhow_error;
 pub use crate::resource::ResourceManager;
 use crate::scheduler::Scheduler;
@@ -34,7 +34,7 @@ impl Engine {
         let mut script = FoolScript::new(resource.raw_resource.clone())?;
         let event_proxy = EngineEventLoop::new(event_proxy);
         script.setup()?;
-        setup_modules(&script.lua, resource.clone(), event_proxy.clone())?;
+        setup_modules(&script, resource.clone(), event_proxy.clone())?;
         map2anyhow_error!(script.load_main(), "load main.lua failed: ")?;
         Ok(Engine {
             resource,
@@ -56,9 +56,11 @@ impl Engine {
     ) -> anyhow::Result<()> {
         self.window.replace(window.clone());
         let render = GraphRender::new(window.clone())?;
+        self.resource
+            .setup_egui_texture_fallback(render.gui_context());
         egui_extras::install_image_loaders(render.gui_context());
         run_init_fn(
-            &self.script.lua,
+            &self.script,
             render.gui_context(),
             window.clone(),
             self.resource.clone(),
@@ -67,7 +69,7 @@ impl Engine {
         self.render.replace(render);
         let size = window.inner_size();
         self.resource
-            .scene
+            .scene_graph
             .write()
             .center_with_screen_size(size.width as f64, size.height as f64);
         Ok(())

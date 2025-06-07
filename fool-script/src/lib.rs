@@ -2,18 +2,25 @@ mod macros;
 mod modules;
 pub mod thread;
 mod utils;
+use std::ops::Deref;
+
 use fool_resource::{Resource, SharedData};
 use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table};
 use modules::{DSLModule, MemoryModule, UserMod, UserModConstructor, stdlib};
 #[derive(Debug, Clone)]
 pub struct FoolScript {
-    pub lua: Lua,
+    lua: Lua,
     mem_mod: MemoryModule,
     dsl_mod: DSLModule,
     user_mod: UserMod,
     resource: Resource<String, SharedData>,
 }
-
+impl Deref for FoolScript {
+    type Target = Lua;
+    fn deref(&self) -> &Self::Target {
+        &self.lua
+    }
+}
 impl FoolScript {
     pub fn new(resource: Resource<String, SharedData>) -> anyhow::Result<Self> {
         let lua = map2anyhow_error!(

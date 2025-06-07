@@ -1,5 +1,5 @@
 use crate::event::EngineEventLoop;
-use crate::lua::types::LuaPoint;
+use crate::script::types::LuaPoint;
 use mlua::{
     Function, LuaSerdeExt, UserData, UserDataMethods,
     Value::{self, Nil},

@@ -28,6 +28,8 @@ pub struct PackageHeader {
     pub compress_level: i32,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub timestamp: DateTime<Utc>,
+    #[serde()]
+    pub resource_id: String,
 }
 
 impl PackageHeader {
@@ -75,6 +77,7 @@ impl ResourcePackage {
         compress: bool,
         compress_level: i32,
     ) -> Self {
+        let resource_id: PathBuf = input.into();
         Self {
             files: Default::default(),
             header: PackageHeader {
@@ -84,8 +87,15 @@ impl ResourcePackage {
                 compress: compress,
                 compress_level: compress_level,
                 timestamp: Default::default(),
+                resource_id: resource_id
+                    .file_name()
+                    .and_then(|s| Some(s.to_string_lossy().to_string()))
+                    .unwrap_or(format!(
+                        "pak_{}",
+                        chrono::Local::now().format("%Y%m%d_%H%M%S")
+                    )),
             },
-            input: input.into(),
+            input: resource_id.clone(),
             output: output.into(),
             total_size: 0,
             entrys: Default::default(),

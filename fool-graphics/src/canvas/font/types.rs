@@ -68,8 +68,7 @@ impl FontGlyph {
         self.gid != GlyphId::NOTDEF
     }
 }
-const DEFAULT_FONT: &[u8] = include_bytes!("../../../Roboto_SemiCondensed-Bold.ttf");
-pub const DEFAULT_FONT_NAME: &str = "Roboto_SemiCondensed-Bold.ttf";
+const DEFAULT_FALLBACK_FONT: &[u8] = include_bytes!("../../../Roboto_SemiCondensed-Bold.ttf");
 #[derive(Clone, Debug)]
 pub struct VelloFont {
     pub font: Font,
@@ -78,7 +77,7 @@ pub struct VelloFont {
 impl Default for VelloFont {
     fn default() -> Self {
         Self {
-            font: Font::new(Blob::new(Arc::new(DEFAULT_FONT)), 0),
+            font: Font::new(Blob::new(Arc::new(DEFAULT_FALLBACK_FONT)), 0),
             glyph: Default::default(),
         }
     }

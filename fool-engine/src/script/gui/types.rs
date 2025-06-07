@@ -1,4 +1,4 @@
-use crate::lua::types::LuaPoint;
+use crate::script::types::LuaPoint;
 
 use super::super::graphics::types::LuaColor;
 use egui::{epaint::text::TextWrapMode, FontId, TextStyle};

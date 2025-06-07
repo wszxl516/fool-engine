@@ -83,7 +83,7 @@ end
 
 ---@diagnostic disable-next-line: lowercase-global
 function UI:init()
-    ResourceManager:load_texture("image/linux.png")
+    ResourceManager:preload_ui_texture("image/linux.png")
 end
 
 ---@diagnostic disable-next-line: lowercase-global
@@ -93,8 +93,8 @@ function gui_run(data, ui)
         local btn = image_ui:image_button(
             {
                 img = "image/linux.png",
-                tint = rgba8.new(50, 50, 50, 50),
-                img_bg_fill = rgba8.new(10, 10, 10, 50),
+                tint = rgba8.new(50, 50, 50, 30),
+                img_bg_fill = rgba8.new(0, 0, 0, 50),
                 scale = 0.5,
                 -- uv = {min = {x= 0.1, y = 0.1}, max = {x= 0.9, y = 0.9}},
                 img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },

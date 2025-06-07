@@ -8,7 +8,7 @@ mod style;
 mod text;
 mod utils;
 pub use draw::Drawable;
-pub use font::{FontManager, VelloFont};
+pub use font::{FontManager, VelloFont, VelloFontFallback};
 pub use graph::{Scene, SceneGraph};
 pub use node::SceneNode;
 pub use node_kind::SceneNodeKind;

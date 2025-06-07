@@ -27,12 +27,12 @@ local graphics = {
         visible = true,
         z_index = 0,
         tag = "test",
-        font = nil,
+        font = "fonts/SarasaTermSCNerd-Regular.ttf",
         font_size = 22,
         hint = false,
         align = "Center",
         line_spacing = 5,
-        vertical = true
+        vertical = false
     }
 }
 
@@ -75,7 +75,7 @@ function graphics:view(window, ui_context)
                 drawable = {
                     Text = {
                         position = point.new(0,0),
-                        text = "Hello!\nLua"
+                        text = "Lua!\n你好"
                     }
                 }
             }

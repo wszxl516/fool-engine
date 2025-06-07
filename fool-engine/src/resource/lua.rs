@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::event::EngineEventLoop;
+use crate::map2lua_error;
 use crate::resource::ResourceManager;
 use mlua::UserData;
 pub struct LuaResourceManager {
@@ -16,8 +17,8 @@ impl LuaResourceManager {
 }
 impl UserData for LuaResourceManager {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method("load_texture", |_lua, this, path: String| {
-            this.event_loop.load_ui_texture(path);
+        methods.add_method("preload_ui_texture", |_lua, this, path: String| {
+            map2lua_error!(this.res_mgr.preload_ui_texture(path), "preload_ui_texture")?;
             Ok(())
         });
     }

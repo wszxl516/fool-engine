@@ -2,7 +2,7 @@ pub use super::graphics::types::LuaColor;
 use mlua::{Function, Lua, UserData, Value};
 pub mod binding;
 pub mod types;
-pub mod macros;
+pub mod utils;
 use crate::engine::ResourceManager;
 pub use binding::LuaUiContext;
 use egui::{pos2, vec2, Context, Visuals};

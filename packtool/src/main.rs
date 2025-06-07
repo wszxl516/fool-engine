@@ -10,7 +10,7 @@ pub struct PackArgs {
     #[arg(short = 'i', long, default_value = "./assets")]
     input_assets_dir: String,
     /// packed Assets output
-    #[arg(short = 'o', long, default_value = "./resources/assets.pak")]
+    #[arg(short = 'o', long, default_value = "./assets.pak")]
     output: String,
     /// compress Assets ?
     #[arg(short = 'c', long, default_value_t = true)]
@@ -99,7 +99,8 @@ pub fn dump_info(gp: &ResourcePackage) {
         "compressed",
         "level",
         "size",
-        "date"
+        "date",
+        "id"
     ]);
     table.add_row(Row::new(vec![
         Cell::new(info.version_string().as_str()).with_style(Attr::ForegroundColor(color::WHITE)),
@@ -121,6 +122,8 @@ pub fn dump_info(gp: &ResourcePackage) {
             .as_str(),
         )
         .with_style(Attr::ForegroundColor(color::BRIGHT_WHITE)),
+        Cell::new(info.resource_id.as_str())
+            .with_style(Attr::ForegroundColor(color::BRIGHT_YELLOW)),
     ]));
     table.printstd();
 }
