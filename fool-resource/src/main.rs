@@ -27,7 +27,7 @@ fn main() -> anyhow::Result<()> {
     let fbk = FileFallBack {
         asset_path: "/data/works/game_engine/".into(),
     };
-    let mut res = Resource::<String, SharedData>::empty();
+    let res = Resource::<String, SharedData>::empty();
     res.set_fall_back(fbk);
     res.load_from_map(data);
     println!("{:?}", res.get("script.sh"));

@@ -1,9 +1,9 @@
 use crate::event::EngineEvent;
 use crate::event::{EngineEventLoop, EventState};
-use crate::script::{run_init_fn, setup_modules};
 use crate::map2anyhow_error;
 pub use crate::resource::ResourceManager;
 use crate::scheduler::Scheduler;
+use crate::script::{run_init_fn, setup_modules};
 use fool_graphics::GraphRender;
 use fool_script::{thread::AsyncScheduler, FoolScript};
 use std::sync::Arc;
@@ -11,7 +11,6 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowAttributes};
 pub mod event;
 pub mod script;
-
 pub struct Engine {
     resource: ResourceManager,
     script: FoolScript,

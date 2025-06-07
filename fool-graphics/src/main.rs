@@ -34,6 +34,7 @@ pub struct Engine {
     window_attr: WindowAttributes,
     window: Option<Arc<Window>>,
     render: Option<GraphRender>,
+    #[allow(dead_code)]
     sprite: Sprite<usize>,
     animation: Animation,
     scheduler: Scheduler,
