@@ -3,11 +3,11 @@ mod window;
 
 use serde::{Deserialize, Serialize};
 
-pub use window::LuaWindowConfig;
+pub use window::WindowConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    pub window: LuaWindowConfig,
+    pub window: WindowConfig,
 }
 
 impl Config {

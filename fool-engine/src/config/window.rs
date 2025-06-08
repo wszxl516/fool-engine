@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
-use super::super::event::EngineEvent;
 use crate::{
     apply_if_some,
     script::types::{LuaPoint, LuaSize},
 };
+use fool_window::CustomEvent;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use winit::{
     dpi::{LogicalPosition, LogicalSize, Position, Size},
     event_loop::EventLoop,
@@ -14,26 +13,26 @@ use winit::{
     },
 };
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub enum LuaWindowLevel {
+pub enum WinLevel {
     AlwaysOnBottom,
     #[default]
     Normal,
     AlwaysOnTop,
 }
 
-impl Into<WindowLevel> for LuaWindowLevel {
+impl Into<WindowLevel> for WinLevel {
     fn into(self) -> WindowLevel {
         match self {
-            LuaWindowLevel::AlwaysOnBottom => WindowLevel::AlwaysOnBottom,
-            LuaWindowLevel::AlwaysOnTop => WindowLevel::AlwaysOnTop,
-            LuaWindowLevel::Normal => WindowLevel::Normal,
+            WinLevel::AlwaysOnBottom => WindowLevel::AlwaysOnBottom,
+            WinLevel::AlwaysOnTop => WindowLevel::AlwaysOnTop,
+            WinLevel::Normal => WindowLevel::Normal,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LuaWindowButtons(pub Vec<String>);
-impl Default for LuaWindowButtons {
+pub struct WinButtons(pub Vec<String>);
+impl Default for WinButtons {
     fn default() -> Self {
         Self(vec![
             "close".to_owned(),
@@ -42,7 +41,7 @@ impl Default for LuaWindowButtons {
         ])
     }
 }
-impl Into<WindowButtons> for LuaWindowButtons {
+impl Into<WindowButtons> for WinButtons {
     fn into(self) -> WindowButtons {
         if self.0.is_empty() {
             return WindowButtons::all();
@@ -61,13 +60,13 @@ impl Into<WindowButtons> for LuaWindowButtons {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LuaWindowConfig {
+pub struct WindowConfig {
     pub defailt_size: LuaSize<f64>,
     pub min_size: Option<LuaSize<f64>>,
     pub max_size: Option<LuaSize<f64>>,
     pub position: Option<LuaPoint<f64>>,
     pub resizable: Option<bool>,
-    pub enabled_buttons: Option<LuaWindowButtons>,
+    pub enabled_buttons: Option<WinButtons>,
     pub title: Option<String>,
     pub maximized: Option<bool>,
     pub visible: Option<bool>,
@@ -78,14 +77,17 @@ pub struct LuaWindowConfig {
     pub preferred_theme: Option<Theme>,
     pub resize_increments: Option<LuaSize<f64>>,
     pub content_protected: Option<bool>,
-    pub window_level: Option<LuaWindowLevel>,
+    pub window_level: Option<WinLevel>,
     pub active: Option<bool>,
     pub cursor: Option<String>,
     pub fullscreen: Option<bool>,
 }
 
-impl LuaWindowConfig {
-    pub fn build(&self, event_loop: &EventLoop<EngineEvent>) -> anyhow::Result<WindowAttributes> {
+impl WindowConfig {
+    pub fn build(
+        &self,
+        event_loop: &EventLoop<impl CustomEvent>,
+    ) -> anyhow::Result<WindowAttributes> {
         let mut attributes = WindowAttributes::default()
             .with_active(self.active.unwrap_or(true))
             .with_window_level(
@@ -149,7 +151,7 @@ impl LuaWindowConfig {
 }
 
 pub fn create_cursor(
-    event_loop: &EventLoop<EngineEvent>,
+    event_loop: &EventLoop<impl CustomEvent>,
     img_path: &String,
 ) -> anyhow::Result<Cursor> {
     if let Ok(cur) = CursorIcon::from_str(&img_path) {

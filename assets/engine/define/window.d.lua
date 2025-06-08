@@ -25,13 +25,6 @@ function Window:set_cursor(icon)
 end
 
 ---@param icon string
-function Window:load_cursor_icon(icon)
-end
-
----@param icon string
-function Window:set_cursor_icon(icon)
-end
----@param icon string
 function Window:set_window_icon(icon)
 end
 ---@param visible boolean

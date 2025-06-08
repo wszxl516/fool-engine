@@ -19,17 +19,14 @@ function view(window, ui_context)
     ui:view(ui_context, window)
     -- window:set_ime_allowed(true)
     -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
-    window:set_cursor_grab("None")
-    -- window:set_cursor("move")
-    -- window:set_cursor_visible(false)
-    window:set_cursor_icon("image/cursor.png")
+
 end
 
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function update(dt)
     graphics:update(dt)
-    -- print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
+    print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
 end
 
 ---@param window Window
@@ -42,7 +39,10 @@ function init(window, ui_context)
     window:set_max_inner_size(size.new(800, 800))
     window:set_min_inner_size(size.new(800, 800))
     window:set_fullscreen(false)
-    window:load_cursor_icon("image/cursor.png")
+    window:set_cursor("image/cursor.png")
+    window:set_cursor_grab("None")
+    window:set_cursor_visible(false)
+    print("set_cursor")
     window:set_window_icon("image/linux.png")
     ui_context:set_style({
         text = {

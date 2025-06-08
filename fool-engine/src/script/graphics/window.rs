@@ -2,8 +2,8 @@ use super::super::gui::{create_window, LuaUIConfig};
 use super::draw::LuaScene;
 use super::types::{LuaPoint, LuaSize};
 use crate::engine::ResourceManager;
-use crate::event::EngineEventLoop;
 use crate::map2lua_error;
+use fool_window::{EventProxy, WindowCursor};
 use mlua::{Function, UserData, UserDataMethods, Value};
 use std::{str::FromStr, sync::Arc};
 use winit::{
@@ -13,13 +13,13 @@ use winit::{
 pub struct LuaWindow {
     pub window: Arc<Window>,
     pub resource: ResourceManager,
-    pub event_loop: EngineEventLoop,
+    pub proxy: EventProxy,
 }
 impl UserData for LuaWindow {
     //cursor
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("exit", |_lua, this, ()| {
-            this.event_loop.exit_window();
+            map2lua_error!(this.proxy.exit(), "LuaWindow exit")?;
             Ok(())
         });
         methods.add_method("set_cursor_grab", |_lua, this, enable: String| {
@@ -45,26 +45,30 @@ impl UserData for LuaWindow {
                 Ok(())
             },
         );
-        methods.add_method("load_cursor_icon", |_lua, this, cursor: String| {
-            this.event_loop.load_cursor(cursor);
+
+        methods.add_method("set_cursor", |_lua, this, cursor_name: String| {
+            let cursor = if let Ok(cursor) = CursorIcon::from_str(&cursor_name) {
+                WindowCursor::CursorIcon(cursor)
+            } else {
+                let img = this.resource.raw_image.get(&cursor_name).map_err(|err| {
+                    mlua::Error::RuntimeError(format!(
+                        "failed get cursor image {}, {}",
+                        &cursor_name, err
+                    ))
+                })?;
+                WindowCursor::Image(img.as_ref().clone())
+            };
+            map2lua_error!(
+                this.proxy.set_cursor(cursor),
+                format!("set_cursor to {} failed", cursor_name)
+            )?;
             Ok(())
         });
-        methods.add_method("set_cursor_icon", |_lua, this, cursor: String| {
-            if let Ok(cursor) = this.resource.window_cursor.get(&cursor) {
-                this.window.set_cursor(cursor.as_ref().clone());
-            }
-            Ok(())
-        });
+
         methods.add_method("set_window_icon", |_lua, this, icon: String| {
             match &this.resource.window_icon.get(&icon) {
                 Ok(icon) => this.window.set_window_icon(Some(icon.as_ref().clone())),
                 Err(err) => log::error!("failed to get window icon {}, {}", icon, err),
-            }
-            Ok(())
-        });
-        methods.add_method("set_cursor", |_lua, this, cursor: String| {
-            if let Ok(cursor) = CursorIcon::from_str(&cursor) {
-                this.window.set_cursor(cursor);
             }
             Ok(())
         });

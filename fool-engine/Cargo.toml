@@ -30,6 +30,7 @@ vello = {version = "0.5.0", features = []}
 fool-graphics = { path = "../fool-graphics"}
 fool-script = { path = "../fool-script"}
 fool-resource = { path = "../fool-resource"}
+fool-window = {path = "../fool-window"}
 serde_json ={ version = "1.0.140"}
 image ={ workspace = true}
 epaint = {version = "0.31.1", optional = true}

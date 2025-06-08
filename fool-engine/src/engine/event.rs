@@ -1,18 +1,14 @@
 use super::Engine;
-use crate::event::EngineEvent;
+use fool_window::{Application, CustomEvent, EventProxy, WinEvent};
 use std::sync::Arc;
-use winit::{
-    application::ApplicationHandler,
-    event::WindowEvent,
-    event_loop::{ActiveEventLoop, ControlFlow},
-};
+use winit::{event::WindowEvent, window::Window};
 impl Engine {
-    fn window_event(&mut self, event: &winit::event::WindowEvent, event_loop: &ActiveEventLoop) {
+    fn window_event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
         if !self.scheduler.running {
             return;
         }
-        self.event(event);
-        match event {
+        self.event(event, raw_event);
+        match raw_event {
             WindowEvent::Resized(size) => {
                 if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
                     render.resize(size.width, size.height);
@@ -24,70 +20,35 @@ impl Engine {
                 }
             }
             WindowEvent::RedrawRequested => {
-                self.update(event_loop);
-                self.view(event_loop);
-            }
-            _ => {}
-        }
-    }
-    fn engine_event(&mut self, event_loop: &ActiveEventLoop, event: EngineEvent) {
-        match event {
-            EngineEvent::LoadCursor(cursor) => {
-                if let Err(err) = self.resource.preload_cursor(&cursor, event_loop) {
-                    log::error!("load_cursor {} failed: {}", cursor, err)
-                }
-            }
-            EngineEvent::ExitWindow => {
-                log::debug!("exit window");
-                event_loop.exit()
+                self.update();
+                self.view();
             }
             _ => {}
         }
     }
 }
 
-impl ApplicationHandler<EngineEvent> for Engine {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_none() {
-            match event_loop.create_window(self.window_attr.clone()) {
-                Ok(window) => {
-                    let window = Arc::new(window);
-                    if let Err(err) = self.init(window.clone(), event_loop) {
-                        log::error!("init engine failed: {}", err);
-                        self.stop();
-                    }
-                }
-                Err(err) => {
-                    log::error!("create_window failed: {}", err);
-                    self.stop();
-                }
-            }
+impl Application for Engine {
+    fn init(&mut self, window: Arc<Window>, proxy: &EventProxy) {
+        if let Err(err) = self.init(window, proxy) {
+            log::error!("init engine failed: {}", err);
+            self.stop();
         }
-        event_loop.set_control_flow(ControlFlow::Wait);
     }
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        _window_id: winit::window::WindowId,
-        event: WindowEvent,
-    ) {
-        self.window_event(&event, event_loop);
+    fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent, _proxy: &EventProxy) {
+        self.window_event(event, raw_event);
     }
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if self.scheduler.trigger_redraw(event_loop) {
-            if let Some(window) = &self.window {
+    fn update(&mut self, _proxy: &EventProxy) {
+        if let (Some(proxy), Some(window)) = (&self.proxy, &self.window) {
+            if self.scheduler.trigger_redraw(proxy) {
                 window.request_redraw();
             }
         }
     }
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineEvent) {
-        self.engine_event(event_loop, event);
+    fn user_event(&mut self, _event: Box<dyn CustomEvent>) {
+        println!("user_event")
     }
-    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        if let (Some(render), Some(window)) = (self.render.take(), self.window.take()) {
-            drop(window);
-            drop(render);
-        }
-        log::debug!("exiting window");
+    fn exiting(&mut self) {
+        self.exiting();
     }
 }

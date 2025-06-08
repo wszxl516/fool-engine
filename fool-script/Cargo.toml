@@ -25,7 +25,7 @@ serde_json ={ version = "1.0.140"}
 env_logger ={ version = "0.11.8"}
 fool-resource = { path = "../fool-resource"}
 rayon = "1.10.0"
-crossbeam-channel = "0.5.15"
+crossbeam-channel = {workspace = true}
 ufmt ={ version = "0.2.0"}
 [features]
 debug = [ "fool-resource/debug"]

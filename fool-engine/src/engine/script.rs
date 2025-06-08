@@ -1,18 +1,21 @@
 pub use super::Engine;
 use crate::script::{run_event_fn, run_update_fn, run_view_fn};
 use fool_graphics::canvas::Scene;
-use winit::event_loop::ActiveEventLoop;
+use fool_window::WinEvent;
+use winit::event::WindowEvent;
 impl Engine {
-    pub fn view(&mut self, _event_loop: &ActiveEventLoop) {
+    pub fn view(&mut self) {
         let resource = self.resource.clone();
-        if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
+        if let (Some(render), Some(window), Some(proxy)) =
+            (&mut self.render, &self.window, &self.proxy)
+        {
             let egui_ctx = render.begin_frame();
             if let Err(err) = run_view_fn(
                 &self.script,
                 egui_ctx.clone(),
                 resource.clone(),
                 window.clone(),
-                self.engine_event_loop.clone(),
+                proxy.clone(),
             ) {
                 log::error!("run lua view failed: {}", err);
                 self.stop();
@@ -28,7 +31,7 @@ impl Engine {
             }
         }
     }
-    pub fn update(&mut self, _event_loop: &ActiveEventLoop) {
+    pub fn update(&mut self) {
         self.script_scheduler.run();
         if let Err(err) = run_update_fn(&self.script) {
             log::error!("run lua update failed: {}", err);
@@ -39,19 +42,18 @@ impl Engine {
             self.stop();
         }
     }
-    pub fn event(&mut self, event: &winit::event::WindowEvent) {
-        self.event_state.handle_event(event);
+    pub fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
         if let Some(render) = &mut self.render {
-            render.gui_event(&event);
+            render.gui_event(&raw_event);
         }
-        if let Some(window) = &self.window {
+        if let (Some(window), Some(proxy)) = (&self.window, &self.proxy) {
             let resource = self.resource.clone();
             if let Err(err) = run_event_fn(
                 &self.script,
-                &mut self.event_state,
+                &event,
                 window.clone(),
                 resource,
-                self.engine_event_loop.clone(),
+                proxy.clone(),
             ) {
                 log::error!("run lua event failed: {}", err);
                 self.stop();

@@ -2,10 +2,11 @@ pub mod graphics;
 pub mod gui;
 pub mod types;
 use crate::engine::ResourceManager;
-use crate::event::EngineEventLoop;
+use crate::event::InputEvent;
 use crate::resource::lua::LuaResourceManager;
-use crate::{event::EventState, map2anyhow_error, physics::LuaPhysics};
+use crate::{map2anyhow_error, physics::LuaPhysics};
 use egui::Context;
+use fool_window::{EventProxy, WinEvent};
 use graphics::window::LuaWindow;
 pub use gui::EguiContext;
 use lazy_static::lazy_static;
@@ -31,7 +32,7 @@ pub fn run_init_fn(
     ctx: &Context,
     win: Arc<Window>,
     resource: ResourceManager,
-    event_loop_proxy: EngineEventLoop,
+    proxy: EventProxy,
 ) -> anyhow::Result<()> {
     let size = win.inner_size();
     match lua.globals().get::<Function>("init") {
@@ -41,7 +42,7 @@ pub fn run_init_fn(
                     let window = lua.create_userdata(LuaWindow {
                         window: win,
                         resource: resource.clone(),
-                        event_loop: event_loop_proxy,
+                        proxy,
                     })?;
                     let ui_context = lua.create_userdata(EguiContext {
                         context: ctx.clone(),
@@ -67,7 +68,7 @@ pub fn run_view_fn(
     context: Context,
     resource: ResourceManager,
     window: Arc<winit::window::Window>,
-    event_loop_proxy: EngineEventLoop,
+    proxy: EventProxy,
 ) -> anyhow::Result<()> {
     let size = window.inner_size();
     map2anyhow_error!(
@@ -75,7 +76,7 @@ pub fn run_view_fn(
             let window = scope.create_userdata(LuaWindow {
                 window: window,
                 resource: resource.clone(),
-                event_loop: event_loop_proxy,
+                proxy,
             })?;
             let ui_context = lua.create_userdata(EguiContext {
                 context,
@@ -93,19 +94,22 @@ pub fn run_view_fn(
 
 pub fn run_event_fn(
     lua: &Lua,
-    input: &mut EventState,
+    event: &WinEvent,
     win: Arc<Window>,
     resource: ResourceManager,
-    event_loop_proxy: EngineEventLoop,
+    proxy: EventProxy,
 ) -> Result<()> {
     let elapsed = time_peer_frame();
     lua.scope(|scope| {
         let window = lua.create_userdata(LuaWindow {
             window: win,
             resource: resource.clone(),
-            event_loop: event_loop_proxy,
+            proxy,
         })?;
-        let input = scope.create_userdata(input)?;
+        let input = scope.create_userdata(InputEvent {
+            event,
+            on_exit: None,
+        })?;
         let lua_event_fn: Function = lua.globals().get("event")?;
         lua_event_fn.call::<()>((input, window, elapsed))?;
         Ok(())
@@ -124,16 +128,10 @@ pub fn run_update_fn(lua: &Lua) -> anyhow::Result<()> {
     )
 }
 
-pub fn setup_modules(
-    lua: &Lua,
-    res_mgr: ResourceManager,
-    event_loop: EngineEventLoop,
-) -> anyhow::Result<()> {
+pub fn setup_modules(lua: &Lua, res_mgr: ResourceManager) -> anyhow::Result<()> {
     map2anyhow_error!(
-        lua.globals().set(
-            "ResourceManager",
-            LuaResourceManager::new(res_mgr.clone(), event_loop)
-        ),
+        lua.globals()
+            .set("ResourceManager", LuaResourceManager::new(res_mgr.clone())),
         "setup lua module EngineTools failed: {}"
     )?;
     setup_physics(lua)?;

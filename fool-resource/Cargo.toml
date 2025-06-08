@@ -21,6 +21,6 @@ skrifa ={ workspace = true}
 ordered-float = "5.0.0"
 env_logger ={ version = "0.11.8"}
 dashmap = { workspace = true}
-dyn-clone = {version = "1.0.19"}
+dyn-clone = {workspace = true}
 [features]
 debug = []

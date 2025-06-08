@@ -1,7 +1,6 @@
 #![allow(dead_code)]
+use fool_window::EventProxy;
 use std::time::{Duration, Instant};
-
-use winit::event_loop::{ActiveEventLoop, ControlFlow};
 
 #[derive(Debug)]
 pub struct Scheduler {
@@ -37,7 +36,7 @@ impl Scheduler {
             self.reset();
         }
     }
-    pub fn trigger_redraw(&mut self, event_loop: &ActiveEventLoop) -> bool {
+    pub fn trigger_redraw(&mut self, proxy: &EventProxy) -> bool {
         if !self.running {
             return false;
         }
@@ -53,7 +52,7 @@ impl Scheduler {
         } else {
             now + std::time::Duration::from_millis(1)
         };
-        event_loop.set_control_flow(ControlFlow::WaitUntil(wait));
+        let _ = proxy.util(wait);
         return redraw;
     }
 }

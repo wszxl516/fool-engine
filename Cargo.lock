@@ -1330,6 +1330,7 @@ dependencies = [
  "fool-graphics",
  "fool-resource",
  "fool-script",
+ "fool-window",
  "image",
  "lazy_static",
  "log",
@@ -1406,6 +1407,19 @@ dependencies = [
  "serde",
  "serde_json",
  "ufmt",
+]
+
+[[package]]
+name = "fool-window"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dyn-clone",
+ "image",
+ "log",
+ "serde",
+ "toml",
+ "winit",
 ]
 
 [[package]]
