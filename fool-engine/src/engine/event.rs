@@ -1,5 +1,5 @@
 use super::Engine;
-use fool_window::{Application, CustomEvent, EventProxy, WinEvent};
+use fool_window::{Application, EventProxy, WinEvent};
 use std::sync::Arc;
 use winit::{event::WindowEvent, window::Window};
 impl Engine {
@@ -7,24 +7,26 @@ impl Engine {
         if !self.scheduler.running {
             return;
         }
-        self.event(event, raw_event);
-        match raw_event {
-            WindowEvent::Resized(size) => {
-                if let (Some(render), Some(window)) = (&mut self.render, &self.window) {
-                    render.resize(size.width, size.height);
-                    self.resource
-                        .scene_graph
-                        .write()
-                        .center_with_screen_size(size.width as f64, size.height as f64);
-                    window.request_redraw();
-                }
+        if event.close_requested() && self.lua_exit_callback() {
+            if let Some(proxy) = &self.proxy {
+                let _ = proxy.exit();
             }
-            WindowEvent::RedrawRequested => {
-                self.update();
-                self.view();
-            }
-            _ => {}
         }
+        if let Some(size) = event.window_resized() {
+            if let (Some(render), Some(window), Some(lua_gui)) =
+                (&mut self.render, &self.window, &mut self.lua_gui)
+            {
+                log::trace!("resize render graph to {:?}", size);
+                render.resize(size.width, size.height);
+                lua_gui.resize(size.width, size.height);
+                self.resource
+                    .scene_graph
+                    .write()
+                    .center_with_screen_size(size.width as f64, size.height as f64);
+                window.request_redraw();
+            }
+        }
+        self.event(event, raw_event);
     }
 }
 
@@ -35,18 +37,21 @@ impl Application for Engine {
             self.stop();
         }
     }
-    fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent, _proxy: &EventProxy) {
+    fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
+        if !self.scheduler.running {
+            return;
+        }
         self.window_event(event, raw_event);
     }
-    fn update(&mut self, _proxy: &EventProxy) {
+    fn update(&mut self) {
+        if !self.scheduler.running {
+            return;
+        }
         if let (Some(proxy), Some(window)) = (&self.proxy, &self.window) {
             if self.scheduler.trigger_redraw(proxy) {
                 window.request_redraw();
             }
         }
-    }
-    fn user_event(&mut self, _event: Box<dyn CustomEvent>) {
-        println!("user_event")
     }
     fn exiting(&mut self) {
         self.exiting();

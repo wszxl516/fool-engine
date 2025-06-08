@@ -1,22 +1,17 @@
 pub use super::Engine;
-use crate::script::{run_event_fn, run_update_fn, run_view_fn};
+use crate::script::run_frame_fn;
 use fool_graphics::canvas::Scene;
 use fool_window::WinEvent;
 use winit::event::WindowEvent;
 impl Engine {
-    pub fn view(&mut self) {
+    pub fn run_frame(&mut self) {
         let resource = self.resource.clone();
-        if let (Some(render), Some(window), Some(proxy)) =
-            (&mut self.render, &self.window, &self.proxy)
+        let events = &self.events_current_frame;
+        if let (Some(render), Some(lua_window), Some(lua_gui)) =
+            (&mut self.render, &mut self.lua_window, &mut self.lua_gui)
         {
-            let egui_ctx = render.begin_frame();
-            if let Err(err) = run_view_fn(
-                &self.script,
-                egui_ctx.clone(),
-                resource.clone(),
-                window.clone(),
-                proxy.clone(),
-            ) {
+            render.begin_frame();
+            if let Err(err) = run_frame_fn(&self.script, lua_gui, lua_window, events) {
                 log::error!("run lua view failed: {}", err);
                 self.stop();
                 return;
@@ -31,34 +26,21 @@ impl Engine {
             }
         }
     }
-    pub fn update(&mut self) {
-        self.script_scheduler.run();
-        if let Err(err) = run_update_fn(&self.script) {
-            log::error!("run lua update failed: {}", err);
-            self.stop();
-        }
-        if let Err(err) = self.script_scheduler.wait_all() {
-            log::error!("run lua script_scheduler failed: {}", err);
-            self.stop();
-        }
-    }
     pub fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
         if let Some(render) = &mut self.render {
             render.gui_event(&raw_event);
         }
-        if let (Some(window), Some(proxy)) = (&self.window, &self.proxy) {
-            let resource = self.resource.clone();
-            if let Err(err) = run_event_fn(
-                &self.script,
-                &event,
-                window.clone(),
-                resource,
-                proxy.clone(),
-            ) {
-                log::error!("run lua event failed: {}", err);
-                self.stop();
-                return;
-            }
+        self.events_current_frame.push(event.clone());
+        if !event.must_redraw() {
+            return;
         }
+        if let Err(err) = self.script_scheduler.wait_all() {
+            log::error!("run lua script_scheduler failed: {}", err);
+            self.stop();
+            return;
+        }
+        self.run_frame();
+        self.script_scheduler.run();
+        self.events_current_frame.clear();
     }
 }

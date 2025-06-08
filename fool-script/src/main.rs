@@ -53,7 +53,7 @@ fn main() -> anyhow::Result<()> {
     let fbk = FileFallBack {
         asset_path: "/data/works/game_engine/fool-script".into(),
     };
-    let mut res = Resource::<String, SharedData>::empty();
+    let res = Resource::<String, SharedData>::empty();
     res.set_fall_back(fbk);
     res.load(
         "mem_module.lua".to_owned(),

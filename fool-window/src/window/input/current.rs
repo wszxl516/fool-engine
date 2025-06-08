@@ -1,7 +1,7 @@
-use winit::event::{DeviceEvent, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{DeviceEvent, ElementState, Ime, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::keyboard::{Key, PhysicalKey};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CurrentInput {
     pub mouse_actions: Vec<MouseAction>,
     pub key_actions: Vec<KeyAction>,
@@ -15,6 +15,7 @@ pub struct CurrentInput {
     pub y_scroll_diff: f32,
     pub x_scroll_diff: f32,
     pub text: Vec<Key>,
+    pub ime: Option<Ime>,
 }
 
 impl CurrentInput {
@@ -32,6 +33,7 @@ impl CurrentInput {
             y_scroll_diff: 0.0,
             x_scroll_diff: 0.0,
             text: vec![],
+            ime: None,
         }
     }
 
@@ -44,6 +46,7 @@ impl CurrentInput {
         self.y_scroll_diff = 0.0;
         self.x_scroll_diff = 0.0;
         self.text.clear();
+        self.ime = None;
     }
 
     pub fn handle_event(&mut self, event: &WindowEvent) {
@@ -119,6 +122,9 @@ impl CurrentInput {
                     }
                 }
             }
+            WindowEvent::Ime(ime) => {
+                self.ime.replace(ime.clone());
+            }
             _ => {}
         }
     }
@@ -133,21 +139,21 @@ impl CurrentInput {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyAction {
     Pressed(Key),
     PressedOs(Key),
     Released(Key),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ScanCodeAction {
     Pressed(PhysicalKey),
     PressedOs(PhysicalKey),
     Released(PhysicalKey),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MouseAction {
     Pressed(MouseButton),
     Released(MouseButton),

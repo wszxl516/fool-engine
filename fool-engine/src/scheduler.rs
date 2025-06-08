@@ -3,13 +3,13 @@ use fool_window::EventProxy;
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
-pub struct Scheduler {
+pub struct FrameScheduler {
     frame_interval: Duration,
     pub next_frame_time: Instant,
     pub running: bool,
 }
 
-impl Scheduler {
+impl FrameScheduler {
     pub fn new(fps: u32) -> Self {
         let frame_interval = Duration::from_secs_f64(1.0 / fps as f64);
         let now = Instant::now();

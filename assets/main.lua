@@ -8,26 +8,7 @@ local ui       = UI:new()
 local graphics = require("graphics")
 
 local core_mod = require('core_mod')
-local init_mod = require('init_mod')
 register_module(core_mod)
-register_module(init_mod)
----@param window Window
----@param ui_context EguiContext
----@diagnostic disable-next-line: lowercase-global
-function view(window, ui_context)
-    graphics:view(window, ui_context)
-    ui:view(ui_context, window)
-    -- window:set_ime_allowed(true)
-    -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
-
-end
-
----@param dt number -- delay time
----@diagnostic disable-next-line: lowercase-global
-function update(dt)
-    graphics:update(dt)
-    print("dt: ", dt, "init_mod: ", init_mod.state, "core_mod: ", core_mod.state)
-end
 
 ---@param window Window
 ---@param ui_context EguiContext
@@ -42,7 +23,6 @@ function init(window, ui_context)
     window:set_cursor("image/cursor.png")
     window:set_cursor_grab("None")
     window:set_cursor_visible(false)
-    print("set_cursor")
     window:set_window_icon("image/linux.png")
     ui_context:set_style({
         text = {
@@ -61,23 +41,36 @@ function init(window, ui_context)
         inactive_fg_color = rgba8.new(200, 200, 200, 200),
         open_fg_color = rgba8.new(200, 0, 0, 0)
     })
-    print(window:monitor())
-    -- aaaa.aaa()
+    logger:debug("window:monitor %s", window:monitor())
     ui:init()
+    window:on_exit(function()
+        logger:debug("exit from lua")
+        return false
+    end)
     graphics:init(window, ui_context)
 end
 
----@param dt number -- delay time
----@param event Event
 ---@param window Window
+---@param ui_context EguiContext
+---@param event Event
+---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
-function event(event, window, dt)
+function run_frame(window, ui_context, event, dt)
+    local raw_keys = event:raw_keys()
+    for key, value in pairs(raw_keys) do
+        logger:debug("raw_key %s %s", value.kind, value.value)
+    end
+    local ime = event:ime_state()
+    if ime then
+        logger:debug("raw_key %s", ime)
+    end
     if event:key_pressed("Escape") then
-        print("Escape")
+        logger:debug("Escape pressed exit")
         window:exit()
     end
-    event:on_exit(function()
-        logger:debug("exit from lua")
-    end)
     graphics:event(event, window, dt)
+    graphics:view(window, ui_context)
+    ui:view(ui_context, window)
+    -- window:set_ime_allowed(true)
+    -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
 end

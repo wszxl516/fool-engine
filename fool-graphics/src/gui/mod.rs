@@ -57,11 +57,10 @@ impl EguiRenderer {
         let response = self.state.on_window_event(&self.window, event);
         self.need_repaint = response.repaint
     }
-    pub fn begin_frame(&mut self) -> &Context {
+    pub fn begin_frame(&mut self) {
         let raw_input = self.state.take_egui_input(&self.window);
         let ctx = self.state.egui_ctx();
         ctx.begin_pass(raw_input);
-        ctx
     }
 
     pub fn end_frame(&mut self, ctx: &mut FrameContext) {

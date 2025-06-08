@@ -36,7 +36,7 @@ impl GraphRender {
         self.vello.draw_scene(scene);
     }
 
-    pub fn begin_frame(&mut self) -> &egui::Context {
+    pub fn begin_frame(&mut self) {
         self.frame.replace(self.vello.begin_frame());
         self.egui.begin_frame()
     }

@@ -1,8 +1,9 @@
 use winit::dpi::PhysicalSize;
-use winit::event::{DeviceEvent, Event, MouseButton, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, Event, Ime, MouseButton, WindowEvent};
 use winit::keyboard::{Key, KeyCode, PhysicalKey};
 
 use super::current::{CurrentInput, KeyAction, MouseAction, ScanCodeAction, mouse_button_to_int};
+use std::collections::HashSet;
 use std::time::Instant;
 use std::{path::PathBuf, time::Duration};
 /// The main struct of the API.
@@ -18,7 +19,7 @@ use std::{path::PathBuf, time::Duration};
 ///
 /// Do not mix usages of `WinitInputHelper::update` and `WinitInputHelper::step_with_window_events`.
 /// You should stick to one or the other.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WinEvent {
     current: Option<CurrentInput>,
     dropped_file: Option<PathBuf>,
@@ -28,6 +29,9 @@ pub struct WinEvent {
     scale_factor: Option<f64>,
     destroyed: bool,
     close_requested: bool,
+    focused: bool,
+    active_cursors: HashSet<DeviceId>,
+    must_redraw: bool,
     step_start: Option<Instant>,
     step_duration: Option<Duration>,
 }
@@ -49,8 +53,11 @@ impl WinEvent {
             scale_factor: None,
             destroyed: false,
             close_requested: false,
+            focused: false,
+            must_redraw: false,
             step_start: None,
             step_duration: None,
+            active_cursors: Default::default(),
         }
     }
 
@@ -99,7 +106,7 @@ impl WinEvent {
         self.end_step();
     }
 
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         self.dropped_file = None;
         self.window_resized = None;
         self.scale_factor_changed = None;
@@ -107,17 +114,22 @@ impl WinEvent {
         // Set the start time on the first event to avoid the first step appearing too long
         self.step_start.get_or_insert(Instant::now());
         self.step_duration = None;
+        self.must_redraw = false;
         if let Some(current) = &mut self.current {
             current.step();
         }
     }
 
-    fn process_window_event(&mut self, event: &WindowEvent) {
+    pub fn process_window_event(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::CloseRequested => self.close_requested = true,
             WindowEvent::Destroyed => self.destroyed = true,
-            WindowEvent::Focused(false) => self.current = None,
+            WindowEvent::Focused(false) => {
+                self.current = None;
+                self.focused = false;
+            }
             WindowEvent::Focused(true) => {
+                self.focused = true;
                 if self.current.is_none() {
                     self.current = Some(CurrentInput::new())
                 }
@@ -131,6 +143,13 @@ impl WinEvent {
                 self.scale_factor_changed = Some(*scale_factor);
                 self.scale_factor = Some(*scale_factor);
             }
+            WindowEvent::CursorEntered { device_id } => {
+                self.active_cursors.insert(*device_id);
+            }
+            WindowEvent::CursorLeft { device_id } => {
+                self.active_cursors.remove(device_id);
+            }
+            WindowEvent::RedrawRequested => self.must_redraw = true,
             _ => {}
         }
         if let Some(current) = &mut self.current {
@@ -144,7 +163,7 @@ impl WinEvent {
         }
     }
 
-    fn end_step(&mut self) {
+    pub fn end_step(&mut self) {
         self.step_duration = self.step_start.map(|start| start.elapsed());
         self.step_start = Some(Instant::now());
     }
@@ -437,7 +456,23 @@ impl WinEvent {
     pub fn close_requested(&self) -> bool {
         self.close_requested
     }
-
+    /// Returns Ime state.
+    pub fn ime(&self) -> Option<Ime> {
+        if let Some(current) = &self.current {
+            current.ime.clone()
+        } else {
+            None
+        }
+    }
+    pub fn focused(&self) -> bool {
+        self.focused
+    }
+    pub fn is_cursor_active(&self) -> bool {
+        !self.active_cursors.is_empty()
+    }
+    pub const fn must_redraw(&self) -> bool {
+        self.must_redraw
+    }
     /// Returns the `std::time::Duration` elapsed since the last step.
     /// Returns `None` if the step is still in progress.
     pub fn delta_time(&self) -> Option<Duration> {

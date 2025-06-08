@@ -50,7 +50,7 @@ pub struct AlphaColor<CS> {
     /// The interpretation of the first three components depends on the color
     /// space. The fourth component is separate alpha.
     pub components: [f32; 4],
-    #[serde(skip)]
+   #[cfg_attr(feature = "serde", serde(skip))]
     /// The color space.
     pub cs: PhantomData<CS>,
 }

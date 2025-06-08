@@ -10,7 +10,7 @@ print('init_mod', init_mod.state)
 local mem_module = require("mem_module")
 ---@return number
 ---@diagnostic disable-next-line: lowercase-global
-function main()
+function run_frame()
     print(abc)
     abc.c.test()
     mem_module:main()

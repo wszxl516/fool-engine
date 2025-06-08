@@ -7,11 +7,19 @@ use crate::engine::ResourceManager;
 pub use binding::LuaUiContext;
 use egui::{pos2, vec2, Context, Visuals};
 pub use types::{LuaGuiStyle, LuaUIConfig};
+
+#[derive(Clone)]
 pub struct EguiContext {
     pub context: Context,
     pub width: f32,
     pub heigth: f32,
     pub resource: ResourceManager,
+}
+impl EguiContext {
+    pub fn resize(&mut self, w: u32, h: u32) {
+        self.width = w as _;
+        self.heigth = h as _;
+    }
 }
 impl UserData for EguiContext {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {

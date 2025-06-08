@@ -14,12 +14,17 @@ pub struct LuaWindow {
     pub window: Arc<Window>,
     pub resource: ResourceManager,
     pub proxy: EventProxy,
+    pub on_exit: Option<Function>,
 }
-impl UserData for LuaWindow {
+impl UserData for &mut LuaWindow {
     //cursor
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("exit", |_lua, this, ()| {
             map2lua_error!(this.proxy.exit(), "LuaWindow exit")?;
+            Ok(())
+        });
+        methods.add_method_mut("on_exit", |_lua, this, func: Function| {
+            this.on_exit.replace(func);
             Ok(())
         });
         methods.add_method("set_cursor_grab", |_lua, this, enable: String| {

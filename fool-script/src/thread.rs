@@ -7,7 +7,6 @@ use mlua::{Lua, MetaMethod, Table, Value};
 use rayon::{ThreadPool, ThreadPoolBuilder, prelude::*};
 use std::collections::HashMap;
 use std::sync::Arc;
-
 #[derive(Debug, Clone)]
 pub struct LuaTask {
     pub id: DSLID,
@@ -36,13 +35,14 @@ impl LuaTask {
             .collect()
     }
 }
-
+use std::sync::atomic::{AtomicBool, Ordering};
 #[derive(Debug, Clone)]
 pub struct AsyncScheduler {
     rx: Receiver<anyhow::Result<()>>,
     tx: Sender<anyhow::Result<()>>,
     pool: Arc<ThreadPool>,
     script: FoolScript,
+    running: Arc<AtomicBool>,
 }
 
 impl AsyncScheduler {
@@ -58,6 +58,7 @@ impl AsyncScheduler {
             tx,
             rx,
             pool: Arc::new(pool),
+            running: Arc::new(AtomicBool::new(false)),
         }
     }
     fn make_readonly_table(lua: &Lua, orig: Table) -> Result<Table> {
@@ -178,33 +179,43 @@ impl AsyncScheduler {
         let pool = self.pool.clone();
         let state_map = self.state_map();
         let tasks = LuaTask::collect_from(&modules);
+        self.running.store(true, Ordering::SeqCst);
+        let running = self.running.clone();
         std::thread::spawn(move || {
             let result_map = Self::tasks(&tasks, pool, &script, &state_map);
             let mut modules_lock = modules.modules.write();
+            let mut has_error = false;
             for (id, new_state) in result_map {
                 if let Some(m) = modules_lock.get_mut(&id) {
                     match new_state {
                         Ok(state) => match m.set_state(&script.lua, state) {
                             Ok(_) => {}
                             Err(err) => {
-                                log::error!("Failed to update {}: {}", id, err);
                                 let _ = tx.send(Err(err));
+                                has_error = true;
                                 break;
                             }
                         },
                         Err(err) => {
-                            log::error!("Failed to run {}: {}", id, err);
                             let _ = tx.send(Err(err));
+                            has_error = true;
                             break;
                         }
                     }
                 }
             }
-            let _ = tx.send(Ok(()));
+            if !has_error {
+                let _ = tx.send(Ok(()));
+            }
+            running.store(false, Ordering::SeqCst);
         });
     }
 
     pub fn wait_all(&self) -> anyhow::Result<()> {
-        self.rx.recv()?
+        if self.running.load(Ordering::Relaxed) {
+            self.rx.recv()?
+        } else {
+            Ok(())
+        }
     }
 }

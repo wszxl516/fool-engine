@@ -101,13 +101,13 @@ impl ApplicationHandler<AppEvent> for FoolWindow {
         event: WindowEvent,
     ) {
         self.input.step_with_window_events(&[&event]);
-        self.app.event(&self.input, &event, &self.proxy);
+        self.app.event(&self.input, &event);
     }
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         if let (Some(window), Some(cursor)) = (&self.window, &self.cursor) {
             window.set_cursor(cursor.clone());
         }
-        self.app.update(&self.proxy);
+        self.app.update();
     }
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: AppEvent) {
         match event {

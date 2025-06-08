@@ -88,6 +88,8 @@ function Window:is_fullscreen()
     return false
 end
 
+---@param call_back fun():boolean
+function Window:on_exit(call_back) end
 function Window:exit()
 end
 

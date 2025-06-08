@@ -5,16 +5,13 @@ use crate::engine::ResourceManager;
 use crate::event::InputEvent;
 use crate::resource::lua::LuaResourceManager;
 use crate::{map2anyhow_error, physics::LuaPhysics};
-use egui::Context;
-use fool_window::{EventProxy, WinEvent};
+use fool_window::WinEvent;
 use graphics::window::LuaWindow;
 pub use gui::EguiContext;
 use lazy_static::lazy_static;
 use mlua::{Function, Lua, Result};
 use parking_lot::Mutex;
-use std::sync::Arc;
 use std::time::Instant;
-use winit::window::Window;
 lazy_static! {
     static ref last_time: Mutex<Instant> = Mutex::new(Instant::now());
 }
@@ -27,29 +24,13 @@ pub fn time_peer_frame() -> f64 {
     dt
 }
 
-pub fn run_init_fn(
-    lua: &Lua,
-    ctx: &Context,
-    win: Arc<Window>,
-    resource: ResourceManager,
-    proxy: EventProxy,
-) -> anyhow::Result<()> {
-    let size = win.inner_size();
+pub fn run_init_fn(lua: &Lua, ctx: &EguiContext, lua_win: &mut LuaWindow) -> anyhow::Result<()> {
     match lua.globals().get::<Function>("init") {
         Ok(init_fn) => {
             map2anyhow_error!(
-                lua.scope(|_| {
-                    let window = lua.create_userdata(LuaWindow {
-                        window: win,
-                        resource: resource.clone(),
-                        proxy,
-                    })?;
-                    let ui_context = lua.create_userdata(EguiContext {
-                        context: ctx.clone(),
-                        width: size.width as f32,
-                        heigth: size.height as f32,
-                        resource,
-                    })?;
+                lua.scope(|scope| {
+                    let window = scope.create_userdata(lua_win)?;
+                    let ui_context = lua.create_userdata(ctx.clone())?;
                     init_fn.call::<()>((window, ui_context))
                 }),
                 "run_init_fn"
@@ -63,69 +44,37 @@ pub fn run_init_fn(
     }
 }
 
-pub fn run_view_fn(
+pub fn run_frame_fn(
     lua: &Lua,
-    context: Context,
-    resource: ResourceManager,
-    window: Arc<winit::window::Window>,
-    proxy: EventProxy,
+    ctx: &EguiContext,
+    lua_win: &mut LuaWindow,
+    events: &Vec<WinEvent>,
 ) -> anyhow::Result<()> {
-    let size = window.inner_size();
+    let elapsed = time_peer_frame();
     map2anyhow_error!(
         lua.scope(|scope| {
-            let window = scope.create_userdata(LuaWindow {
-                window: window,
-                resource: resource.clone(),
-                proxy,
-            })?;
-            let ui_context = lua.create_userdata(EguiContext {
-                context,
-                width: size.width as f32,
-                heigth: size.height as f32,
-                resource,
-            })?;
-            let lua_view_fn: Function = lua.globals().get("view")?;
-            lua_view_fn.call::<()>((window, ui_context))?;
+            let window = scope.create_userdata(lua_win)?;
+            let ui_context = lua.create_userdata(ctx.clone())?;
+            let input_event = InputEvent { events };
+            let input_event = scope.create_userdata(input_event)?;
+            let lua_view_fn: Function = lua.globals().get("run_frame")?;
+            lua_view_fn.call::<()>((window, ui_context, input_event, elapsed))?;
             Ok(())
         }),
         "run_view_fn failed"
     )
 }
 
-pub fn run_event_fn(
-    lua: &Lua,
-    event: &WinEvent,
-    win: Arc<Window>,
-    resource: ResourceManager,
-    proxy: EventProxy,
-) -> Result<()> {
+pub fn run_event_fn(lua: &Lua, events: &Vec<WinEvent>, lua_win: &mut LuaWindow) -> Result<()> {
     let elapsed = time_peer_frame();
     lua.scope(|scope| {
-        let window = lua.create_userdata(LuaWindow {
-            window: win,
-            resource: resource.clone(),
-            proxy,
-        })?;
-        let input = scope.create_userdata(InputEvent {
-            event,
-            on_exit: None,
-        })?;
+        let window = scope.create_userdata(lua_win)?;
+        let input_event = InputEvent { events };
+        let input = scope.create_userdata(input_event)?;
         let lua_event_fn: Function = lua.globals().get("event")?;
         lua_event_fn.call::<()>((input, window, elapsed))?;
         Ok(())
     })
-}
-
-pub fn run_update_fn(lua: &Lua) -> anyhow::Result<()> {
-    let elapsed = time_peer_frame();
-    map2anyhow_error!(
-        lua.scope(|_scope| {
-            let lua_update_fn: Function = lua.globals().get("update")?;
-            lua_update_fn.call::<()>(elapsed)?;
-            Ok(())
-        }),
-        "run_update_fn failed"
-    )
 }
 
 pub fn setup_modules(lua: &Lua, res_mgr: ResourceManager) -> anyhow::Result<()> {

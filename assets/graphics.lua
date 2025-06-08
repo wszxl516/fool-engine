@@ -43,10 +43,6 @@ function graphics:init(window, ui_context)
 
 end
 
-function graphics:update(value)
-
-end
-
 ---@param window Window
 ---@param ui_context EguiContext
 function graphics:view(window, ui_context)
