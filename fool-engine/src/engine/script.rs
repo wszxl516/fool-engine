@@ -12,7 +12,7 @@ impl Engine {
         {
             render.begin_frame();
             if let Err(err) = run_frame_fn(&self.script, lua_gui, lua_window, events) {
-                log::error!("run lua view failed: {}", err);
+                log::error!("run lua run_frame failed: {}", err);
                 self.stop();
                 return;
             }

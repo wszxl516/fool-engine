@@ -1,12 +1,10 @@
 ---@diagnostic disable-next-line: lowercase-global
-physics = {}
-physics.__index = physics
+Physics = {}
+Physics.__index = Physics
 
---- Physics
----@class physics
-local physics_mt = {}
-physics_mt.__index = physics_mt
-
+--- Physics Engine
+---@class Physics
+local Physics = {}
 ---@class PhysicsBodyConfig
 ---@field user_data number
 ---@field position table
@@ -47,83 +45,81 @@ physics_mt.__index = physics_mt
 
 ---@param x_gravity_acceleration number
 ---@param y_gravity_acceleration number
----@return physics
+---@return Physics
 ---@diagnostic disable-next-line: lowercase-global
-function physics_init(x_gravity_acceleration, y_gravity_acceleration)
-    local self = setmetatable({}, physics_mt)
-    -- Initialize physics here using the gravity values
-    return self
+function Physics.new(x_gravity_acceleration, y_gravity_acceleration)
+    return {}
 end
 
 ---@param x number
 ---@param y number
-function physics_mt:set_gravity(x, y)
+function Physics:set_gravity(x, y)
     -- Set gravity logic
 end
 
-function physics_mt:update()
+function Physics:update()
 end
 
 ---@param config PhysicsBodyConfig
 ---@return LuaRigidBodyHandle
-function physics_mt:add_body(config)
+function Physics:add_body(config)
     return {} -- placeholder for a real body handle
 end
 
 ---@param handle LuaRigidBodyHandle
-function physics_mt:remove_body(handle)
+function Physics:remove_body(handle)
     return {} -- placeholder for a real body handle
 end
 
 ---@return LuaRigidBody[]
-function physics_mt:get_bodies()
+function Physics:get_bodies()
     return {} -- return list of rigid bodies
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@return LuaRigidBody|nil
-function physics_mt:find_body(handle)
+function Physics:find_body(handle)
     return nil
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@param force Point
-function physics_mt:apply_force(handle, force)
+function Physics:apply_force(handle, force)
     return nil
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@param force Point
-function physics_mt:apply_impulse(handle, force)
+function Physics:apply_impulse(handle, force)
     return nil
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@param linvel Point
-function physics_mt:set_linvel(handle, linvel)
+function Physics:set_linvel(handle, linvel)
     -- set linear velocity
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@param angvel number
-function physics_mt:set_angvel(handle, angvel)
+function Physics:set_angvel(handle, angvel)
     -- set angular velocity
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@param strong boolean
-function physics_mt:wake_up(handle, strong)
+function Physics:wake_up(handle, strong)
     -- wake up a body
 end
 
 ---@param handle LuaRigidBodyHandle
-function physics_mt:sleep(handle)
+function Physics:sleep(handle)
     -- put body to sleep
 end
 
 ---@param handle LuaRigidBodyHandle
 ---@return boolean
-function physics_mt:is_sleeping(handle)
+function Physics:is_sleeping(handle)
     return true -- or false
 end
 
@@ -134,41 +130,41 @@ end
 ---@param dir Point
 ---@param max_toi number
 ---@return CastRayRes
-function physics_mt:cast_ray(origin, dir, max_toi)
+function Physics:cast_ray(origin, dir, max_toi)
     return {}
 end
 
 ---only for sensor
 ---@return string[]
-function physics_mt:list_ignore_intersection_group()
+function Physics:list_ignore_intersection_group()
     return {}
 end
 
 ---@param name  string
 ---@param group LuaRigidBodyHandle[]
-function physics_mt:add_ignore_intersection_group(name, group)
+function Physics:add_ignore_intersection_group(name, group)
     return {}
 end
 
 ---@param name  string
-function physics_mt:remove_ignore_intersection_group(name)
+function Physics:remove_ignore_intersection_group(name)
 
 end
 
 ---only for no sensor
 ---@return string[]
-function physics_mt:list_contact_filter_groups()
+function Physics:list_contact_filter_groups()
     return {}
 end
 
 ---@param name  string
 ---@param group LuaRigidBodyHandle[]
-function physics_mt:add_contact_filter_group(name, group)
+function Physics:add_contact_filter_group(name, group)
 
 end
 
 ---@param name  string
-function physics_mt:remove_contact_filter_group(name)
+function Physics:remove_contact_filter_group(name)
 
 end
 
@@ -184,7 +180,7 @@ end
 ---@field stopped? CollisionEvent
 
 ---@param call_back fun(LuaCollisionEvent)
-function physics_mt:register_collision_event_callback(call_back)
+function Physics:register_collision_event_callback(call_back)
 end
 
 ---@class LuaContactForceEvent
@@ -193,10 +189,10 @@ end
 ---@field dt number
 ---@field total_force_magnitude number
 ---@param call_back fun(LuaContactForceEvent)
-function physics_mt:register_contact_force_event_callback(call_back)
+function Physics:register_contact_force_event_callback(call_back)
 end
 
 ---if add_body active_events not empty and call_back is registered
-function physics_mt:event_update()
+function Physics:event_update()
 
 end

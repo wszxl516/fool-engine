@@ -3,7 +3,6 @@ use fool_graphics::canvas::SceneGraph;
 use image::DynamicImage;
 use std::{path::PathBuf, sync::Arc};
 mod fallback;
-pub mod lua;
 pub mod types;
 pub mod utils;
 use egui::epaint::TextureHandle;

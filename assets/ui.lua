@@ -83,7 +83,6 @@ end
 
 ---@diagnostic disable-next-line: lowercase-global
 function UI:init()
-    ResourceManager:preload_ui_texture("image/linux.png")
 end
 local core_mod = require('core_mod')
 
@@ -160,7 +159,6 @@ function gui_run(data, ui)
                 vertical_ui:progress_bar(data.slider.current)
             end)
             center_ui:end_row()
-            logger:debug("%s", core_mod.state.counter)
             data.progress_bar.progress = core_mod.state.counter / 100.0
             center_ui:with_layout(true, function(vertical_ui)
                 vertical_ui:progress_bar(data.progress_bar)

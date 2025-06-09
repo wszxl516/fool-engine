@@ -80,12 +80,5 @@ function graphics:view(window, ui_context)
     })
 end
 
----@param dt number -- delay time
----@param event Event
----@param window Window
----@diagnostic disable-next-line: lowercase-global
-function graphics:event(event, window, dt)
-    -- Left, Up, Right, Down
-end
 
 return graphics

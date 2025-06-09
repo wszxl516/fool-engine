@@ -6,15 +6,14 @@ local logger   = LOG.new("main", true, true)
 local UI       = require("ui")
 local ui       = UI:new()
 local graphics = require("graphics")
-
 local core_mod = require('core_mod')
+local Physics = require("Physics")
 register_module(core_mod)
 
 ---@param window Window
 ---@param ui_context EguiContext
 ---@diagnostic disable-next-line: lowercase-global
 function init(window, ui_context)
-    ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
     window:set_title("window")
     window:set_resizable(false)
     window:set_max_inner_size(size.new(800, 800))
@@ -24,6 +23,7 @@ function init(window, ui_context)
     window:set_cursor_grab("None")
     window:set_cursor_visible(false)
     window:set_window_icon("image/linux.png")
+    ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
     ui_context:set_style({
         text = {
             Heading = 22.0,
@@ -45,9 +45,10 @@ function init(window, ui_context)
     ui:init()
     window:on_exit(function()
         logger:debug("exit from lua")
-        return false
+        return true
     end)
     graphics:init(window, ui_context)
+    Physics.new(9.8, 1)
 end
 
 ---@param window Window
@@ -68,7 +69,6 @@ function run_frame(window, ui_context, event, dt)
         logger:debug("Escape pressed exit")
         window:exit()
     end
-    graphics:event(event, window, dt)
     graphics:view(window, ui_context)
     ui:view(ui_context, window)
     -- window:set_ime_allowed(true)

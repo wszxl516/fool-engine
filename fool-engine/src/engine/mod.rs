@@ -29,7 +29,7 @@ impl Engine {
         let resource = ResourceManager::new()?;
         let mut script = FoolScript::new(resource.raw_resource.clone())?;
         script.setup()?;
-        setup_modules(&script, resource.clone())?;
+        setup_modules(&script)?;
         map2anyhow_error!(script.load_main(), "load main.lua failed: ")?;
         Ok(Engine {
             resource,
