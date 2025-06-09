@@ -23,7 +23,7 @@ impl EventProxy {
     pub fn poll(&self) -> anyhow::Result<()> {
         self.send(AppEvent::ControlFlow(ControlFlow::Poll))
     }
-    pub fn util(&self, instant: std::time::Instant) -> anyhow::Result<()> {
+    pub fn wait_util(&self, instant: std::time::Instant) -> anyhow::Result<()> {
         self.send(AppEvent::ControlFlow(ControlFlow::WaitUntil(instant)))
     }
 }

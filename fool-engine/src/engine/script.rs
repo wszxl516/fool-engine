@@ -32,13 +32,18 @@ impl Engine {
         if !event.must_redraw() {
             return;
         }
-        if let Err(err) = self.script_scheduler.wait_all() {
+        self.run_frame();
+        if let Err(err) = self.script_scheduler.run() {
             log::error!("run lua script_scheduler failed: {}", err);
             self.stop();
             return;
         }
-        self.run_frame();
-        self.script_scheduler.run();
         self.events_current_frame.clear();
+        log::debug!(
+            "Frame: {}, elapsed: {:?}",
+            self.scheduler.frame_id,
+            self.scheduler.frame_id.elapsed()
+        );
+        self.scheduler.frame_id.reset_timer();
     }
 }

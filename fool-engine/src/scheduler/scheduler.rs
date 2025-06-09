@@ -1,12 +1,13 @@
 #![allow(dead_code)]
+use super::FrameID;
 use fool_window::EventProxy;
 use std::time::{Duration, Instant};
-
 #[derive(Debug)]
 pub struct FrameScheduler {
     frame_interval: Duration,
     pub next_frame_time: Instant,
     pub running: bool,
+    pub frame_id: FrameID,
 }
 
 impl FrameScheduler {
@@ -17,6 +18,7 @@ impl FrameScheduler {
             frame_interval,
             next_frame_time: now + frame_interval,
             running: true,
+            frame_id: FrameID::new(),
         }
     }
     pub fn set_fps(&mut self, fps: u32) {
@@ -47,17 +49,19 @@ impl FrameScheduler {
         }
         let mut redraw = false;
         let now = std::time::Instant::now();
-        if now >= self.next_frame_time {
+        while self.next_frame_time <= now {
+            self.next_frame_time += self.frame_interval;
+            self.frame_id += 1;
             redraw = true;
-            self.advance();
         }
+
         let next = self.next_frame_time;
         let wait = if next > now {
             next
         } else {
             now + std::time::Duration::from_millis(1)
         };
-        let _ = proxy.util(wait);
+        let _ = proxy.wait_util(wait);
         return redraw;
     }
 }

@@ -6,14 +6,11 @@ use std::ops::Deref;
 
 use fool_resource::{Resource, SharedData};
 use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table};
-use modules::{DSLModule, MemoryModule, UserMod, UserModConstructor, stdlib};
+use modules::{DSLModule, MemoryModule, Modules, UserMod, UserModConstructor, stdlib};
 #[derive(Debug, Clone)]
 pub struct FoolScript {
     lua: Lua,
-    mem_mod: MemoryModule,
-    dsl_mod: DSLModule,
-    user_mod: UserMod,
-    resource: Resource<String, SharedData>,
+    modules: Modules,
 }
 impl Deref for FoolScript {
     type Target = Lua;
@@ -37,19 +34,27 @@ impl FoolScript {
         )?;
         Ok(Self {
             lua: lua.clone(),
-            mem_mod: MemoryModule::new(resource.clone()),
-            dsl_mod: DSLModule::new(),
-            user_mod: UserMod::new(),
-            resource,
+            modules: Modules {
+                mem_mod: MemoryModule::new(resource.clone()),
+                dsl_mod: DSLModule::new(),
+                user_mod: UserMod::new(),
+            },
         })
     }
     pub fn setup(&mut self) -> anyhow::Result<()> {
-        let mem_loader =
-            map2anyhow_error!(self.mem_mod.init(&self.lua), "setup mem loader failed")?;
-        let user_loader =
-            map2anyhow_error!(self.user_mod.init(&self.lua), "setup fs loader failed")?;
+        let mem_loader = map2anyhow_error!(
+            self.modules.mem_mod.init(&self.lua),
+            "setup mem loader failed"
+        )?;
+        let user_loader = map2anyhow_error!(
+            self.modules.user_mod.init(&self.lua),
+            "setup fs loader failed"
+        )?;
         self.register_module_searcher(&[mem_loader, user_loader])?;
-        map2anyhow_error!(self.dsl_mod.init(&self.lua), "setup_dsl_lua failed: {}")?;
+        map2anyhow_error!(
+            self.modules.dsl_mod.init(&self.lua),
+            "setup_dsl_lua failed: {}"
+        )?;
         map2anyhow_error!(stdlib::init_stdlib(&self.lua), "init_stdlib failed")?;
         stdlib::enable_debug(&self.lua)?;
         Ok(())
@@ -119,18 +124,16 @@ impl FoolScript {
         mod_path: &str,
         module: impl UserModConstructor + 'static,
     ) -> anyhow::Result<()> {
-        self.user_mod.register(mod_path, module);
+        self.modules.user_mod.register(mod_path, module);
         Ok(())
     }
 }
 
 impl FoolScript {
     // for multi thread
-    pub fn setup_modules_from(other: &Self) -> anyhow::Result<Self> {
-        let mut fs = Self::new(other.resource.clone())?;
-        fs.mem_mod = other.mem_mod.clone();
-        fs.dsl_mod = other.dsl_mod.clone();
-        fs.user_mod = other.user_mod.clone();
+    pub fn setup_from_modules(modules: &Modules) -> anyhow::Result<Self> {
+        let mut fs = Self::new(modules.mem_mod.resource.clone())?;
+        fs.modules = modules.clone();
         fs.setup()?;
         Ok(fs)
     }

@@ -4,10 +4,10 @@ use parking_lot::RwLock;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Debug, path::Path};
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MemoryModule {
     modules: Arc<RwLock<HashMap<String, Arc<String>>>>,
-    resource: Resource<String, SharedData>,
+    pub resource: Resource<String, SharedData>,
 }
 impl MemoryModule {
     pub fn new(resource: Resource<String, SharedData>) -> Self {

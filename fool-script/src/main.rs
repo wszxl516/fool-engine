@@ -75,8 +75,7 @@ fn main() -> anyhow::Result<()> {
     script.load_main()?;
     let task = fool_script::thread::AsyncScheduler::new(&script, 2);
     for _ in 0..10 {
-        task.run();
-        task.wait_all()?;
+        task.run()?;
     }
     println!("lua main fn return: {}", script.run_fun::<f64>("main", ())?);
     Ok(())
