@@ -8,6 +8,7 @@ pub mod script;
 pub mod utils;
 use fool_window::{AppEvent, FoolWindow};
 use winit::{event_loop::EventLoopBuilder, platform::x11::EventLoopBuilderExtX11};
+
 pub fn init_engine() -> anyhow::Result<()> {
     let config = config::Config::from_file()?;
     let event_loop = EventLoopBuilder::<AppEvent>::default()
@@ -15,7 +16,7 @@ pub fn init_engine() -> anyhow::Result<()> {
         .with_any_thread(true)
         .build()?;
     let window_attr = config.window.build(&event_loop)?;
-    let engine = engine::Engine::new(30)?;
+    let engine = engine::Engine::new(30, config.base)?;
     let mut window = FoolWindow::new(window_attr, engine, event_loop)?;
     window.run()?;
     Ok(())

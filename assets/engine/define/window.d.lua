@@ -92,7 +92,9 @@ end
 function Window:on_exit(call_back) end
 function Window:exit()
 end
-
+---capture screen save to %Y-%m-%d %H:%M:%S.png
+function Window:capture()
+end
 ---@class Margin
 ---@field left number
 ---@field right number

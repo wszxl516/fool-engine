@@ -28,8 +28,9 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
-    pub fn new() -> anyhow::Result<Self> {
-        let assets_path = utils::resource_path()?;
+    pub fn new(assets_path: impl Into<PathBuf>) -> anyhow::Result<Self> {
+        // let assets_path = utils::resource_path()?;
+        let assets_path = assets_path.into();
         #[cfg(feature = "debug")]
         let raw_resource = {
             log::debug!(

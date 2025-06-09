@@ -57,9 +57,9 @@ end
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function run_frame(window, ui_context, event, dt)
-    local raw_keys = event:raw_keys()
-    for key, value in pairs(raw_keys) do
-        logger:debug("raw_key %s %s", value.kind, value.value)
+    if event:key_pressed("Insert") then
+        logger:debug("Insert pressed")
+        window:capture()
     end
     local ime = event:ime_state()
     if ime then

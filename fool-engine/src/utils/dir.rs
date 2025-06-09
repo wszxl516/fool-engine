@@ -30,3 +30,13 @@ pub fn load_from_current(name: &str) -> anyhow::Result<Vec<u8>> {
         name
     ))
 }
+#[macro_export]
+macro_rules! create_if_not_exists {
+    ($path:expr) => {{
+        if !$path.exists() {
+            std::fs::create_dir_all(&$path)
+        } else {
+            Ok(())
+        }
+    }};
+}

@@ -20,7 +20,7 @@ impl Engine {
             let mut scene = Scene::new();
             graph.draw(&mut scene);
             render.draw_scene(&scene);
-            if let Err(err) = render.end_frame() {
+            if let Err(err) = render.end_frame(self.frame_capture.pop_front()) {
                 log::error!("end_frame failed: {}", err);
                 self.stop();
             }

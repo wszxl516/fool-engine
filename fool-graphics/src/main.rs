@@ -87,7 +87,7 @@ impl Engine {
             };
             sgraph.draw(&mut scene);
             render.draw_scene(&scene);
-            render.end_frame().unwrap();
+            render.end_frame(Some("a.png")).unwrap();
         }
     }
     fn window_event(&mut self, event: &winit::event::WindowEvent, _event_loop: &ActiveEventLoop) {

@@ -7,6 +7,7 @@ use crate::render::FrameContext;
 use gui::EguiRenderer;
 use render::VelloRender;
 pub use scheduler::Scheduler;
+use std::path::PathBuf;
 use std::sync::Arc;
 use winit::event::WindowEvent;
 use winit::window::Window;
@@ -40,10 +41,10 @@ impl GraphRender {
         self.frame.replace(self.vello.begin_frame());
         self.egui.begin_frame()
     }
-    pub fn end_frame(&mut self) -> anyhow::Result<()> {
+    pub fn end_frame(&mut self, capture_to: Option<impl Into<PathBuf>>) -> anyhow::Result<()> {
         if let Some(mut frame_ctx) = self.frame.take() {
             self.egui.end_frame(&mut frame_ctx);
-            self.vello.end_frame(frame_ctx);
+            self.vello.end_frame(frame_ctx, capture_to);
             Ok(())
         } else {
             Err(anyhow::anyhow!("call begin_frame first!"))

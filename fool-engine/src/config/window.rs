@@ -1,8 +1,8 @@
+use super::load_from_current;
 use crate::{
     apply_if_some,
     script::types::{LuaPoint, LuaSize},
 };
-use fool_window::CustomEvent;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use winit::{
@@ -84,10 +84,7 @@ pub struct WindowConfig {
 }
 
 impl WindowConfig {
-    pub fn build(
-        &self,
-        event_loop: &EventLoop<impl CustomEvent>,
-    ) -> anyhow::Result<WindowAttributes> {
+    pub fn build<T>(&self, event_loop: &EventLoop<T>) -> anyhow::Result<WindowAttributes> {
         let mut attributes = WindowAttributes::default()
             .with_active(self.active.unwrap_or(true))
             .with_window_level(
@@ -150,14 +147,11 @@ impl WindowConfig {
     }
 }
 
-pub fn create_cursor(
-    event_loop: &EventLoop<impl CustomEvent>,
-    img_path: &String,
-) -> anyhow::Result<Cursor> {
+pub fn create_cursor<T>(event_loop: &EventLoop<T>, img_path: &String) -> anyhow::Result<Cursor> {
     if let Ok(cur) = CursorIcon::from_str(&img_path) {
         Ok(Cursor::Icon(cur))
     } else {
-        let buffer = super::utils::load_from_current(&img_path)?;
+        let buffer = load_from_current(&img_path)?;
         let img = image::load_from_memory(&buffer)?;
         let width = img.width() as u16;
         let height = img.height() as u16;
@@ -171,7 +165,7 @@ pub fn create_cursor(
 }
 
 pub fn create_icon(img_name: &String) -> anyhow::Result<Icon> {
-    let buffer = super::utils::load_from_current(&img_name)?;
+    let buffer = load_from_current(&img_name)?;
     let img = image::load_from_memory(&buffer)?;
     let width = img.width();
     let height = img.height();

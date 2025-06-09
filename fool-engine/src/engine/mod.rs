@@ -1,3 +1,4 @@
+use crate::config::BaseConfig;
 use crate::map2anyhow_error;
 pub use crate::resource::ResourceManager;
 use crate::scheduler::FrameScheduler;
@@ -7,6 +8,8 @@ use fool_graphics::GraphRender;
 use fool_script::{thread::AsyncScheduler, FoolScript};
 use fool_window::EventProxy;
 use fool_window::WinEvent;
+use std::collections::VecDeque;
+use std::path::PathBuf;
 use std::sync::Arc;
 use winit::window::Window;
 pub mod event;
@@ -22,11 +25,15 @@ pub struct Engine {
     lua_window: Option<LuaWindow>,
     lua_gui: Option<EguiContext>,
     events_current_frame: Vec<WinEvent>,
+    frame_capture: VecDeque<PathBuf>,
+    base_path: BaseConfig,
 }
 
 impl Engine {
-    pub fn new(fps: u32) -> anyhow::Result<Self> {
-        let resource = ResourceManager::new()?;
+    pub fn new(fps: u32, base_path: BaseConfig) -> anyhow::Result<Self> {
+        let base_path = base_path.build()?;
+        log::debug!("engine base config: {:?}", base_path);
+        let resource = ResourceManager::new(base_path.assets_path.clone())?;
         let mut script = FoolScript::new(resource.raw_resource.clone())?;
         script.setup()?;
         setup_modules(&script)?;
@@ -42,6 +49,8 @@ impl Engine {
             lua_window: None,
             lua_gui: None,
             events_current_frame: Vec::new(),
+            frame_capture: Default::default(),
+            base_path: base_path,
         })
     }
 

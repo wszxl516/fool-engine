@@ -1,6 +1,6 @@
 use super::Engine;
-use fool_window::{Application, EventProxy, WinEvent};
-use std::sync::Arc;
+use fool_window::{Application, CustomEvent, EventProxy, WinEvent};
+use std::{path::PathBuf, sync::Arc};
 use winit::{event::WindowEvent, window::Window};
 impl Engine {
     fn window_event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
@@ -56,4 +56,20 @@ impl Application for Engine {
     fn exiting(&mut self) {
         self.exiting();
     }
+    fn user_event(&mut self, event: Box<dyn CustomEvent>) {
+        if let Ok(event) = event.downcast::<EngineEvent>() {
+            match *event {
+                EngineEvent::Capture(p) => {
+                    let full_path = self.base_path.capture_path.join(p);
+                    log::trace!("Capture current screent to {}", full_path.display());
+                    self.frame_capture.push_back(full_path);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum EngineEvent {
+    Capture(PathBuf),
 }

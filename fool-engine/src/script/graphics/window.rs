@@ -1,10 +1,13 @@
 use super::super::gui::{create_window, LuaUIConfig};
 use super::draw::LuaScene;
 use super::types::{LuaPoint, LuaSize};
+use crate::engine::event::EngineEvent;
 use crate::engine::ResourceManager;
 use crate::map2lua_error;
-use fool_window::{EventProxy, WindowCursor};
+use chrono::{Local, Utc};
+use fool_window::{AppEvent, CustomEvent, EventProxy, WindowCursor};
 use mlua::{Function, UserData, UserDataMethods, Value};
+use std::path::PathBuf;
 use std::{str::FromStr, sync::Arc};
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size},
@@ -17,8 +20,22 @@ pub struct LuaWindow {
     pub on_exit: Option<Function>,
 }
 impl UserData for &mut LuaWindow {
-    //cursor
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("capture", |_lua, this, ()| {
+            let capture_path = PathBuf::from(format!(
+                "{}.png",
+                Utc::now()
+                    .with_timezone(&Local)
+                    .format("%Y-%m-%d-%H-%M-%S%.3f")
+            ));
+            log::trace!("new capture: {}", capture_path.display());
+            let event: Box<dyn CustomEvent> = Box::new(EngineEvent::Capture(capture_path));
+            map2lua_error!(
+                this.proxy.send(AppEvent::CustomEvent(event)),
+                "LuaWindow capture"
+            )?;
+            Ok(())
+        });
         methods.add_method("exit", |_lua, this, ()| {
             map2lua_error!(this.proxy.exit(), "LuaWindow exit")?;
             Ok(())

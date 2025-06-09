@@ -1,22 +1,28 @@
 #![allow(dead_code)]
+use std::path::PathBuf;
 use std::sync::Arc;
 use vello::AaConfig;
 use vello::{Scene, peniko::color::palette, util::DeviceHandle};
 use winit::window::Window;
+mod capture;
 mod context;
 mod frame;
+use capture::FrameCapture;
 use context::ContextRender;
 pub use frame::FrameContext;
-
 pub struct VelloRender {
     context: ContextRender,
+    frame_buffer: Option<FrameCapture>,
 }
 
 impl VelloRender {
     pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let context = ContextRender::new(window)
             .map_err(|err| anyhow::anyhow!("Failed to create vello surface:{}", err))?;
-        Ok(Self { context })
+        Ok(Self {
+            context,
+            frame_buffer: None,
+        })
     }
     pub fn draw_scene(&mut self, scene: &Scene) {
         let context = &mut self.context;
@@ -50,14 +56,12 @@ impl VelloRender {
         let final_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-
         let mut encoder =
             device_handle
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Main Encoder"),
                 });
-
         surface.blitter.copy(
             &device_handle.device,
             &mut encoder,
@@ -72,11 +76,24 @@ impl VelloRender {
             surface_texture,
         }
     }
-
-    pub fn end_frame(&mut self, ctx: FrameContext) {
+    pub fn end_frame(&mut self, ctx: FrameContext, capture_to: Option<impl Into<PathBuf>>) {
+        let mut ctx = ctx;
+        if let Some(capture_to) = capture_to {
+            let config = &self.context.surface.config;
+            let frame = FrameCapture::new(&config, &ctx.device, capture_to.into());
+            let _ = frame.copy2buffer(&ctx.surface_texture, &mut ctx.encoder);
+            self.frame_buffer.replace(frame);
+        }
         ctx.queue.submit(Some(ctx.encoder.finish()));
         ctx.surface_texture.present();
         ctx.device.poll(wgpu::Maintain::Poll);
+
+        if let Some(frame) = self.frame_buffer.take() {
+            let device = ctx.device.clone();
+            std::thread::spawn(move || {
+                frame.finish(&device);
+            });
+        }
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {

@@ -35,6 +35,8 @@ serde_json ={ version = "1.0.140"}
 image ={ workspace = true}
 epaint = {version = "0.31.1", optional = true}
 toml = {workspace = true}
+downcast-rs = { workspace = true}
+directories = "6.0.0"
 [features]
 default = ["epaint/serde"]
 debug = ["fool-script/debug", "fool-graphics/debug", "fool-resource/debug"]
