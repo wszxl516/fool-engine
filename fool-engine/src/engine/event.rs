@@ -13,12 +13,12 @@ impl Engine {
             }
         }
         if let Some(size) = event.window_resized() {
-            if let (Some(render), Some(window), Some(lua_gui)) =
-                (&mut self.render, &self.window, &mut self.lua_gui)
+            if let (Some(render), Some(window), Some(lua_engine)) =
+                (&mut self.render, &self.window, &mut self.lua_engine)
             {
                 log::trace!("resize render graph to {:?}", size);
                 render.resize(size.width, size.height);
-                lua_gui.resize(size.width, size.height);
+                lua_engine.resize(size.width, size.height);
                 self.resource
                     .scene_graph
                     .write()
@@ -60,9 +60,13 @@ impl Application for Engine {
         if let Ok(event) = event.downcast::<EngineEvent>() {
             match *event {
                 EngineEvent::Capture(p) => {
-                    let full_path = self.base_path.capture_path.join(p);
-                    log::trace!("Capture current screent to {}", full_path.display());
+                    let full_path = self.base_config.capture_path.clone().join(p);
+                    log::trace!("Capture current screen to {}", full_path.display());
                     self.frame_capture.push_back(full_path);
+                }
+                EngineEvent::FPS(fps) => {
+                    log::trace!("set current fps to {}", fps);
+                    self.scheduler.set_fps(fps)
                 }
             }
         }
@@ -72,4 +76,5 @@ impl Application for Engine {
 #[derive(Debug, Clone)]
 pub enum EngineEvent {
     Capture(PathBuf),
+    FPS(u32),
 }

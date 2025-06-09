@@ -1,11 +1,12 @@
+pub mod engine;
 pub mod graphics;
 pub mod gui;
 pub mod types;
 use crate::event::InputEvent;
 use crate::{map2anyhow_error, physics::LuaPhysics};
+pub use engine::{LuaEngine, LuaWindow};
 use fool_script::FoolScript;
 use fool_window::WinEvent;
-use graphics::window::LuaWindow;
 pub use gui::EguiContext;
 use lazy_static::lazy_static;
 use mlua::{Function, Lua, Value};
@@ -23,14 +24,13 @@ pub fn time_peer_frame() -> f64 {
     dt
 }
 
-pub fn run_init_fn(lua: &Lua, ctx: &EguiContext, lua_win: &mut LuaWindow) -> anyhow::Result<()> {
+pub fn run_init_fn(lua: &Lua, lua_win: &LuaEngine) -> anyhow::Result<()> {
     match lua.globals().get::<Function>("init") {
         Ok(init_fn) => {
             map2anyhow_error!(
-                lua.scope(|scope| {
-                    let window = scope.create_userdata(lua_win)?;
-                    let ui_context = lua.create_userdata(ctx.clone())?;
-                    init_fn.call::<()>((window, ui_context))
+                lua.scope(|_| {
+                    let window = lua.create_userdata(lua_win.clone())?;
+                    init_fn.call::<()>(window)
                 }),
                 "run_init_fn"
             )?;
@@ -43,21 +43,15 @@ pub fn run_init_fn(lua: &Lua, ctx: &EguiContext, lua_win: &mut LuaWindow) -> any
     }
 }
 
-pub fn run_frame_fn(
-    lua: &Lua,
-    ctx: &EguiContext,
-    lua_win: &mut LuaWindow,
-    events: &Vec<WinEvent>,
-) -> anyhow::Result<()> {
+pub fn run_frame_fn(lua: &Lua, lua_win: &LuaEngine, events: &Vec<WinEvent>) -> anyhow::Result<()> {
     let elapsed = time_peer_frame();
     map2anyhow_error!(
         lua.scope(|scope| {
-            let window = scope.create_userdata(lua_win)?;
-            let ui_context = lua.create_userdata(ctx.clone())?;
+            let window = scope.create_userdata(lua_win.clone())?;
             let input_event = InputEvent { events };
             let input_event = scope.create_userdata(input_event)?;
             let lua_view_fn: Function = lua.globals().get("run_frame")?;
-            lua_view_fn.call::<()>((window, ui_context, input_event, elapsed))?;
+            lua_view_fn.call::<()>((window, input_event, elapsed))?;
             Ok(())
         }),
         "run_frame_fn failed"

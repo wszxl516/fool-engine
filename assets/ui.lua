@@ -1,9 +1,10 @@
-local utils   = require("engine.utils")
-local LOG     = require("engine.log")
-local rgba8   = require("engine.color.rgba8")
-local size    = require("engine.vector2.size")
-local logger  = LOG.new("ui", true, true)
-local ui_data = {
+local utils      = require("engine.utils")
+local LOG        = require("engine.log")
+local rgba8      = require("engine.color.rgba8")
+local logger     = LOG.new("ui", true, true)
+local lua_thread = require('lua_thread')
+
+local ui_data    = {
     combo_box = { selected = "aa", id = "combo_box", items = { "bb", "aa", "cc" } },
     radio = { { selected = false, text = "aaa" }, { selected = true, text = "bbb" } },
     text_edit = {
@@ -28,7 +29,7 @@ local ui_data = {
     },
     progress_bar = {
         progress = 0.0,
-        name = "progress",
+        name = "lua_thread",
         show_percentage = true,
         color = { r = 200, g = 0, b = 200, a = 200 },
         animate = true
@@ -39,19 +40,18 @@ local ui_data = {
     gear_texture = nil,
     font = nil
 }
-local UI      = {}
-UI.__index    = UI
+local UI         = {}
+UI.__index       = UI
 function UI:new()
     local self = setmetatable({}, UI)
     self.data = utils:deepcopy(ui_data)
     return self
 end
 
----@param ui_context EguiContext
----@param window Window
+---@param engine Engine
 ---@diagnostic disable-next-line: lowercase-global
-function UI:view(ui_context, window)
-    window:gui_window({
+function UI:view(engine)
+    engine:draw_window({
         title = "test windows",
         collapsible = false,
         constrain = false,
@@ -76,7 +76,7 @@ function UI:view(ui_context, window)
         },
         bg_img = "image/linux.png",
         bg_img_color = rgba8.new(100, 100, 100, 50)
-    }, ui_context, function(ui)
+    }, function(ui)
         gui_run(self.data, ui)
     end)
 end
@@ -84,7 +84,6 @@ end
 ---@diagnostic disable-next-line: lowercase-global
 function UI:init()
 end
-local core_mod = require('core_mod')
 
 ---@diagnostic disable-next-line: lowercase-global
 function gui_run(data, ui)
@@ -99,24 +98,24 @@ function gui_run(data, ui)
                 -- uv = {min = {x= 0.1, y = 0.1}, max = {x= 0.9, y = 0.9}},
                 img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
                 sense = "CLICK",
-                corner_radius = {sw = 32,se = 32, nw = 32, ne = 32},
+                corner_radius = { sw = 32, se = 32, nw = 32, ne = 32 },
                 frame = false,
             })
         if btn:clicked() then
             logger:info("image_button clicked")
         end
         image_ui:image(
-        {
-            img = "image/linux.png",
-            tint = rgba8.new(50, 50, 50, 50),
-            img_bg_fill = rgba8.new(10, 10, 10, 50),
-            scale = 0.5,
-            uv = {min = {x= 0.1, y = 0.1}, max = {x= 0.9, y = 0.9}},
-            img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
-            sense = "CLICK",
-            corner_radius = {sw = 32,se = 32, nw = 32, ne = 32},
-            frame = false,
-        })
+            {
+                img = "image/linux.png",
+                tint = rgba8.new(50, 50, 50, 50),
+                img_bg_fill = rgba8.new(10, 10, 10, 50),
+                scale = 0.5,
+                uv = { min = { x = 0.1, y = 0.1 }, max = { x = 0.9, y = 0.9 } },
+                img_rotate = { angle = 3.14, origin = { x = 0.5, y = 0.5 } },
+                sense = "CLICK",
+                corner_radius = { sw = 32, se = 32, nw = 32, ne = 32 },
+                frame = false,
+            })
     end)
 
     ui:grid("111", { w = 10, h = 10 }, 0, function(grid_ui)
@@ -159,7 +158,7 @@ function gui_run(data, ui)
                 vertical_ui:progress_bar(data.slider.current)
             end)
             center_ui:end_row()
-            data.progress_bar.progress = core_mod.state.counter / 100.0
+            data.progress_bar.progress = lua_thread.state.counter / 100.0
             center_ui:with_layout(true, function(vertical_ui)
                 vertical_ui:progress_bar(data.progress_bar)
             end)

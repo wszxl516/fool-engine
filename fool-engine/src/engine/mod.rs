@@ -2,8 +2,8 @@ use crate::config::BaseConfig;
 use crate::map2anyhow_error;
 pub use crate::resource::ResourceManager;
 use crate::scheduler::FrameScheduler;
-use crate::script::graphics::window::LuaWindow;
-use crate::script::{run_init_fn, setup_modules, EguiContext};
+use crate::script::LuaEngine;
+use crate::script::{run_init_fn, setup_modules};
 use fool_graphics::GraphRender;
 use fool_script::{thread::AsyncScheduler, FoolScript};
 use fool_window::EventProxy;
@@ -22,18 +22,17 @@ pub struct Engine {
     proxy: Option<EventProxy>,
     scheduler: FrameScheduler,
     script_scheduler: AsyncScheduler,
-    lua_window: Option<LuaWindow>,
-    lua_gui: Option<EguiContext>,
+    lua_engine: Option<LuaEngine>,
     events_current_frame: Vec<WinEvent>,
     frame_capture: VecDeque<PathBuf>,
-    base_path: BaseConfig,
+    base_config: BaseConfig,
 }
 
 impl Engine {
-    pub fn new(fps: u32, base_path: BaseConfig) -> anyhow::Result<Self> {
-        let base_path = base_path.build()?;
-        log::debug!("engine base config: {:?}", base_path);
-        let resource = ResourceManager::new(base_path.assets_path.clone())?;
+    pub fn new(base_config: BaseConfig) -> anyhow::Result<Self> {
+        let base_config = base_config.build()?;
+        log::debug!("engine base config: {:?}", base_config);
+        let resource = ResourceManager::new(base_config.assets_path.clone())?;
         let mut script = FoolScript::new(resource.raw_resource.clone())?;
         script.setup()?;
         setup_modules(&script)?;
@@ -44,13 +43,12 @@ impl Engine {
             window: None,
             proxy: None,
             render: None,
-            scheduler: FrameScheduler::new(fps),
+            scheduler: FrameScheduler::new(base_config.fps),
             script_scheduler: AsyncScheduler::new(&script, 1),
-            lua_window: None,
-            lua_gui: None,
+            lua_engine: None,
             events_current_frame: Vec::new(),
             frame_capture: Default::default(),
-            base_path: base_path,
+            base_config,
         })
     }
 
@@ -61,22 +59,15 @@ impl Engine {
             .setup_egui_texture_fallback(render.gui_context());
         egui_extras::install_image_loaders(render.gui_context());
         let size = window.inner_size();
-        let mut lua_window = LuaWindow {
-            window: window.clone(),
-            resource: self.resource.clone(),
-            proxy: proxy.clone(),
-            on_exit: None,
-        };
-        let mut lua_gui = EguiContext {
-            context: render.gui_context().clone(),
-            width: size.width as _,
-            heigth: size.height as _,
-            resource: self.resource.clone(),
-        };
+        let lua_engine = LuaEngine::new(
+            window,
+            render.gui_context().clone(),
+            proxy.clone(),
+            self.resource.clone(),
+        );
         self.proxy.replace(proxy.clone());
-        run_init_fn(&self.script, &mut lua_gui, &mut lua_window)?;
-        self.lua_gui.replace(lua_gui);
-        self.lua_window.replace(lua_window);
+        run_init_fn(&self.script, &lua_engine)?;
+        self.lua_engine.replace(lua_engine);
         self.render.replace(render);
         self.resource
             .scene_graph
@@ -92,9 +83,9 @@ impl Engine {
         }
     }
     fn lua_exit_callback(&self) -> bool {
-        self.lua_window
+        self.lua_engine
             .as_ref()
-            .and_then(|w| w.on_exit.as_ref())
+            .and_then(|w| w.window.on_exit.read().clone())
             .and_then(|f| f.call::<bool>(()).ok())
             .unwrap_or(false)
     }

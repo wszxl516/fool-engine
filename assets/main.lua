@@ -1,19 +1,20 @@
-local size     = require("engine.vector2.size")
-local rgba8    = require("engine.color.rgba8")
+local size       = require("engine.vector2.size")
+local rgba8      = require("engine.color.rgba8")
 
-local LOG      = require("engine.log")
-local logger   = LOG.new("main", true, true)
-local UI       = require("ui")
-local ui       = UI:new()
-local graphics = require("graphics")
-local core_mod = require('core_mod')
-local Physics = require("Physics")
-register_module(core_mod)
+local LOG        = require("engine.log")
+local logger     = LOG.new("main", true, true)
+local UI         = require("ui")
+local ui         = UI:new()
+local shape      = require("shape")
+local lua_thread = require('lua_thread')
+local Physics    = require("Physics")
+register_module(lua_thread)
 
----@param window Window
----@param ui_context EguiContext
+---@param engine Engine
 ---@diagnostic disable-next-line: lowercase-global
-function init(window, ui_context)
+function init(engine)
+    local ui_context = engine.ui_ctx
+    local window = engine.window
     window:set_title("window")
     window:set_resizable(false)
     window:set_max_inner_size(size.new(800, 800))
@@ -23,6 +24,7 @@ function init(window, ui_context)
     window:set_cursor_grab("None")
     window:set_cursor_visible(false)
     window:set_window_icon("image/linux.png")
+    window:set_fps(30)
     ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
     ui_context:set_style({
         text = {
@@ -47,16 +49,16 @@ function init(window, ui_context)
         logger:debug("exit from lua")
         return true
     end)
-    graphics:init(window, ui_context)
+    shape:init(window)
     Physics.new(9.8, 1)
 end
 
----@param window Window
----@param ui_context EguiContext
+---@param engine Engine
 ---@param event Event
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
-function run_frame(window, ui_context, event, dt)
+function run_frame(engine, event, dt)
+    local window = engine.window
     if event:key_pressed("Insert") then
         logger:debug("Insert pressed")
         window:capture()
@@ -69,8 +71,8 @@ function run_frame(window, ui_context, event, dt)
         logger:debug("Escape pressed exit")
         window:exit()
     end
-    graphics:view(window, ui_context)
-    ui:view(ui_context, window)
+    ui:view(engine)
+    shape:view(engine)
     -- window:set_ime_allowed(true)
     -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
 end

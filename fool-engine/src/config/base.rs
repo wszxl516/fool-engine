@@ -8,6 +8,7 @@ pub struct BaseConfig {
     pub capture_path: PathBuf,
     pub save_path: PathBuf,
     pub assets_path: PathBuf,
+    pub fps: u32,
 }
 impl BaseConfig {
     pub fn build(&self) -> anyhow::Result<Self> {
@@ -36,6 +37,7 @@ impl BaseConfig {
                 capture_path: pic_dir,
                 save_path: save_dir,
                 assets_path: assets_dir,
+                fps: self.fps,
             })
         } else {
             Err(anyhow::anyhow!("failed to get base path for Fool Engine!"))

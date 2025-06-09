@@ -1,59 +1,59 @@
 
 
 ---@class LuaResponse
-local LuaResponse = {}
+local UiResponse = {}
 ---@return boolean
-function LuaResponse:clicked()
+function UiResponse:clicked()
     return true
 end
 
 ---@return boolean
-function LuaResponse:changed()
+function UiResponse:changed()
     return true
 end
 
 ---@return boolean
-function LuaResponse:double_clicked()
+function UiResponse:double_clicked()
     return true
 end
 
 ---@return boolean
-function LuaResponse:middle_clicked()
+function UiResponse:middle_clicked()
     return true
 end
 
 ---@return boolean
-function LuaResponse:secondary_clicked()
+function UiResponse:secondary_clicked()
     return true
 end
 
 ---@return boolean
-function LuaResponse:hovered()
+function UiResponse:hovered()
     return true
 end
 
 ---@return boolean
-function LuaResponse:dragged()
+function UiResponse:dragged()
     return true
 end
 
 ---@return boolean
-function LuaResponse:has_focus()
+function UiResponse:has_focus()
     return true
 end
 
 ---@return boolean
-function LuaResponse:lost_focus()
+function UiResponse:lost_focus()
     return true
 end
 
 ---@return boolean
-function LuaResponse:gained_focus()
+function UiResponse:gained_focus()
     return true
 end
 
 ---@return boolean
-function LuaResponse:clicked_elsewhere()
+function UiResponse:clicked_elsewhere()
     return true
 end
 
@@ -249,10 +249,8 @@ function UIContext:image_button(config) end
 ---@param config ImageButtonConfig
 function UIContext:image(config) end
 
----@class EguiContext
-EguiContext = {}
 ---@param name string
-function EguiContext:set_font(name)
+function UIContext:set_font(name)
 end
 
 ---@class TextStyle
@@ -273,6 +271,6 @@ end
 ---@field open_fg_color? Color8
 ---@param style LuaGuiStyle
 ---@diagnostic disable-next-line: lowercase-global
-function EguiContext:set_style(style)
+function UIContext:set_style(style)
 
 end

@@ -1,5 +1,5 @@
 
-local core_mod = require('core_mod')
+local core_mod = require('assets.lua_thread')
 local init_mod = require('init_mod')
 local abc = require("a.b");
 register_module(core_mod)

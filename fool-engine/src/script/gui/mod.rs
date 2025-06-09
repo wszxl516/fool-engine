@@ -1,5 +1,5 @@
 pub use super::graphics::types::LuaColor;
-use mlua::{Function, Lua, UserData, Value};
+use mlua::{Function, Lua, UserData};
 pub mod binding;
 pub mod types;
 pub mod utils;
@@ -67,19 +67,9 @@ impl UserData for EguiContext {
 pub fn create_window(
     lua: &Lua,
     config: LuaUIConfig,
-    context: Value,
+    context: EguiContext,
     func: Function,
 ) -> mlua::Result<()> {
-    let context = match context {
-        mlua::Value::UserData(ud) => ud.borrow::<EguiContext>()?,
-        _ => {
-            return Err(mlua::Error::FromLuaConversionError {
-                from: context.type_name(),
-                to: "EguiContext".into(),
-                message: Some("Expected EguiContext as UserData".into()),
-            });
-        }
-    };
     let x_c = context.width / 2.0 + config.x - config.w / 2.0;
     let y_c = context.heigth / 2.0 - config.y - config.h / 2.0;
     let pos = pos2(x_c, y_c);

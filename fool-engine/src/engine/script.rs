@@ -7,11 +7,9 @@ impl Engine {
     pub fn run_frame(&mut self) {
         let resource = self.resource.clone();
         let events = &self.events_current_frame;
-        if let (Some(render), Some(lua_window), Some(lua_gui)) =
-            (&mut self.render, &mut self.lua_window, &mut self.lua_gui)
-        {
+        if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
             render.begin_frame();
-            if let Err(err) = run_frame_fn(&self.script, lua_gui, lua_window, events) {
+            if let Err(err) = run_frame_fn(&self.script, lua_engine, events) {
                 log::error!("run lua run_frame failed: {}", err);
                 self.stop();
                 return;

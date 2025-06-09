@@ -7,6 +7,7 @@ save_path = "saves"
 # $exe_path/$assets_path
 # $exe_path/$assets_path/assets.pak
 assets_path = "assets"
+fps = 60
 
 [window]
 defailt_size = { width = 800.0, height = 600.0 }

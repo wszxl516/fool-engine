@@ -16,7 +16,7 @@ pub fn init_engine() -> anyhow::Result<()> {
         .with_any_thread(true)
         .build()?;
     let window_attr = config.window.build(&event_loop)?;
-    let engine = engine::Engine::new(30, config.base)?;
+    let engine = engine::Engine::new(config.base)?;
     let mut window = FoolWindow::new(window_attr, engine, event_loop)?;
     window.run()?;
     Ok(())

@@ -19,7 +19,12 @@ impl FrameScheduler {
             running: true,
         }
     }
-
+    pub fn set_fps(&mut self, fps: u32) {
+        let frame_interval = Duration::from_secs_f64(1.0 / fps as f64);
+        let now = Instant::now();
+        self.frame_interval = frame_interval;
+        self.next_frame_time = now + frame_interval;
+    }
     pub fn advance(&mut self) {
         self.next_frame_time += self.frame_interval;
     }
