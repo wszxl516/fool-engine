@@ -115,9 +115,9 @@ end
 ---@field content string
 ---@field pos nil| Point
 ---@class State
----@field state string "enabled" | "disabled" | "preedit" | "commit"
----@field preedit Preedit
----@field commit string
+---@field state string "enabled" | "disabled" | nil
+---@field preedit Preedit | nil
+---@field commit string | nil
 ---@return State
 function Event:ime_state()
     return {}

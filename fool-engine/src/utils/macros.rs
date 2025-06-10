@@ -62,3 +62,14 @@ macro_rules! apply_if_some {
         }
     };
 }
+
+#[macro_export]
+macro_rules! lua_create_table {
+    ($lua: ident, [$($field_name: tt = $field_value: expr), + $(,)?]) => {
+        {
+        let temp = $lua.create_table()?;
+        $(temp.set(stringify!($field_name), $field_value)?;)*
+        temp
+        }
+    };
+}

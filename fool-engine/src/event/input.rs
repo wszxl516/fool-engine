@@ -1,4 +1,5 @@
-use crate::script::types::LuaPoint;
+use crate::lua_create_table;
+use fool_window::WinEvent;
 use mlua::{
     LuaSerdeExt, UserData, UserDataMethods,
     Value::{self},
@@ -7,8 +8,6 @@ use winit::{
     event::{Ime, MouseButton},
     keyboard::{Key, KeyCode},
 };
-
-use fool_window::WinEvent;
 #[allow(dead_code)]
 pub struct InputEvent<'a> {
     pub events: &'a Vec<WinEvent>,
@@ -52,8 +51,8 @@ impl<'a> InputEvent<'a> {
     }
 
     pub fn cursor_diff(&self) -> (f32, f32) {
-        let mut x = -1f32;
-        let mut y = -1f32;
+        let mut x = 0f32;
+        let mut y = 0f32;
         for event in self.events {
             let pos = event.cursor_diff();
             x += pos.0;
@@ -106,17 +105,47 @@ impl<'a> InputEvent<'a> {
         }
         all_keys
     }
-    pub fn ime(&self) -> Option<Ime> {
-        self.events
+    pub fn ime(
+        &self,
+    ) -> (
+        String,
+        Option<(String, Option<(usize, usize)>)>,
+        Option<bool>,
+    ) {
+        let commit = self
+            .events
             .iter()
-            .rev()
-            .find_map(|e| match e.ime() {
-                Some(Ime::Commit(_)) => Some(e.clone()),
-                Some(Ime::Preedit(_, _)) => Some(e.clone()),
-                Some(Ime::Enabled) | Some(Ime::Disabled) => Some(e.clone()),
-                None => None,
+            .filter_map(|e| match e.ime() {
+                Some(Ime::Commit(c)) => Some(c),
+                _ => None,
             })
-            .and_then(|e| e.ime())
+            .collect::<Vec<String>>()
+            .join("");
+        let preedit = self
+            .events
+            .iter()
+            .filter_map(|e| match e.ime() {
+                Some(Ime::Preedit(c, p)) => {
+                    if c.is_empty() && p.is_none() {
+                        None
+                    } else {
+                        Some((c, p))
+                    }
+                }
+                _ => None,
+            })
+            .last()
+            .clone();
+        let enable = self
+            .events
+            .iter()
+            .filter_map(|e| match e.ime() {
+                Some(Ime::Enabled) => Some(true),
+                Some(Ime::Disabled) => Some(false),
+                _ => None,
+            })
+            .last();
+        (commit, preedit, enable)
     }
 }
 
@@ -135,17 +164,13 @@ impl<'a> UserData for InputEvent<'a> {
             Ok(this.key_held(key))
         });
         methods.add_method("cursor_pos", |lua, this, ()| {
-            let table = lua.create_table()?;
             let diff = this.cursor();
-            table.set("x", diff.0)?;
-            table.set("y", diff.1)?;
+            let table = lua_create_table!(lua, [x = diff.0, y = diff.1]);
             Ok(Value::Table(table))
         });
         methods.add_method("cursor_diff", |lua, this, ()| {
             let diff = this.cursor_diff();
-            let table = lua.create_table()?;
-            table.set("x", diff.0)?;
-            table.set("y", diff.1)?;
+            let table = lua_create_table!(lua, [x = diff.0, y = diff.1]);
             Ok(Value::Table(table))
         });
 
@@ -169,9 +194,7 @@ impl<'a> UserData for InputEvent<'a> {
         });
         methods.add_method("scroll_diff", |lua, this, ()| {
             let diff = this.scroll_diff();
-            let table = lua.create_table()?;
-            table.set("x", diff.0)?;
-            table.set("y", diff.1)?;
+            let table = lua_create_table!(lua, [x = diff.0, y = diff.1]);
             Ok(Value::Table(table))
         });
 
@@ -183,33 +206,33 @@ impl<'a> UserData for InputEvent<'a> {
         methods.add_method("focused", |_lua, this, ()| Ok(this.focused()));
         methods.add_method("ime_state", |lua, this, ()| {
             let table = lua.create_table()?;
-            if let Some(ime) = this.ime() {
-                match &ime {
-                    Ime::Enabled => {
-                        table.set("state", "enabled")?;
+            let (commit, preedit, enable) = this.ime();
+            {
+                if !commit.is_empty() {
+                    table.set("commit", commit)?;
+                }
+                if let Some((preedit, pos)) = preedit {
+                    let preedit_table = lua.create_table()?;
+                    preedit_table.set("content", preedit)?;
+                    match pos {
+                        Some(p) => {
+                            let pos = lua_create_table!(lua, [x = p.0, y = p.1]);
+                            preedit_table.set("pos", pos)?
+                        }
+                        None => preedit_table.set("pos", Value::Nil)?,
                     }
-                    Ime::Disabled => {
+                    table.set("preedit", preedit_table)?;
+                }
+
+                if let Some(enable) = enable {
+                    if enable {
+                        table.set("state", "enabled")?;
+                    } else {
                         table.set("state", "disabled")?;
                     }
-                    Ime::Preedit(s, pos) => {
-                        table.set("state", "preedit")?;
-                        let preedit = lua.create_table()?;
-                        preedit.set("content", s.clone())?;
-                        match pos {
-                            Some(p) => preedit.set("pos", LuaPoint { x: p.0, y: p.1 })?,
-                            None => preedit.set("pos", Value::Nil)?,
-                        }
-                        table.set("preedit", preedit)?;
-                    }
-                    Ime::Commit(s) => {
-                        table.set("state", "commit")?;
-                        table.set("commit", s.clone())?;
-                    }
                 }
-                Ok(Value::Table(table))
-            } else {
-                Ok(Value::Nil)
             }
+            Ok(Value::Table(table))
         });
     }
 }

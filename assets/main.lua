@@ -1,3 +1,4 @@
+local point       = require("engine.vector2.point")
 local size       = require("engine.vector2.size")
 local rgba8      = require("engine.color.rgba8")
 
@@ -64,8 +65,16 @@ function run_frame(engine, event, dt)
         window:capture()
     end
     local ime = event:ime_state()
-    if ime then
-        logger:debug("raw_key %s", ime)
+    if ime.state == "enabled" then
+        logger:debug("ime enabled")
+    elseif ime.state == "disabled" then
+        logger:debug("ime disabled")
+    end
+    if ime.commit ~= nil then
+        logger:debug("ime commit: %s", ime.commit)
+    end
+    if ime.preedit ~= nil then
+        logger:debug("ime commit: %s", ime.preedit)
     end
     if event:key_pressed("Escape") then
         logger:debug("Escape pressed exit")
@@ -73,6 +82,6 @@ function run_frame(engine, event, dt)
     end
     ui:view(engine)
     shape:view(engine)
-    -- window:set_ime_allowed(true)
-    -- window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
+    window:set_ime_allowed(true)
+    window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
 end
