@@ -1,20 +1,6 @@
-use clap::Parser;
 use fool_script::FoolScript;
 use fool_script::user_mod_constructor;
 use mlua::UserData;
-#[derive(Parser, Debug, Clone)]
-#[command(author, version, about, long_about = None)]
-pub struct Args {
-    /// off, error, warn, info, debug, trace,
-    #[arg(short, long, default_value = None)]
-    log_level: Option<String>,
-    /// script
-    #[arg(short, long, default_value = "./main.lua")]
-    script: String,
-    /// The log is output to the console
-    #[arg(short, long, default_value_t = false)]
-    verbose: bool,
-}
 struct Test;
 impl UserData for Test {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
@@ -43,13 +29,9 @@ impl Fallback for FileFallBack {
     }
 }
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
-    let level = if args.verbose {
-        log::LevelFilter::Trace
-    } else {
-        log::LevelFilter::Warn
-    };
-    env_logger::Builder::new().filter_level(level).init();
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Trace)
+        .init();
     let fbk = FileFallBack {
         asset_path: "/data/works/game_engine/fool-script".into(),
     };
@@ -73,10 +55,11 @@ fn main() -> anyhow::Result<()> {
     script.setup()?;
     script.register_user_mod("a.b.c", user_mod_constructor!(Test))?;
     script.load_main()?;
-    let task = fool_script::thread::AsyncScheduler::new(&script, 2);
-    for _ in 0..10 {
-        task.run()?;
+    let mut task = fool_script::thread::AsyncScheduler::new(script.modules.clone());
+    task.init()?;
+    for _ in 0..3 {
+        task.tick(&script)?;
+        println!("lua main fn return: {}", script.run_fun::<f64>("main", ())?);
     }
-    println!("lua main fn return: {}", script.run_fun::<f64>("main", ())?);
     Ok(())
 }

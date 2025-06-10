@@ -49,10 +49,7 @@ impl UserData for LuaRigidBody {
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("pos", |_lua, this| {
             let pos = this.0.translation();
-            Ok(LuaPoint {
-                x: pos.x,
-                y: -pos.y,
-            })
+            Ok(LuaPoint { x: pos.x, y: pos.y })
         });
         fields.add_field_method_get("angle", |_lua, this| {
             let angle = this.0.rotation().angle();
@@ -111,6 +108,7 @@ pub struct BodyData {
     pub additional_mass: f32,
     #[serde(default = "default_mass")]
     pub mass: f32,
+    #[serde(default)]
     pub can_sleep: bool,
     #[serde(default)]
     pub sleeping: bool,
@@ -181,7 +179,7 @@ const fn default_restitution() -> f32 {
     0.5
 }
 const fn default_gravity_scale() -> f32 {
-    1.0
+    10.0
 }
 const fn default_mass() -> f32 {
     10.0

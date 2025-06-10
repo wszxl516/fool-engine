@@ -1,7 +1,7 @@
 local size  = require("engine.vector2.size")
 local rgba8 = require("engine.color.rgba8")
 local point = require("engine.vector2.point")
-
+local lua_thread = require('lua_thread')
 local shape = {
     style = {
         translation = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
@@ -45,8 +45,8 @@ function shape:view(engine)
         style = self.style,
         drawable = {
             Ellipse = {
-                center = point.new(100, 100),
-                radii = { x = 50, y = 20 },
+                center = point.new(lua_thread.shared_state.position.x, lua_thread.shared_state.position.y),
+                radii = { x = 20, y = 20 },
                 rotation = 0
             }
         },
@@ -55,8 +55,8 @@ function shape:view(engine)
                 -- style = self.style,
                 drawable = {
                     RoundedRect = {
-                        p0 = point.new(0, 0),
-                        size = size.new(100, 100),
+                        p0 = point.new(0, 400),
+                        size = size.new(800, 10),
                         radii = { top_left = 5, bottom_left = 5, bottom_right = 5, top_right = 5 },
                     }
                 }

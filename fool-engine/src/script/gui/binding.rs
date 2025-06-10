@@ -298,15 +298,17 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                 let lua_cloned = lua.clone();
                 let resource = this.resource.clone();
                 let response = this.ui.collapsing(label, move |ui| {
-                    lua_cloned
-                        .scope(|scope| {
-                            let ctx = LuaUiContext { ui, resource };
-                            let ctx = scope.create_userdata(ctx)?;
-                            func.call::<()>(ctx)?;
-                            Ok(())
-                        })
-                        .unwrap();
+                    let res = lua_cloned.scope(|scope| {
+                        let ctx = LuaUiContext { ui, resource };
+                        let ctx = scope.create_userdata(ctx)?;
+                        func.call::<()>(ctx)?;
+                        Ok(())
+                    });
+                    res
                 });
+                if let Some(e) = response.body_returned {
+                    e?;
+                };
                 lua.create_userdata(LuaResponse {
                     response: response.header_response,
                 })
@@ -333,15 +335,14 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             let lua_cloned = lua.clone();
             let resource = this.resource.clone();
             let response = this.ui.vertical(move |ui| {
-                lua_cloned
-                    .scope(|scope| {
-                        let ctx = LuaUiContext { ui, resource };
-                        let ctx = scope.create_userdata(ctx)?;
-                        func.call::<()>(ctx)?;
-                        Ok(())
-                    })
-                    .unwrap();
+                lua_cloned.scope(|scope| {
+                    let ctx = LuaUiContext { ui, resource };
+                    let ctx = scope.create_userdata(ctx)?;
+                    func.call::<()>(ctx)?;
+                    Ok(())
+                })
             });
+            response.inner?;
             lua.create_userdata(LuaResponse {
                 response: response.response,
             })
@@ -370,10 +371,16 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                         for item in &items {
                             let response = ui.selectable_label(selected == *item, item);
                             if response.clicked() {
-                                table.set("selected", item.clone()).unwrap();
+                                if let Err(err) = table.set("selected", item.clone()) {
+                                    return Err(err);
+                                }
                             }
                         }
+                        Ok(())
                     });
+            if let Some(e) = response.inner {
+                e?
+            }
             lua.create_userdata(LuaResponse {
                 response: response.response,
             })
@@ -389,15 +396,14 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                     .spacing([spacing.width, spacing.height])
                     .start_row(start_row)
                     .show(this.ui, move |ui| {
-                        lua_cloned
-                            .scope(|scope| {
-                                let ctx = LuaUiContext { ui, resource };
-                                let ctx = scope.create_userdata(ctx)?;
-                                func.call::<()>(ctx)?;
-                                Ok(())
-                            })
-                            .unwrap();
+                        lua_cloned.scope(|scope| {
+                            let ctx = LuaUiContext { ui, resource };
+                            let ctx = scope.create_userdata(ctx)?;
+                            func.call::<()>(ctx)?;
+                            Ok(())
+                        })
                     });
+                response.inner?;
                 lua.create_userdata(LuaResponse {
                     response: response.response,
                 })
@@ -499,8 +505,8 @@ impl<'lua> UserData for LuaUiContext<'lua> {
                         func.call::<()>(ctx)?;
                         Ok(())
                     })
-                    .unwrap();
                 });
+                response.inner?;
                 lua.create_userdata(LuaResponse {
                     response: response.response,
                 })

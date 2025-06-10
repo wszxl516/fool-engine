@@ -8,7 +8,7 @@ local ui         = UI:new()
 local shape      = require("shape")
 local lua_thread = require('lua_thread')
 local Physics    = require("Physics")
-register_module(lua_thread)
+register_threaded_module(lua_thread)
 
 ---@param engine Engine
 ---@diagnostic disable-next-line: lowercase-global
@@ -24,7 +24,7 @@ function init(engine)
     window:set_cursor_grab("None")
     window:set_cursor_visible(false)
     window:set_window_icon("image/linux.png")
-    window:set_fps(30)
+    window:set_fps(60)
     ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
     ui_context:set_style({
         text = {

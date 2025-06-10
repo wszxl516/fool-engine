@@ -83,7 +83,7 @@ impl Physics {
         active_events: ActiveEvents,
         active_hooks: ActiveHooks,
     ) -> RigidBodyHandle {
-        let p = Vector2::new(position.x, -position.y);
+        let p = Vector2::new(position.x, position.y);
         let body = RigidBodyBuilder::new(body_type)
             .translation(p)
             .additional_mass(additional_mass)

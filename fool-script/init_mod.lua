@@ -2,17 +2,17 @@
 return {
     name = "init_mod",
     kind = "Core",
-    state = {
+    shared_state = {
         value = 0,
     },
     deps = { "core_mod" },
-    init = function(state)
-        print("init_mod init: value = " .. state.value)
+    local_state = { value = 0},
+    init = function(local_state)
+        print("init_mod init: value = " .. local_state.value)
     end,
     update = function(ctx)
-        local self = ctx.self
-        self.value = self.value + ctx.core_mod.counter
-        -- ctx.core_mod.map.x =11
+        local shared_state = ctx.shared_state
+        shared_state.value = shared_state.value + ctx.core_mod.counter
         print("init_mod access core_mod.counter = " .. ctx.core_mod.counter)
     end
 }

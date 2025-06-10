@@ -1,13 +1,14 @@
 use crossbeam_channel::{Receiver, Sender, bounded};
-pub struct FullChannel<T> {
-    sender: Sender<T>,
-    receiver: Receiver<T>,
+#[derive(Debug)]
+pub struct FullChannel<C, R> {
+    sender: Sender<C>,
+    receiver: Receiver<R>,
 }
 
-impl<T> FullChannel<T> {
-    pub fn new(max_capacity: usize) -> (FullChannel<T>, FullChannel<T>) {
-        let (sender1, receiver1) = bounded::<T>(max_capacity);
-        let (sender, receiver) = bounded::<T>(max_capacity);
+impl<C, R> FullChannel<C, R> {
+    pub fn new(max_capacity: usize) -> (FullChannel<C, R>, FullChannel<R, C>) {
+        let (sender1, receiver1) = bounded::<C>(max_capacity);
+        let (sender, receiver) = bounded::<R>(max_capacity);
         (
             FullChannel {
                 receiver,
@@ -19,10 +20,10 @@ impl<T> FullChannel<T> {
             },
         )
     }
-    pub fn receiver(&mut self) -> &mut Receiver<T> {
+    pub fn receiver(&mut self) -> &mut Receiver<R> {
         &mut self.receiver
     }
-    pub fn send(&self) -> Sender<T> {
-        self.sender.clone()
+    pub fn sender(&self) -> &Sender<C> {
+        &self.sender
     }
 }

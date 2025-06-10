@@ -76,7 +76,7 @@ pub fn create_window(
     let size = vec2(config.w, config.h);
     let resource = context.resource.clone();
     let texture = config.bg_img;
-    egui::containers::Window::new(config.title)
+    let res = egui::containers::Window::new(config.title)
         .collapsible(config.collapsible)
         .constrain(config.constrain)
         .default_open(config.default_open)
@@ -116,10 +116,11 @@ pub fn create_window(
             };
             lua.scope(|scope| {
                 let ui_ctx = scope.create_userdata(LuaUiContext { ui, resource })?;
-                func.call::<()>(ui_ctx)?;
-                Ok(())
+                func.call::<()>(ui_ctx)
             })
-            .unwrap_or_else(|e| log::error!("create_window CallBack run failed : {}", e));
         });
+    if let Some(e) = res.and_then(|s| s.inner) {
+        e?
+    }
     Ok(())
 }

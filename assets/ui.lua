@@ -158,7 +158,7 @@ function gui_run(data, ui)
                 vertical_ui:progress_bar(data.slider.current)
             end)
             center_ui:end_row()
-            data.progress_bar.progress = lua_thread.state.counter / 100.0
+            data.progress_bar.progress = lua_thread.shared_state.counter / 100.0
             center_ui:with_layout(true, function(vertical_ui)
                 vertical_ui:progress_bar(data.progress_bar)
             end)

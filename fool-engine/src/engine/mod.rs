@@ -44,7 +44,7 @@ impl Engine {
             proxy: None,
             render: None,
             scheduler: FrameScheduler::new(base_config.fps),
-            script_scheduler: AsyncScheduler::new(&script, 1),
+            script_scheduler: AsyncScheduler::new(script.modules.clone()),
             lua_engine: None,
             events_current_frame: Vec::new(),
             frame_capture: Default::default(),
@@ -69,6 +69,7 @@ impl Engine {
         run_init_fn(&self.script, &lua_engine)?;
         self.lua_engine.replace(lua_engine);
         self.render.replace(render);
+        self.script_scheduler.init()?;
         self.resource
             .scene_graph
             .write()

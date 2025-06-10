@@ -67,11 +67,13 @@ end
 ---@field name string
 ---@field kind "Init" | "Core"
 ---@field deps string[]
----@field state table
----self.state
----@field init fun(state)
+---@field shared_state table
+---@field local_state table
+---@field init fun(local_state)
 ---deps.state
 ---@field update fun(table)
 ---@param module DSLModule
+---run a module on a new thread.
+---
 ---@diagnostic disable-next-line: lowercase-global
-function register_module(module) end
+function register_threaded_module(module) end

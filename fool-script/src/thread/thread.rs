@@ -1,58 +1,79 @@
-pub use super::task::LuaTask;
+pub use super::task::{LuaTask, ThreadResponse};
 use crate::FoolScript;
 use crate::modules::{DSLID, Modules};
+use crate::thread::fullchannel::FullChannel;
 use bson::Bson;
-use rayon::{ThreadPool, ThreadPoolBuilder, prelude::*};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::JoinHandle;
 pub type StateMap = Arc<HashMap<DSLID, Bson>>;
-pub type ExecutionResults = HashMap<DSLID, anyhow::Result<Bson>>;
-#[derive(Debug, Clone)]
+
+#[derive(Debug)]
+pub enum ThreadControl {
+    Start(StateMap),
+    Stop,
+}
+#[derive(Debug)]
 pub struct AsyncScheduler {
-    pool: Arc<ThreadPool>,
-    script: FoolScript,
-    running: Arc<AtomicBool>,
+    modules: Modules,
+    task_map: HashMap<DSLID, (JoinHandle<()>, FullChannel<ThreadControl, ThreadResponse>)>,
 }
 
 impl AsyncScheduler {
-    pub fn new(script: &FoolScript, thread_num: usize) -> Self {
-        let pool = ThreadPoolBuilder::new()
-            .num_threads(thread_num)
-            .thread_name(|n| format!("LuaThread: {}", n))
-            .build()
-            .expect("Failed to build custom thread pool");
+    pub fn new(modules: Modules) -> Self {
         Self {
-            script: script.clone(),
-            pool: Arc::new(pool),
-            running: Arc::new(AtomicBool::new(false)),
+            modules: modules,
+            task_map: Default::default(),
         }
     }
-    pub(crate) fn tasks(
-        tasks: &Vec<LuaTask>,
-        pool: Arc<ThreadPool>,
-        modules: &Modules,
-        state_map: &StateMap,
-    ) -> ExecutionResults {
-        pool.install(|| {
-            tasks
-                .par_iter()
-                .map(|task| {
-                    let script_copy = match FoolScript::setup_from_modules(&modules) {
-                        Ok(s) => s,
-                        Err(e) => {
-                            return (task.id.clone(), Err(e));
+    pub(crate) fn runner(
+        task: LuaTask,
+        modules: Modules,
+        slaver: FullChannel<ThreadResponse, ThreadControl>,
+    ) {
+        let mut slaver = slaver;
+        match FoolScript::setup_from_modules(&modules) {
+            Ok(script) => {
+                let _ = slaver.sender().send(task.run_init(&script));
+                loop {
+                    if let Ok(control) = slaver.receiver().recv() {
+                        match control {
+                            ThreadControl::Start(state_map) => {
+                                let res = task.run_update(&script, &state_map);
+                                let _ = slaver.sender().send(res);
+                            }
+                            ThreadControl::Stop => break,
                         }
-                    };
-                    task.run(&script_copy, state_map)
-                })
-                .collect::<ExecutionResults>()
-        })
+                    }
+                }
+            }
+            Err(err) => {
+                log::error!("setup FoolScript env for {}, failed: {}", task.id, err);
+            }
+        }
+    }
+    pub(crate) fn start_thread(&mut self, task: LuaTask, modules: Modules) -> anyhow::Result<()> {
+        let (master, slave) = FullChannel::<ThreadControl, ThreadResponse>::new(1);
+        let task_cloneed = task.clone();
+        let res = std::thread::Builder::new()
+            .name(format!("Fool-Script"))
+            .spawn(move || {
+                Self::runner(task_cloneed, modules, slave);
+            });
+        match res {
+            Ok(h) => {
+                self.task_map.insert(task.id, (h, master));
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("error start {} on thread : {}", task.id, err);
+                Err(anyhow::anyhow!("{}", err))
+            }
+        }
     }
     pub(crate) fn state_map(&self) -> StateMap {
         Arc::new(
-            self.script
-                .modules
+            self.modules
                 .dsl_mod
                 .modules
                 .read()
@@ -61,32 +82,75 @@ impl AsyncScheduler {
                 .collect(),
         )
     }
-    pub fn run(&self) -> anyhow::Result<()> {
-        let now = std::time::Instant::now();
-        let modules = self.script.modules.clone();
-        let dsl_modules = self.script.modules.dsl_mod.clone();
-        let pool = self.pool.clone();
-        let state_map = self.state_map();
+    pub fn init(&mut self) -> anyhow::Result<()> {
+        let modules = self.modules.clone();
+        let dsl_modules = self.modules.dsl_mod.clone();
         let tasks = LuaTask::collect_from(&dsl_modules);
-        self.running.store(true, Ordering::SeqCst);
-        let result_map = Self::tasks(&tasks, pool, &modules, &state_map);
-        let mut modules_lock = dsl_modules.modules.write();
-        for (id, new_state) in result_map {
-            if let Some(m) = modules_lock.get_mut(&id) {
-                match new_state {
-                    Ok(state) => match m.set_state(&self.script, state) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            return Err(err);
-                        }
-                    },
-                    Err(err) => {
-                        return Err(err);
-                    }
+        for t in tasks {
+            self.start_thread(t.clone(), modules.clone())?;
+            if let Some((_j, c)) = self.task_map.get_mut(&t.id) {
+                let res = c.receiver().recv()?;
+                if res.is_error() {
+                    self.stop_all();
+                    return res.content.map(|_| ());
                 }
             }
         }
-        log::debug!("all thread finished elapsed: {:?}", now.elapsed());
         Ok(())
+    }
+    pub fn stop_all(&mut self) {
+        for (id, (j, control)) in self.task_map.drain() {
+            let _ = control.sender().send(ThreadControl::Stop);
+            let _ = j.join();
+            log::trace!("stop dsl module {}", id)
+        }
+    }
+    fn start_update(&mut self) {
+        let state_map = self.state_map();
+        for (id, (_j, control)) in &mut self.task_map {
+            log::trace!("start {} update fn", id);
+            let _ = control
+                .sender()
+                .send(ThreadControl::Start(state_map.clone()));
+        }
+    }
+    fn fetch_result(&mut self, lua: &FoolScript) -> anyhow::Result<()> {
+        let mut is_error = Ok(());
+        let mut result_map = Vec::new();
+        for (id, (_j, control)) in &mut self.task_map {
+            let res = control.receiver().recv()?;
+            match res.content {
+                Ok(d) => {
+                    log::trace!("dsl module {} update result {:?}", id, d);
+                    result_map.push((res.id, d))
+                }
+                Err(err) => {
+                    log::trace!("dsl module {} update failed {:?}", id, err);
+                    is_error = Err(err);
+                    break;
+                }
+            }
+        }
+        if is_error.is_err() {
+            self.stop_all();
+            return is_error;
+        }
+        let mut modules_lock = self.modules.dsl_mod.modules.write();
+        for res in result_map {
+            if let Some(m) = modules_lock.get_mut(&res.0) {
+                match res.1 {
+                    Some(state) => match m.set_state(&lua, state) {
+                        Ok(_) => {}
+                        Err(err) => return Err(err),
+                    },
+                    None => {}
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn tick(&mut self, lua: &FoolScript) -> anyhow::Result<()> {
+        self.start_update();
+        self.fetch_result(lua)
     }
 }

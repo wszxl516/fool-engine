@@ -36,26 +36,15 @@ pub struct DSLContent {
 }
 impl DSLContent {
     pub fn state(&self) -> anyhow::Result<Table> {
-        map2anyhow_error!(self.module.get("state"), "failed get state from module!")
-    }
-    pub fn run_init(&self) -> anyhow::Result<()> {
         map2anyhow_error!(
-            self.init.call::<()>(self.state()?),
-            "run dsl func init failed:"
-        )?;
-        Ok(())
+            self.module.get("shared_state"),
+            "failed get shared_state from module!"
+        )
     }
     pub fn name(&self) -> String {
         self.module
             .get("__modname")
             .unwrap_or("<anonymous>".to_owned())
-    }
-    pub fn run_update(&self) -> anyhow::Result<()> {
-        map2anyhow_error!(
-            self.update.call::<()>(self.state()?),
-            "run dsl func update failed:"
-        )?;
-        Ok(())
     }
     pub fn get_state(&self) -> anyhow::Result<Bson> {
         let bson = map2anyhow_error!(
@@ -69,7 +58,10 @@ impl DSLContent {
             ser::bson_to_lua_value(lua, data),
             "Deserializa of lua value failed"
         )?;
-        map2anyhow_error!(self.module.set("state", state), "set state failed!")?;
+        map2anyhow_error!(
+            self.module.set("shared_state", state),
+            "set shared_state failed!"
+        )?;
         Ok(())
     }
 }
@@ -91,33 +83,22 @@ impl DSLModule {
         let register_module_fn = map2anyhow_error!(
             lua.create_function(move |_lua, table: Table| {
                 let (mod_id, mod_content) = Self::dsl_from_table(&table)?;
-                match mod_content.run_init() {
-                    Ok(_) => {
-                        log::trace!("finished init module {}", mod_id);
-                        modules.write().insert(mod_id, mod_content);
-                    }
-                    Err(err) => {
-                        log::error!("init module {} failed: {}", mod_id, err);
-                        return Err(mlua::Error::RuntimeError(format!(
-                            "failed run update fn from {}, {}",
-                            mod_id, err
-                        )));
-                    }
-                }
+                modules.write().insert(mod_id, mod_content);
                 Ok(())
             }),
             "register module failed:"
         )?;
         map2anyhow_error!(
-            lua.globals().set("register_module", register_module_fn),
-            "set register_module failed:"
+            lua.globals()
+                .set("register_threaded_module", register_module_fn),
+            "set register_threaded_module failed:"
         )?;
         Ok(())
     }
     fn dsl_from_table(table: &Table) -> LuaResult<(DSLID, DSLContent)> {
         let mod_name: String = map2lua_error!(table.get("name"), "Incorrect type of name")?;
         let mod_kind: ModKind = map2lua_error!(table.get("kind"), "Incorrect type of kind")?;
-        let _: Table = map2lua_error!(table.get("state"), "Incorrect type of state")?;
+        let _: Table = map2lua_error!(table.get("shared_state"), "Incorrect type of shared_state")?;
         let init_func: Function =
             map2lua_error!(table.get("init"), "Incorrect type of init function")?;
         let update_func: Function =

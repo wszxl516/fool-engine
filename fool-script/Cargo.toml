@@ -18,13 +18,11 @@ mlua = { workspace = true }
 lazy_static = {workspace = true}
 chrono = {workspace = true}
 parking_lot = {workspace = true}
-clap = { workspace = true }
 log = {workspace = true}
 bson = { version = "2.15.0"}
 serde_json ={ version = "1.0.140"}
 env_logger ={ version = "0.11.8"}
 fool-resource = { path = "../fool-resource"}
-rayon = "1.10.0"
 crossbeam-channel = {workspace = true}
 ufmt ={ version = "0.2.0"}
 [features]

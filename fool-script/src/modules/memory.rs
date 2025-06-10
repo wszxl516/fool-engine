@@ -55,7 +55,7 @@ impl MemoryModule {
                     let loader = lua.create_function(move |lua, _: ()| {
                         let value = lua
                             .load(script.as_ref())
-                            .set_name(&modname_cloned)
+                            .set_name(format!("<@MemModule>/{}.lua", modname_cloned))
                             .eval::<Value>()?;
                         let value = crate::utils::set_module_name(value, &modname_cloned, lua)?;
                         Ok(value)

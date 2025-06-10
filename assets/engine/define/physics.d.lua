@@ -23,7 +23,7 @@ local Physics = {}
 ---@field gravity_scale? number
 ---@field additional_mass? number
 ---@field mass? number
----@field can_sleep? boolean
+---@field can_sleep boolean
 ---@field sleeping? boolean
 ---@field restitution? number
 ---@field friction? number

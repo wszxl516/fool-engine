@@ -5,12 +5,12 @@ mod utils;
 use std::ops::Deref;
 
 use fool_resource::{Resource, SharedData};
-use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table};
+use mlua::{AsChunk, FromLuaMulti, Function, IntoLuaMulti, Lua, LuaOptions, StdLib, Table, Value};
 use modules::{DSLModule, MemoryModule, Modules, UserMod, UserModConstructor, stdlib};
 #[derive(Debug, Clone)]
 pub struct FoolScript {
     lua: Lua,
-    modules: Modules,
+    pub modules: Modules,
 }
 impl Deref for FoolScript {
     type Target = Lua;
@@ -103,19 +103,30 @@ impl FoolScript {
     }
     pub fn run_module_fun<R: FromLuaMulti>(
         &self,
-        mod_name: &String,
-        func_name: &String,
+        mod_name: &str,
+        func_name: &str,
         args: impl IntoLuaMulti,
     ) -> anyhow::Result<R> {
         let globals = self.lua.globals();
         let require: mlua::Function =
             map2anyhow_error!(globals.get("require"), "get require failed:")?;
         let module: mlua::Table = map2anyhow_error!(
-            require.call(mod_name.as_str()),
+            require.call(mod_name),
             format!("require module {} failed:", mod_name)
         )?;
-        let func: mlua::Function = module.get(func_name.as_str())?;
+        let func: mlua::Function = module.get(func_name)?;
         Ok(func.call::<R>(args)?)
+    }
+    pub fn get_module_var(&self, mod_name: &str, var_name: &str) -> anyhow::Result<Value> {
+        let globals = self.lua.globals();
+        let require: mlua::Function =
+            map2anyhow_error!(globals.get("require"), "get require failed:")?;
+        let module: mlua::Table = map2anyhow_error!(
+            require.call(mod_name),
+            format!("require module {} failed:", mod_name)
+        )?;
+        let var: Value = module.get(var_name)?;
+        Ok(var)
     }
 }
 impl FoolScript {

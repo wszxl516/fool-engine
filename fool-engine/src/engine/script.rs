@@ -9,11 +9,7 @@ impl Engine {
         let events = &self.events_current_frame;
         if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
             render.begin_frame();
-            if let Err(err) = run_frame_fn(&self.script, lua_engine, events) {
-                log::error!("run lua run_frame failed: {}", err);
-                self.stop();
-                return;
-            }
+            let result = run_frame_fn(&self.script, lua_engine, events);
             let graph = resource.scene_graph.read();
             let mut scene = Scene::new();
             graph.draw(&mut scene);
@@ -21,6 +17,12 @@ impl Engine {
             if let Err(err) = render.end_frame(self.frame_capture.pop_front()) {
                 log::error!("end_frame failed: {}", err);
                 self.stop();
+            }
+            // must after current frame end
+            if let Err(err) = result {
+                log::error!("run lua run_frame failed: {}", err);
+                self.stop();
+                return;
             }
         }
     }
@@ -33,13 +35,13 @@ impl Engine {
             return;
         }
         self.run_frame();
-        if let Err(err) = self.script_scheduler.run() {
+        if let Err(err) = self.script_scheduler.tick(&self.script) {
             log::error!("run lua script_scheduler failed: {}", err);
             self.stop();
             return;
         }
         self.events_current_frame.clear();
-        log::debug!(
+        log::trace!(
             "Frame: {}, elapsed: {:?}",
             self.scheduler.frame_id,
             self.scheduler.frame_id.elapsed()
