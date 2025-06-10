@@ -10,8 +10,8 @@ assets_path = "assets"
 fps = 60
 
 [window]
-defailt_size = { width = 800.0, height = 600.0 }
-min_size = { width = 640.0, height = 360.0 }
+defailt_size = { width = 800.0, height = 800.0 }
+min_size = { width = 800.0, height = 800.0 }
 max_size = { width = 1920.0, height = 1080.0 }
 # position = { x = 100.0, y = 100.0 }
 resizable = true

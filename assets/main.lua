@@ -16,9 +16,9 @@ function init(engine)
     local ui_context = engine.ui_ctx
     local window = engine.window
     window:set_title("window")
-    window:set_resizable(false)
-    window:set_max_inner_size(size.new(800, 800))
-    window:set_min_inner_size(size.new(800, 800))
+    window:set_resizable(true)
+    window:set_max_size(size.new(1920, 1080))
+    window:set_min_size(size.new(800, 800))
     window:set_fullscreen(false)
     window:set_cursor("image/cursor.png")
     window:set_cursor_grab("None")

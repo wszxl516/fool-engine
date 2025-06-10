@@ -38,10 +38,10 @@ end
 
 
 ---@param size Size
-function Window:set_max_inner_size(size)
+function Window:set_max_size(size)
 end
 ---@param size Size
-function Window:set_min_inner_size(size)
+function Window:set_min_size(size)
 end
 ---@param maximized boolean
 function Window:set_maximized(maximized)

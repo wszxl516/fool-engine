@@ -173,12 +173,12 @@ impl UserData for LuaWindow {
             this.window.set_fullscreen(c);
             Ok(())
         });
-        methods.add_method("set_max_inner_size", |_lua, this, size: LuaSize<f64>| {
+        methods.add_method("set_max_size", |_lua, this, size: LuaSize<f64>| {
             this.window
                 .set_max_inner_size(Some(PhysicalSize::new(size.width, size.height)));
             Ok(())
         });
-        methods.add_method("set_min_inner_size", |_lua, this, size: LuaSize<f64>| {
+        methods.add_method("set_min_size", |_lua, this, size: LuaSize<f64>| {
             this.window
                 .set_min_inner_size(Some(PhysicalSize::new(size.width, size.height)));
             Ok(())
