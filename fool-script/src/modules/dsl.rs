@@ -8,16 +8,6 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub enum ModKind {
-    Core,
-    Init,
-}
-impl FromLua for ModKind {
-    fn from_lua(value: mlua::Value, lua: &Lua) -> LuaResult<Self> {
-        lua.from_value(value)
-    }
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct DSLID {
     pub name: String,
 }
@@ -28,7 +18,8 @@ impl Display for DSLID {
 }
 #[derive(Debug, Clone)]
 pub struct DSLContent {
-    pub kind: ModKind,
+    /// How many frames to execute once
+    pub frames_interval: u64,
     pub init: Function,
     pub update: Function,
     pub module: Table,
@@ -97,7 +88,10 @@ impl DSLModule {
     }
     fn dsl_from_table(table: &Table) -> LuaResult<(DSLID, DSLContent)> {
         let mod_name: String = map2lua_error!(table.get("name"), "Incorrect type of name")?;
-        let mod_kind: ModKind = map2lua_error!(table.get("kind"), "Incorrect type of kind")?;
+        let frames_interval: u64 = map2lua_error!(
+            table.get("frames_interval"),
+            "Incorrect type of frames_interval"
+        )?;
         let _: Table = map2lua_error!(table.get("shared_state"), "Incorrect type of shared_state")?;
         let init_func: Function =
             map2lua_error!(table.get("init"), "Incorrect type of init function")?;
@@ -114,7 +108,7 @@ impl DSLModule {
         Ok((
             DSLID { name: mod_name },
             DSLContent {
-                kind: mod_kind,
+                frames_interval,
                 init: init_func,
                 update: update_func,
                 module: table.clone(),

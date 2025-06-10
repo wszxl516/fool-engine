@@ -1,7 +1,7 @@
 -- core_mod.lua
 return {
     name = "core_mod",
-    kind = "Core",
+    frames_interval = 10,
     shared_state = {
         counter = 0,
         map = { x =0, y =0}

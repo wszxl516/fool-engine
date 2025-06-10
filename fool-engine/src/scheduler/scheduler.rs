@@ -51,7 +51,7 @@ impl FrameScheduler {
         let now = std::time::Instant::now();
         while self.next_frame_time <= now {
             self.next_frame_time += self.frame_interval;
-            self.frame_id += 1;
+            self.frame_id.advance();
             redraw = true;
         }
 

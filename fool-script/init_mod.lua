@@ -1,7 +1,7 @@
 -- init_mod.lua
 return {
     name = "init_mod",
-    kind = "Core",
+    frames_interval = 10,
     shared_state = {
         value = 0,
     },

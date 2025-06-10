@@ -10,7 +10,8 @@ pub type StateMap = Arc<HashMap<DSLID, Bson>>;
 
 #[derive(Debug)]
 pub enum ThreadControl {
-    Start(StateMap),
+    /// (current fame state from main thread, frame_id)
+    Start(StateMap, u64),
     Stop,
 }
 #[derive(Debug)]
@@ -38,8 +39,15 @@ impl AsyncScheduler {
                 loop {
                     if let Ok(control) = slaver.receiver().recv() {
                         match control {
-                            ThreadControl::Start(state_map) => {
-                                let res = task.run_update(&script, &state_map);
+                            ThreadControl::Start(state_map, frame_id) => {
+                                let res = if frame_id % task.frames_interval == 0 {
+                                    task.run_update(&script, &state_map)
+                                } else {
+                                    ThreadResponse {
+                                        id: task.id.clone(),
+                                        content: Ok(None),
+                                    }
+                                };
                                 let _ = slaver.sender().send(res);
                             }
                             ThreadControl::Stop => break,
@@ -105,27 +113,37 @@ impl AsyncScheduler {
             log::trace!("stop dsl module {}", id)
         }
     }
-    fn start_update(&mut self) {
+    fn start_update(&mut self, frame_id: u64) {
         let state_map = self.state_map();
         for (id, (_j, control)) in &mut self.task_map {
-            log::trace!("start {} update fn", id);
+            log::trace!("start {} update function at frame {}", id, frame_id);
             let _ = control
                 .sender()
-                .send(ThreadControl::Start(state_map.clone()));
+                .send(ThreadControl::Start(state_map.clone(), frame_id));
         }
     }
-    fn fetch_result(&mut self, lua: &FoolScript) -> anyhow::Result<()> {
+    fn fetch_result(&mut self, lua: &FoolScript, frame_id: u64) -> anyhow::Result<()> {
         let mut is_error = Ok(());
         let mut result_map = Vec::new();
         for (id, (_j, control)) in &mut self.task_map {
             let res = control.receiver().recv()?;
             match res.content {
                 Ok(d) => {
-                    log::trace!("dsl module {} update result {:?}", id, d);
+                    log::trace!(
+                        "dsl module {} update result {:?}, at frame {}",
+                        id,
+                        d,
+                        frame_id
+                    );
                     result_map.push((res.id, d))
                 }
                 Err(err) => {
-                    log::trace!("dsl module {} update failed {:?}", id, err);
+                    log::trace!(
+                        "dsl module {} update failed {:?}, at frame {}",
+                        id,
+                        err,
+                        frame_id
+                    );
                     is_error = Err(err);
                     break;
                 }
@@ -149,8 +167,11 @@ impl AsyncScheduler {
         }
         Ok(())
     }
-    pub fn tick(&mut self, lua: &FoolScript) -> anyhow::Result<()> {
-        self.start_update();
-        self.fetch_result(lua)
+    pub fn tick(&mut self, lua: &FoolScript, frame_id: u64) -> anyhow::Result<()> {
+        let now = std::time::Instant::now();
+        self.start_update(frame_id);
+        self.fetch_result(lua, frame_id)?;
+        log::trace!("lua elapsed: {:?} ", now.elapsed());
+        Ok(())
     }
 }

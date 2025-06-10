@@ -5,7 +5,7 @@ mod memory;
 pub mod ser;
 pub mod stdlib;
 mod userdata;
-pub use dsl::{DSLContent, DSLID, DSLModule, ModKind};
+pub use dsl::{DSLContent, DSLID, DSLModule};
 use fool_resource::{Resource, SharedData};
 pub use memory::MemoryModule;
 pub use userdata::{UserMod, UserModConstructor};

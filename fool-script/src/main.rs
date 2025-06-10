@@ -57,8 +57,8 @@ fn main() -> anyhow::Result<()> {
     script.load_main()?;
     let mut task = fool_script::thread::AsyncScheduler::new(script.modules.clone());
     task.init()?;
-    for _ in 0..3 {
-        task.tick(&script)?;
+    for n in 0..100 {
+        task.tick(&script, n)?;
         println!("lua main fn return: {}", script.run_fun::<f64>("main", ())?);
     }
     Ok(())

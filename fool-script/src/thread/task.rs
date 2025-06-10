@@ -23,6 +23,7 @@ pub struct LuaTask {
     pub module: String,
     pub state: Bson,
     pub deps: Vec<DSLID>,
+    pub frames_interval: u64,
 }
 
 impl LuaTask {
@@ -33,6 +34,7 @@ impl LuaTask {
             module: content.name(),
             state: content.get_state()?,
             deps,
+            frames_interval: content.frames_interval,
         })
     }
 

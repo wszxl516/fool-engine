@@ -1,7 +1,7 @@
 -- lua_thread.lua
 return {
     name = "lua_thread",
-    kind = "Core",
+    frames_interval = 2,
     shared_state = {
         counter = 0.0,
         position = { x = 200, y = -400 }

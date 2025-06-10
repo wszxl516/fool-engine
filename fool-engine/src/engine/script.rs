@@ -35,7 +35,10 @@ impl Engine {
             return;
         }
         self.run_frame();
-        if let Err(err) = self.script_scheduler.tick(&self.script) {
+        if let Err(err) = self
+            .script_scheduler
+            .tick(&self.script, self.scheduler.frame_id.into())
+        {
             log::error!("run lua script_scheduler failed: {}", err);
             self.stop();
             return;
@@ -46,6 +49,5 @@ impl Engine {
             self.scheduler.frame_id,
             self.scheduler.frame_id.elapsed()
         );
-        self.scheduler.frame_id.reset_timer();
     }
 }

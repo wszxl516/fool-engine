@@ -24,9 +24,7 @@ impl FrameID {
     }
     pub fn advance(&mut self) {
         self.instant = Instant::now();
-    }
-    pub fn reset_timer(&mut self) {
-        self.instant = Instant::now();
+        self.id += 1;
     }
 }
 impl From<u64> for FrameID {
@@ -46,6 +44,6 @@ impl From<FrameID> for u64 {
 
 impl std::ops::AddAssign<u64> for FrameID {
     fn add_assign(&mut self, rhs: u64) {
-        self.id += rhs
+        self.id = self.id.wrapping_add(rhs);
     }
 }
