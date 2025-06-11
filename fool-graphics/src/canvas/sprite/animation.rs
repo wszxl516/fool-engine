@@ -1,21 +1,19 @@
 use super::Frame;
 use super::Scheduler;
 use crate::canvas::SceneNode;
-use crate::canvas::Style;
 use std::sync::Arc;
 #[derive(Debug, Clone, Default)]
 pub struct Animation {
     frames: Arc<Vec<Frame>>,
     on_pause: Option<Frame>,
     running: bool,
-    style: Style,
     pub scheduler: Scheduler,
     count: usize,
     current: usize,
 }
 
 impl Animation {
-    pub fn new(frames: Vec<Frame>, fps: u32, style: Style) -> Self {
+    pub fn new(frames: Vec<Frame>, fps: u32) -> Self {
         Self {
             count: frames.len(),
             current: 0,
@@ -23,7 +21,6 @@ impl Animation {
             scheduler: Scheduler::new(fps),
             on_pause: None,
             running: true,
-            style,
         }
     }
     pub const fn count(&self) -> usize {
@@ -43,15 +40,12 @@ impl Animation {
             }
         }
     }
-    pub fn to_node(&self) -> SceneNode {
+    pub fn to_node(&self, x: f64, y: f64) -> SceneNode {
         if !self.running && self.on_pause.is_some() {
-            self.on_pause.clone().unwrap().to_node(&self.style)
+            self.on_pause.as_ref().map(|i| i.to_node(x, y)).unwrap()
         } else {
             let frame = &self.frames[self.current];
-            frame.to_node(&self.style)
+            frame.to_node(x, y)
         }
-    }
-    pub fn set_style(&mut self, style: &Style) {
-        self.style = style.clone()
     }
 }

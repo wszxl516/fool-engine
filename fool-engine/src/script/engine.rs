@@ -7,11 +7,13 @@ use crate::engine::ResourceManager;
 use crate::map2lua_error;
 use chrono::{Local, Utc};
 use egui::Context;
+use fool_graphics::canvas::SceneGraph;
 use fool_window::{AppEvent, CustomEvent, EventProxy, WindowCursor};
 use mlua::{Function, UserData, UserDataMethods};
 use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::{str::FromStr, sync::Arc};
+
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size},
     window::{CursorGrabMode, CursorIcon, Fullscreen, Window},
@@ -20,6 +22,7 @@ use winit::{
 pub struct LuaEngine {
     pub window: LuaWindow,
     pub ui_ctx: EguiContext,
+    pub scene_graph: Arc<RwLock<SceneGraph>>,
 }
 
 impl LuaEngine {
@@ -28,6 +31,7 @@ impl LuaEngine {
         context: Context,
         proxy: EventProxy,
         resource: ResourceManager,
+        scene_graph: Arc<RwLock<SceneGraph>>,
     ) -> Self {
         let size = window.inner_size();
         let ui_ctx = EguiContext {
@@ -42,7 +46,11 @@ impl LuaEngine {
             proxy: proxy,
             on_exit: Arc::new(RwLock::new(None)),
         };
-        Self { window, ui_ctx }
+        Self {
+            window,
+            ui_ctx,
+            scene_graph,
+        }
     }
     pub fn resize(&mut self, w: u32, h: u32) {
         self.ui_ctx.resize(w, h);
@@ -62,7 +70,7 @@ impl UserData for LuaEngine {
         );
         methods.add_method("draw_shape", |_lua, this, scene: LuaScene| {
             let node = scene.0;
-            this.window.resource.scene_graph.write().set_root(node);
+            this.scene_graph.write().set_root(node);
             Ok(())
         });
     }

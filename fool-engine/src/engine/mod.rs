@@ -4,10 +4,12 @@ pub use crate::resource::ResourceManager;
 use crate::scheduler::FrameScheduler;
 use crate::script::LuaEngine;
 use crate::script::{run_init_fn, setup_modules};
+use fool_graphics::canvas::SceneGraph;
 use fool_graphics::GraphRender;
 use fool_script::{thread::AsyncScheduler, FoolScript};
 use fool_window::EventProxy;
 use fool_window::WinEvent;
+use parking_lot::RwLock;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,6 +25,7 @@ pub struct Engine {
     scheduler: FrameScheduler,
     script_scheduler: AsyncScheduler,
     lua_engine: Option<LuaEngine>,
+    scene_graph: Arc<RwLock<SceneGraph>>,
     events_current_frame: Vec<WinEvent>,
     frame_capture: VecDeque<PathBuf>,
     base_config: BaseConfig,
@@ -36,6 +39,11 @@ impl Engine {
         let mut script = FoolScript::new(resource.raw_resource.clone())?;
         script.setup()?;
         setup_modules(&script)?;
+        let scene_graph = Arc::new(RwLock::new(SceneGraph {
+            font_mgr: resource.graphics_font.clone(),
+            img_mgr: resource.graphics_img.clone(),
+            ..Default::default()
+        }));
         map2anyhow_error!(script.load_main(), "load main.lua failed: ")?;
         Ok(Engine {
             resource,
@@ -49,6 +57,7 @@ impl Engine {
             events_current_frame: Vec::new(),
             frame_capture: Default::default(),
             base_config,
+            scene_graph,
         })
     }
 
@@ -64,14 +73,14 @@ impl Engine {
             render.gui_context().clone(),
             proxy.clone(),
             self.resource.clone(),
+            self.scene_graph.clone(),
         );
         self.proxy.replace(proxy.clone());
         run_init_fn(&self.script, &lua_engine)?;
         self.lua_engine.replace(lua_engine);
         self.render.replace(render);
         self.script_scheduler.init()?;
-        self.resource
-            .scene_graph
+        self.scene_graph
             .write()
             .center_with_screen_size(size.width as f64, size.height as f64);
         Ok(())

@@ -103,6 +103,7 @@
 ---@field rotation number
 
 ---@class Image
+---@field position Point
 ---@field image string
 
 ---@class PointLight

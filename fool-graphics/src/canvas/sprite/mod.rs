@@ -8,7 +8,6 @@ use std::{
 mod animation;
 mod frame;
 mod scheduler;
-use crate::canvas::Style;
 pub use animation::Animation;
 pub use frame::Frame;
 pub use scheduler::Scheduler;
@@ -17,7 +16,6 @@ impl<T: Hash + Clone + Eq + PartialEq + Display + Debug + Send + Sync> FrameId f
 pub struct Sprite<Id: FrameId> {
     frames: HashMap<Id, Frame>,
     animation: HashMap<String, Animation>,
-    style: Style,
 }
 
 impl<Id: FrameId> Sprite<Id> {
@@ -26,7 +24,6 @@ impl<Id: FrameId> Sprite<Id> {
         tile_width: u32,
         tile_height: u32,
         frames_ids: impl Iterator<Item = Id>,
-        style: Style,
     ) -> Self {
         let (img_width, img_height) = image.dimensions();
         let tiles_x = img_width / tile_width;
@@ -47,7 +44,6 @@ impl<Id: FrameId> Sprite<Id> {
         Self {
             frames,
             animation: Default::default(),
-            style,
         }
     }
     pub fn create_animation(
@@ -64,7 +60,7 @@ impl<Id: FrameId> Sprite<Id> {
                 return Err(anyhow::anyhow!("Id {} of Frame not found!", n));
             }
         }
-        let animation = Animation::new(frames, fps, self.style.clone());
+        let animation = Animation::new(frames, fps);
         self.animation.insert(name.into(), animation);
         Ok(())
     }

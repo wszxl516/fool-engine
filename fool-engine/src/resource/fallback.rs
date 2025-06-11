@@ -1,8 +1,10 @@
 use super::utils::texture_from_image;
 use egui::epaint::TextureHandle;
 use egui::Context;
+use fool_graphics::canvas::{Blob, Image, ImageFormat};
 use fool_resource::{Fallback, Resource, SharedData};
 use image::DynamicImage;
+use image::GenericImageView;
 use std::fmt::Debug;
 use std::io::Read;
 use std::sync::Arc;
@@ -107,5 +109,35 @@ impl Fallback for RawImageFallBack {
         let img = self.raw_data.get(key)?;
         let img = img.to_image()?;
         Ok(Arc::new(img))
+    }
+}
+
+#[derive(Clone)]
+pub struct VelloImageFallBack {
+    pub raw_image: Resource<String, Arc<DynamicImage>>,
+}
+impl Debug for VelloImageFallBack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EguiTextureFallBack")
+    }
+}
+impl Fallback for VelloImageFallBack {
+    type K = String;
+    type V = Arc<Image>;
+    fn get(&self, key: &Self::K) -> anyhow::Result<Self::V> {
+        let img = self.raw_image.get(key)?;
+        let rgba = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let image = Image {
+            width,
+            height,
+            data: Blob::from(rgba.into_vec()),
+            format: ImageFormat::Rgba8,
+            x_extend: Default::default(),
+            y_extend: Default::default(),
+            quality: Default::default(),
+            alpha: 1.0,
+        };
+        Ok(Arc::new(image))
     }
 }

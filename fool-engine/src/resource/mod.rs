@@ -1,12 +1,11 @@
 use egui::{Context, FontData, FontDefinitions};
-use fool_graphics::canvas::SceneGraph;
 use image::DynamicImage;
 use std::{path::PathBuf, sync::Arc};
 mod fallback;
 pub mod types;
 pub mod utils;
 use egui::epaint::TextureHandle;
-pub use fool_graphics::canvas::{FontManager, VelloFontFallback};
+pub use fool_graphics::canvas::{FontManager, ImageManager, VelloFontFallback};
 pub use fool_resource::{Resource, SharedData};
 use parking_lot::RwLock;
 pub use utils::{create_cursor, texture_from_image};
@@ -24,7 +23,7 @@ pub struct ResourceManager {
     pub window_cursor: Resource<String, Arc<CustomCursor>>,
     pub window_icon: Resource<String, Arc<Icon>>,
     pub graphics_font: FontManager,
-    pub scene_graph: Arc<RwLock<SceneGraph>>,
+    pub graphics_img: ImageManager,
 }
 
 impl ResourceManager {
@@ -67,6 +66,11 @@ impl ResourceManager {
         window_icon.set_fall_back(fallback::WindowIconFallBack {
             raw_image: raw_image.clone(),
         });
+        let graphics_img_fall_back = fallback::VelloImageFallBack {
+            raw_image: raw_image.clone(),
+        };
+        let graphics_img = ImageManager::empty();
+        graphics_img.set_fall_back(graphics_img_fall_back);
         Ok(Self {
             raw_image: raw_image,
             raw_resource,
@@ -76,10 +80,7 @@ impl ResourceManager {
             window_icon,
             egui_texture,
             graphics_font: graphics_font.clone(),
-            scene_graph: Arc::new(RwLock::new(SceneGraph {
-                font_mgr: graphics_font,
-                ..Default::default()
-            })),
+            graphics_img,
         })
     }
     pub fn setup_egui_texture_fallback(&mut self, egui_ctx: &Context) {

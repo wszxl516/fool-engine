@@ -1,6 +1,8 @@
 use fool_graphics::canvas::{Animation, SceneGraph, SceneNode, Sprite, Style};
-use fool_graphics::{GraphRender, Scheduler, graph_vec2};
+use fool_graphics::{GraphRender, Scheduler, graph_pt2, graph_vec2};
+use fool_resource::Resource;
 use kurbo::Affine;
+use peniko::Image;
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
@@ -38,12 +40,17 @@ pub struct Engine {
     sprite: Sprite<usize>,
     animation: Animation,
     scheduler: Scheduler,
+    img: Resource<String, Arc<Image>>,
+    x: f64,
+    y: f64,
 }
 impl Engine {
     pub fn new(fps: u32, window_attr: WindowAttributes) -> anyhow::Result<Self> {
-        let img = image::open("./fool-graphics/player.png").expect("Failed to open image");
-        let mut sprite = Sprite::from_image(Arc::new(img), 80, 110, 0usize..24, Default::default());
-        sprite.create_animation("run", 0..=8, 5)?;
+        let img = Resource::default();
+
+        let sprite_img = image::open("./fool-graphics/player.png").expect("Failed to open image");
+        let mut sprite = Sprite::from_image(Arc::new(sprite_img), 64, 64, 0usize..32);
+        sprite.create_animation("run", 24..32, 5)?;
         let animation = sprite.get_animation("run").unwrap();
         Ok(Engine {
             window: None,
@@ -52,6 +59,9 @@ impl Engine {
             sprite,
             animation,
             scheduler: Scheduler::new(fps),
+            img,
+            x: 0.0,
+            y: 64.0,
         })
     }
 
@@ -73,21 +83,32 @@ impl Engine {
             let mut root = SceneNode::empty();
             println!("current: {}", self.animation.current());
             self.animation.next();
-            let node = self.animation.to_node();
+            let node = self.animation.to_node(self.x, self.y);
             root.add_child(&node);
             root.set_style(
                 &Style::default()
                     .with_opacity(0.8)
                     .with_translation(Affine::translate(graph_vec2!(100.0, 100.0))),
             );
+            root.add_child(&SceneNode::circle(
+                graph_pt2!(300.0, 300.0),
+                50.0,
+                0.0,
+                &Default::default(),
+            ));
             let sgraph = SceneGraph {
                 root: root,
                 style: Default::default(),
                 font_mgr: Default::default(),
+                img_mgr: self.img.clone(),
             };
-            sgraph.draw(&mut scene);
+            sgraph.draw(&mut scene).unwrap();
             render.draw_scene(&scene);
-            render.end_frame(Some("a.png")).unwrap();
+            render.end_frame(None::<&str>).unwrap();
+            self.x += 1.0;
+            if self.x > 800.0 {
+                self.x = 0.0
+            }
         }
     }
     fn window_event(&mut self, event: &winit::event::WindowEvent, _event_loop: &ActiveEventLoop) {

@@ -5,25 +5,23 @@ use fool_window::WinEvent;
 use winit::event::WindowEvent;
 impl Engine {
     pub fn run_frame(&mut self) {
-        let resource = self.resource.clone();
+        let scene_graph = self.scene_graph.clone();
         let events = &self.events_current_frame;
         if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
             render.begin_frame();
-            let result = run_frame_fn(&self.script, lua_engine, events);
-            let graph = resource.scene_graph.read();
+            let frame_result = run_frame_fn(&self.script, lua_engine, events);
+            let graph = scene_graph.read();
             let mut scene = Scene::new();
-            graph.draw(&mut scene);
+            let graph_result = graph.draw(&mut scene);
             render.draw_scene(&scene);
-            if let Err(err) = render.end_frame(self.frame_capture.pop_front()) {
-                log::error!("end_frame failed: {}", err);
-                self.stop();
-            }
+            crate::try_or_return!(
+                render.end_frame(self.frame_capture.pop_front()),
+                "end_frame",
+                self.stop()
+            );
             // must after current frame end
-            if let Err(err) = result {
-                log::error!("run lua run_frame failed: {}", err);
-                self.stop();
-                return;
-            }
+            crate::try_or_return!(frame_result, "run lua run_frame", self.stop());
+            crate::try_or_return!(graph_result, "run lua graph.draw", self.stop());
         }
     }
     pub fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {
@@ -50,4 +48,14 @@ impl Engine {
             self.scheduler.frame_id.elapsed()
         );
     }
+}
+#[macro_export]
+macro_rules! try_or_return {
+    ($result:expr, $ctx:expr, $run: expr) => {
+        if let Err(err) = $result {
+            log::error!("{} failed: {}", $ctx, err);
+            $run;
+            return;
+        }
+    };
 }

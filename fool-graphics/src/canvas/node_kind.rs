@@ -1,10 +1,12 @@
+use crate::canvas::style::{CustomBrush, CustomGradient, SimpleColor};
+
 use super::utils::add_circle_to_path;
-use super::{Drawable, Style, TextDrawable};
+use super::{Drawable, ImageDrawable, Style, TextDrawable};
 use kurbo::{
     Arc, BezPath, CubicBez, Ellipse, Line, PathEl, Point, QuadBez, Rect, RoundedRect,
     RoundedRectRadii, Size, Triangle, Vec2,
 };
-use peniko::{Brush, Color, ColorStop, ColorStops, Gradient, Image};
+use peniko::Image;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SceneNodeKind {
@@ -60,15 +62,11 @@ pub enum SceneNodeKind {
         sweep_angle: f64,
         rotation: f64,
     },
-    Image {
-        image: Image,
-    },
     PointLight {
         center: Point,
         radius: f64,
         rotation: f64,
-        opacity: f32,
-        color: Color,
+        color: Vec<(f32, SimpleColor)>,
     },
     LightMask {
         screen_size: Size,
@@ -79,10 +77,28 @@ pub enum SceneNodeKind {
         position: Point,
         text: String,
     },
+    Image {
+        position: Point,
+        image: String,
+    },
+    SpriteImage {
+        position: Point,
+        image: Image,
+    },
 }
 impl SceneNodeKind {
     pub(crate) fn build(&self, style: &Style) -> BuiltDrawable {
         match self {
+            SceneNodeKind::SpriteImage { position, image } => BuiltDrawable::image(
+                position.clone(),
+                super::VelloImage::Image(image.clone()),
+                Default::default(),
+            ),
+            SceneNodeKind::Image { position, image } => BuiltDrawable::image(
+                position.clone(),
+                super::VelloImage::Path(image.clone()),
+                Default::default(),
+            ),
             SceneNodeKind::Text { position, text } => {
                 BuiltDrawable::text(*position, text.clone(), style.clone())
             }
@@ -133,15 +149,12 @@ impl SceneNodeKind {
                 style,
             ),
 
-            SceneNodeKind::Image { image } => BuiltDrawable::image(image, style),
-
             SceneNodeKind::PointLight {
                 center,
                 radius,
                 rotation,
-                opacity,
                 color,
-            } => BuiltDrawable::point_light(*center, *radius, *rotation, *opacity, *color),
+            } => BuiltDrawable::point_light(*center, *radius, *rotation, color),
 
             SceneNodeKind::LightMask {
                 screen_size,
@@ -157,6 +170,13 @@ pub(crate) struct BuiltDrawable {
     pub(crate) drawable: Box<dyn Drawable>,
 }
 impl BuiltDrawable {
+    #[inline]
+    pub fn image(position: Point, image: super::VelloImage, style: Style) -> Self {
+        Self {
+            style: style,
+            drawable: Box::new(ImageDrawable { position, image }),
+        }
+    }
     #[inline]
     pub fn text(position: Point, text: String, style: Style) -> Self {
         Self {
@@ -184,7 +204,7 @@ impl BuiltDrawable {
     }
     #[inline]
     pub fn line(p0: Point, p1: Point, style: &Style) -> Self {
-        let style = style.clone().with_fill::<Brush>(None);
+        let style = style.clone().with_fill(None);
         Self {
             style,
             drawable: Box::new(Line::new(p0, p1)),
@@ -237,23 +257,10 @@ impl BuiltDrawable {
     }
     #[inline]
     pub fn point(a: Point, style: &Style) -> Self {
-        let style = style.clone().with_fill::<Brush>(None);
+        let style = style.clone().with_fill(None);
         Self {
             style,
             drawable: Box::new(Ellipse::new(a, Vec2::new(0.5, 0.5), 0.0)),
-        }
-    }
-    #[inline]
-    pub fn image(img: &Image, style: &Style) -> Self {
-        let (width, height) = (img.width as f64, img.height as f64);
-        let style = style
-            .clone()
-            .with_fill_rule(peniko::Fill::NonZero)
-            .with_fill(Some(img.clone()))
-            .with_stoke(None);
-        Self {
-            style,
-            drawable: Box::new(Rect::new(0.0, 0.0, width, height)),
         }
     }
     #[inline]
@@ -275,19 +282,14 @@ impl BuiltDrawable {
         center: Point,
         radius: f64,
         rotation: f64,
-        opacity: f32,
-        color: Color,
+        color: &Vec<(f32, SimpleColor)>,
     ) -> Self {
-        let mut stops = ColorStops::new();
-        for i in 0..16 {
-            let t = i as f32 * 0.06;
-            stops.push(ColorStop {
-                offset: t,
-                color: color.with_alpha(opacity * (1.0 - t)).into(),
-            });
-        }
-        let gradient = Gradient::new_radial(center, radius as f32).with_stops(stops.as_slice());
-        let brush = Brush::Gradient(gradient);
+        let gradient = CustomGradient {
+            kind: super::style::CustomGradientKind::Radial,
+            extend: super::style::CustomExtend::Pad,
+            colors: color.to_vec(),
+        };
+        let brush = CustomBrush::Gradient(gradient);
         Self {
             style: Style::default().with_fill(Some(brush)),
             drawable: Box::new(Ellipse::new(center, Vec2::new(radius, radius), rotation)),
@@ -307,7 +309,12 @@ impl BuiltDrawable {
         }
 
         let style = Style {
-            fill: Some(Brush::Solid(Color::from_rgba8(0, 0, 0, darkness_alpha))),
+            fill: Some(CustomBrush::Color(SimpleColor {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: darkness_alpha,
+            })),
             fill_rule: peniko::Fill::EvenOdd,
             ..Default::default()
         };

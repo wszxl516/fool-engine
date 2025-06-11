@@ -1,22 +1,35 @@
+use super::{FontManager, ImageManager, Style};
 use std::fmt::Debug;
-
-use super::{FontManager, Style};
 use vello::{Scene, kurbo::Shape};
 pub trait Drawable: DrawableClone + Debug {
-    fn draw(&self, scene: &mut Scene, style: &Style, font_mgr: FontManager);
+    fn draw(
+        &self,
+        scene: &mut Scene,
+        style: &Style,
+        font_mgr: FontManager,
+        img_mgr: ImageManager,
+    ) -> anyhow::Result<()>;
 }
 
 impl<T: Shape + Sized + Debug + Clone + 'static> Drawable for T {
-    fn draw(&self, scene: &mut Scene, style: &Style, _font_mgr: FontManager) {
+    fn draw(
+        &self,
+        scene: &mut Scene,
+        style: &Style,
+        _font_mgr: FontManager,
+        img_mgr: ImageManager,
+    ) -> anyhow::Result<()> {
         if !style.visible {
-            return;
+            return Ok(());
         }
         if let Some(brush) = &style.fill {
+            let brush = brush.build(img_mgr.clone())?;
             let brush = brush.clone().multiply_alpha(style.opacity);
             scene.fill(style.fill_rule, style.translation, &brush, None, self);
         }
         if let Some(stoke) = &style.stoke {
-            let brush = stoke.brush.clone().multiply_alpha(style.opacity);
+            let brush = stoke.brush.build(img_mgr)?;
+            let brush = brush.clone().multiply_alpha(style.opacity);
             scene.stroke(
                 &stoke.stroke,
                 style.translation,
@@ -25,6 +38,7 @@ impl<T: Shape + Sized + Debug + Clone + 'static> Drawable for T {
                 self,
             );
         }
+        Ok(())
     }
 }
 

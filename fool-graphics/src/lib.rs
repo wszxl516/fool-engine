@@ -2,7 +2,6 @@ pub mod canvas;
 pub mod gui;
 pub mod render;
 pub mod scheduler;
-pub mod test;
 use crate::render::FrameContext;
 use gui::EguiRenderer;
 use render::VelloRender;

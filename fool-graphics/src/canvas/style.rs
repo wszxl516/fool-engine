@@ -1,15 +1,19 @@
+use super::ImageManager;
 use super::text::{FontName, TextAlign};
+use peniko::Brush;
 use serde::{Deserialize, Serialize};
 pub use vello::{
     kurbo::{Affine, Stroke},
-    peniko::{Brush, Color, Fill},
+    peniko::{
+        Color, ColorStop, ColorStops, Extend, Fill, Gradient, GradientKind,
+        color::{ColorSpaceTag, HueDirection},
+    },
 };
 #[derive(Clone, Deserialize, Serialize, Default, Debug)]
 pub struct StokeStyle {
     #[serde(default)]
     pub stroke: Stroke,
-    #[serde(default)]
-    pub brush: Brush,
+    pub brush: CustomBrush,
 }
 const fn default_fill() -> Fill {
     Fill::NonZero
@@ -22,11 +26,112 @@ const fn default_visible() -> bool {
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct SimpleColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
+impl Default for SimpleColor {
+    fn default() -> Self {
+        Self {
+            r: 255,
+            g: 255,
+            b: 255,
+            a: 255,
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub enum CustomBrush {
+    Color(SimpleColor),
+    Gradient(CustomGradient),
+    Image(String),
+}
+impl Default for CustomBrush {
+    fn default() -> Self {
+        Self::Color(SimpleColor::default())
+    }
+}
+
+impl CustomBrush {
+    pub fn build(&self, img_res: ImageManager) -> anyhow::Result<Brush> {
+        match self {
+            Self::Color(color) => Ok(Brush::Solid(
+                Color::from_rgba8(color.r, color.g, color.b, color.a).into(),
+            )),
+            Self::Gradient(gradient) => Ok(Brush::Gradient(gradient.to_vello())),
+            Self::Image(img) => Ok(Brush::Image(img_res.get(img)?.as_ref().clone())),
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+pub enum CustomGradientKind {
+    #[default]
+    Linear,
+    Radial,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+pub enum CustomExtend {
+    #[default]
+    Pad,
+    Repeat,
+    Reflect,
+}
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct CustomGradient {
+    pub kind: CustomGradientKind,
+    pub extend: CustomExtend,
+    pub colors: Vec<(f32, SimpleColor)>,
+}
+impl CustomGradient {
+    pub fn to_vello(&self) -> peniko::Gradient {
+        let kind = match self.kind {
+            CustomGradientKind::Linear => GradientKind::Linear {
+                start: (0.0, 0.0).into(),
+                end: (1.0, 0.0).into(),
+            },
+            CustomGradientKind::Radial => GradientKind::Radial {
+                start_center: (0.0, 0.0).into(),
+                end_center: (0.0, 0.0).into(),
+                start_radius: 0.0,
+                end_radius: 1.0,
+            },
+        };
+
+        let extend = match self.extend {
+            CustomExtend::Pad => Extend::Pad,
+            CustomExtend::Repeat => Extend::Repeat,
+            CustomExtend::Reflect => Extend::Reflect,
+        };
+        let colors = self
+            .colors
+            .iter()
+            .map(|(pos, color)| ColorStop {
+                offset: *pos,
+                color: Color::from_rgba8(color.r, color.g, color.b, color.a).into(),
+            })
+            .collect();
+        let stops = ColorStops(colors);
+        Gradient {
+            kind,
+            extend,
+            interpolation_cs: ColorSpaceTag::Srgb,
+            hue_direction: HueDirection::Shorter,
+            stops,
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Style {
     #[serde(default)]
     pub translation: Affine,
     #[serde(default)]
-    pub fill: Option<Brush>,
+    pub fill: Option<CustomBrush>,
     #[serde(default = "default_fill")]
     pub fill_rule: Fill,
     #[serde(default)]
@@ -57,7 +162,7 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             translation: Affine::IDENTITY,
-            fill: Some(Color::from_rgba8(255, 255, 255, 255).into()),
+            fill: Some(CustomBrush::default()),
             fill_rule: Fill::NonZero,
             stoke: Default::default(),
             opacity: 1.0,
@@ -127,8 +232,8 @@ impl Style {
         self
     }
 
-    pub fn with_fill<B: Into<Brush>>(mut self, fill: Option<B>) -> Self {
-        self.fill = fill.and_then(|b| Some(b.into()));
+    pub fn with_fill(mut self, fill: Option<CustomBrush>) -> Self {
+        self.fill = fill;
         self
     }
 

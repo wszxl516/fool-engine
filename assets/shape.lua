@@ -5,7 +5,7 @@ local lua_thread = require('lua_thread')
 local shape = {
     style = {
         translation = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
-        fill = rgba8.new(255, 100, 0, 100):to_brush(),
+        fill = {Color = rgba8.new(255, 100, 0, 100)},
         fill_rule = "NonZero",
         stoke = {
             stoke =
@@ -18,7 +18,7 @@ local shape = {
                 dash_pattern = { 0, 0, 0, 0 },
                 dash_offset = 1.0
             },
-            brush = rgba8.new(255, 100, 0, 100):to_brush(),
+            brush = {Color = rgba8.new(255, 100, 0, 100)},
         },
         opacity = 0.8,
         visible = true,
@@ -67,6 +67,14 @@ function shape:view(engine)
                     Text = {
                         position = point.new(0, 0),
                         text = "Lua!\n你好"
+                    }
+                }
+            },
+            {
+                drawable = {
+                    Image = {
+                        position = point.new(0, 0),
+                        image = "image/linux.png"
                     }
                 }
             }

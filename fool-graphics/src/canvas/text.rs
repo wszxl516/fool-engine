@@ -1,12 +1,11 @@
-use crate::graph_pt2;
-
+use super::ImageManager;
 use super::{Drawable, FontManager, Style, VelloFont};
+use crate::graph_pt2;
 use kurbo::{Point, Size};
 use serde::{Deserialize, Serialize};
 use vello::kurbo::{Affine, Rect};
 use vello::peniko::{BrushRef, StyleRef};
 use vello::{Glyph, Scene};
-
 pub type FontName = String;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -25,16 +24,26 @@ pub struct TextDrawable {
 }
 
 impl TextDrawable {
-    pub fn draw_text(&self, scene: &mut Scene, style: &super::Style, font_mgr: FontManager) {
+    pub fn draw_text(
+        &self,
+        scene: &mut Scene,
+        style: &super::Style,
+        font_mgr: FontManager,
+        img_res: ImageManager,
+    ) -> anyhow::Result<()> {
         let final_transform =
             self.style.translation * style.translation * Affine::translate(self.position.to_vec2());
         let font = font_mgr.get(&self.style.font.clone().unwrap_or_default());
+        let brush = match &self.style.fill {
+            Some(b) => b.build(img_res)?,
+            None => Default::default(),
+        };
         let _rect = if self.style.vertical.unwrap_or(false) {
             Self::draw_glyphs_vertical(
                 scene,
                 &font,
                 self.style.font_size.unwrap_or(16.0),
-                &self.style.fill.clone().unwrap_or_default(),
+                &brush,
                 final_transform,
                 None,
                 self.style.fill_rule,
@@ -48,7 +57,7 @@ impl TextDrawable {
                 scene,
                 &font,
                 self.style.font_size.unwrap_or(16.0),
-                &self.style.fill.clone().unwrap_or_default(),
+                &brush,
                 final_transform,
                 None,
                 self.style.fill_rule,
@@ -71,6 +80,7 @@ impl TextDrawable {
                 &_rect,
             );
         }
+        Ok(())
     }
 
     pub fn draw_glyphs_vertical<'a>(
@@ -255,9 +265,15 @@ impl Default for TextDrawable {
         }
     }
 }
-
 impl Drawable for TextDrawable {
-    fn draw(&self, scene: &mut Scene, style: &super::Style, font_mgr: FontManager) {
-        self.draw_text(scene, style, font_mgr);
+    fn draw(
+        &self,
+        scene: &mut Scene,
+        style: &super::Style,
+        font_mgr: FontManager,
+        img_res: ImageManager,
+    ) -> anyhow::Result<()> {
+        self.draw_text(scene, style, font_mgr, img_res)?;
+        Ok(())
     }
 }

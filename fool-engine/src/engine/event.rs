@@ -19,8 +19,7 @@ impl Engine {
                 log::trace!("resize render graph to {:?}", size);
                 render.resize(size.width, size.height);
                 lua_engine.resize(size.width, size.height);
-                self.resource
-                    .scene_graph
+                self.scene_graph
                     .write()
                     .center_with_screen_size(size.width as f64, size.height as f64);
                 window.request_redraw();

@@ -1,6 +1,7 @@
+use crate::canvas::style::SimpleColor;
+
 use super::{SceneNodeKind, Style};
 use kurbo::{PathEl, Point, RoundedRectRadii, Size, Vec2};
-use peniko::{Color, Image};
 use serde::{Deserialize, Serialize};
 
 const fn default_apply_parent_style() -> bool {
@@ -31,6 +32,12 @@ impl SceneNode {
     }
 }
 impl SceneNode {
+    pub fn image(position: Point, image: String) -> Self {
+        Self::new(
+            SceneNodeKind::Image { position, image },
+            &Default::default(),
+        )
+    }
     pub fn text(position: Point, text: String, style: Style) -> Self {
         Self::new(SceneNodeKind::Text { position, text }, &style)
     }
@@ -107,24 +114,17 @@ impl SceneNode {
             style,
         )
     }
-
-    pub fn image(image: Image, style: &Style) -> Self {
-        Self::new(SceneNodeKind::Image { image }, style)
-    }
-
     pub fn point_light(
         center: Point,
         radius: f64,
         rotation: f64,
-        opacity: f32,
-        color: Color,
+        color: Vec<(f32, SimpleColor)>,
     ) -> Self {
         Self {
             drawable: Some(SceneNodeKind::PointLight {
                 center,
                 radius,
                 rotation,
-                opacity,
                 color,
             }),
             apply_parent_style: false,
