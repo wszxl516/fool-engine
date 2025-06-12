@@ -25,8 +25,7 @@ impl VelloImage {
             Self::Image(img) => {
                 let (width, height) = (img.width as f64, img.height as f64);
                 let rect = Rect::from_center_size(Point::new(x, y), Size::new(width, height));
-                let tex_to_rect = Affine::translate(graph_vec2!(x - width / 2.0, y - height / 2.0))
-                    * style.translation;
+                let tex_to_rect = Affine::translate(graph_vec2!(x - width / 2.0, y - height / 2.0));
                 scene.fill(
                     peniko::Fill::NonZero,
                     Affine::IDENTITY * style.translation,
@@ -34,7 +33,7 @@ impl VelloImage {
                     Some(tex_to_rect),
                     &rect,
                 );
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "graph_debug")]
                 {
                     let bg = peniko::Color::from_rgba8(255, 0, 0, 255);
                     scene.stroke(
@@ -58,7 +57,7 @@ impl VelloImage {
                     Some(tex_to_rect),
                     &rect,
                 );
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "graph_debug")]
                 {
                     let bg = peniko::Color::from_rgba8(255, 0, 0, 255);
                     scene.stroke(

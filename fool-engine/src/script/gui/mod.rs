@@ -71,7 +71,7 @@ pub fn create_window(
     func: Function,
 ) -> mlua::Result<()> {
     let x_c = context.width / 2.0 + config.x - config.w / 2.0;
-    let y_c = context.heigth / 2.0 - config.y - config.h / 2.0;
+    let y_c = context.heigth / 2.0 + config.y - config.h / 2.0;
     let pos = pos2(x_c, y_c);
     let size = vec2(config.w, config.h);
     let resource = context.resource.clone();

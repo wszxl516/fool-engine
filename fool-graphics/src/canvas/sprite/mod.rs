@@ -51,7 +51,7 @@ impl<Id: FrameId> Sprite<Id> {
         name: impl Into<String>,
         frames_num: impl Iterator<Item = Id>,
         fps: u32,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Animation> {
         let mut frames = Vec::new();
         for n in frames_num {
             if let Some(frame) = self.frames.get(&n) {
@@ -61,8 +61,8 @@ impl<Id: FrameId> Sprite<Id> {
             }
         }
         let animation = Animation::new(frames, fps);
-        self.animation.insert(name.into(), animation);
-        Ok(())
+        self.animation.insert(name.into(), animation.clone());
+        Ok(animation)
     }
     pub fn get_animation(&self, name: impl Into<String>) -> anyhow::Result<Animation> {
         let name = name.into();
@@ -71,17 +71,7 @@ impl<Id: FrameId> Sprite<Id> {
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Id {} of Animation not found!", name))
     }
-    pub fn insert_frame(&mut self, id: Id, image: Arc<DynamicImage>) {
-        let frame = Frame::from_image(&image);
-        self.frames.insert(id, frame);
-    }
-    pub fn get_frame(&self, id: &Id) -> Option<&Frame> {
-        self.frames.get(id)
-    }
-    pub fn remove_frame(&mut self, id: &Id) -> Option<Frame> {
-        self.frames.remove(id)
-    }
-    pub fn list_frames(&self) -> impl Iterator<Item = (&Id, &Frame)> {
-        self.frames.iter()
+    pub fn list_animation(&self) -> Vec<String> {
+        self.animation.keys().cloned().collect()
     }
 }

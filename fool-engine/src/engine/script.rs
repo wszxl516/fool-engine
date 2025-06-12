@@ -10,10 +10,11 @@ impl Engine {
         if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
             render.begin_frame();
             let frame_result = run_frame_fn(&self.script, lua_engine, events);
-            let graph = scene_graph.read();
+            let mut graph = scene_graph.write();
             let mut scene = Scene::new();
             let graph_result = graph.draw(&mut scene);
             render.draw_scene(&scene);
+            graph.root.clear_children();
             crate::try_or_return!(
                 render.end_frame(self.frame_capture.pop_front()),
                 "end_frame",

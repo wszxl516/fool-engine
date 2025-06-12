@@ -121,7 +121,7 @@ pub fn enable_debug(lua: &Lua) -> anyhow::Result<()> {
     )?;
     let print = map2anyhow_error!(
         lua.create_function(move |_, value: Variadic<Value>| {
-            log::trace!("{}", values_to_string(&value)?.join(", "));
+            log::debug!("{}", values_to_string(&value)?.join(", "));
             Ok(())
         }),
         "create_function print"

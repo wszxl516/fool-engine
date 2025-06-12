@@ -27,31 +27,30 @@ function init(engine)
     window:set_window_icon("image/linux.png")
     window:set_fps(60)
     ui_context:set_font("fonts/SarasaTermSCNerd-Regular.ttf")
-    ui_context:set_style({
-        text = {
-            Heading = 22.0,
-            Body = 18.0,
-            Button = 18.0,
-            Small = 16.0,
-            Monospace = 18.0
-        },
-        dark = true,
-        animation_time = 0.2,
-        wrap = "Extend",
-        noninteractive_fg_color = rgba8.new(255, 0, 0, 0),
-        hovered_fg_color = rgba8.new(255, 255, 255, 0),
-        active_fg_color = rgba8.new(0, 0, 0, 0),
-        inactive_fg_color = rgba8.new(200, 200, 200, 200),
-        open_fg_color = rgba8.new(200, 0, 0, 0)
-    })
+    -- ui_context:set_style({
+    --     text = {
+    --         Heading = 22.0,
+    --         Body = 18.0,
+    --         Button = 18.0,
+    --         Small = 16.0,
+    --         Monospace = 18.0
+    --     },
+    --     dark = true,
+    --     animation_time = 0.2,
+    --     wrap = "Extend",
+    --     noninteractive_fg_color = rgba8.new(255, 0, 0, 0),
+    --     hovered_fg_color = rgba8.new(255, 255, 255, 0),
+    --     active_fg_color = rgba8.new(0, 0, 0, 0),
+    --     inactive_fg_color = rgba8.new(200, 200, 200, 200),
+    --     open_fg_color = rgba8.new(200, 0, 0, 0)
+    -- })
     logger:debug("window:monitor %s", window:monitor())
     ui:init()
     window:on_exit(function()
         logger:debug("exit from lua")
         return true
     end)
-    shape:init(window)
-    Physics.new(9.8, 1)
+    shape:init(engine)
 end
 
 ---@param engine Engine
@@ -81,7 +80,7 @@ function run_frame(engine, event, dt)
         window:exit()
     end
     ui:view(engine)
-    shape:view(engine)
+    shape:view(engine, event)
     window:set_ime_allowed(true)
     window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
 end

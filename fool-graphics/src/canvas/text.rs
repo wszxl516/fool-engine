@@ -68,7 +68,7 @@ impl TextDrawable {
             )
         };
 
-        #[cfg(feature = "debug")]
+        #[cfg(feature = "graph_debug")]
         {
             use vello::peniko::{Brush, Color};
             scene.stroke(

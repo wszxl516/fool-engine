@@ -62,6 +62,14 @@ end
 ---@diagnostic disable-next-line: lowercase-global
 function Engine:draw_shape(node)
 end
+---@param image string
+---@param frame_size Size
+---@param num_frame number
+---@return Sprite
+---@diagnostic disable-next-line: lowercase-global
+function Engine:create_sprite(image, frame_size, num_frame)
+    return{}
+end
 
 ---@class DSLModule
 ---@field name string

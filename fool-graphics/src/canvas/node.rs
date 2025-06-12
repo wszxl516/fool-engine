@@ -27,6 +27,9 @@ impl SceneNode {
             apply_parent_style: true,
         }
     }
+    pub fn clear_children(&mut self) {
+        self.children.clear();
+    }
     pub fn empty() -> Self {
         Self::default()
     }

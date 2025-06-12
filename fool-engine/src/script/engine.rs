@@ -1,4 +1,5 @@
 use super::graphics::draw::LuaScene;
+use super::graphics::sprite::{LuaSrpite, Sprite};
 use super::gui::EguiContext;
 use super::gui::{create_window, LuaUIConfig};
 use super::types::{LuaPoint, LuaSize};
@@ -13,7 +14,6 @@ use mlua::{Function, UserData, UserDataMethods};
 use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::{str::FromStr, sync::Arc};
-
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize, Position, Size},
     window::{CursorGrabMode, CursorIcon, Fullscreen, Window},
@@ -70,9 +70,21 @@ impl UserData for LuaEngine {
         );
         methods.add_method("draw_shape", |_lua, this, scene: LuaScene| {
             let node = scene.0;
-            this.scene_graph.write().set_root(node);
+            this.scene_graph.write().root.add_child(&node);
             Ok(())
         });
+        methods.add_method(
+            "create_sprite",
+            |_lua, this, (image, frame_size, num): (String, LuaSize<u32>, usize)| {
+                let img =
+                    map2lua_error!(this.ui_ctx.resource.raw_image.get(image), "create_sprite")?;
+                let sprite = Sprite::from_image(img, frame_size.width, frame_size.height, 0..num);
+                Ok(LuaSrpite {
+                    sprite: sprite,
+                    scene_graph: this.scene_graph.clone(),
+                })
+            },
+        );
     }
 }
 
