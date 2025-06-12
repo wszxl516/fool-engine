@@ -24,6 +24,7 @@ pub struct LuaTask {
     pub state: Bson,
     pub deps: Vec<DSLID>,
     pub frames_interval: u64,
+    pub enabled: bool
 }
 
 impl LuaTask {
@@ -35,6 +36,7 @@ impl LuaTask {
             state: content.get_state()?,
             deps,
             frames_interval: content.frames_interval,
+            enabled: content.enabled
         })
     }
 
@@ -77,10 +79,8 @@ impl LuaTask {
     fn prepare_context(&self, lua: &FoolScript, state_map: &StateMap) -> Result<mlua::Value> {
         let ctx = lua.create_table()?;
         if let Some(s) = state_map.get(&self.id) {
-            let local_state = lua.get_module_var(&self.module, "local_state")?;
             let shared_state = ser::bson_to_lua_value(lua, s.clone())?;
             ctx.set("shared_state", shared_state)?;
-            ctx.set("local_state", local_state)?;
         }
         for dep in &self.deps {
             if let Some(dep_val) = state_map.get(dep) {
@@ -96,16 +96,7 @@ impl LuaTask {
         Ok(mlua::Value::Table(ctx))
     }
     pub fn run_init(&self, script: &FoolScript) -> ThreadResponse {
-        let var = match script.get_module_var(&self.module, "local_state") {
-            Ok(var) => var,
-            Err(err) => {
-                return ThreadResponse {
-                    id: self.id.clone(),
-                    content: Err(err),
-                };
-            }
-        };
-        match script.run_module_fun::<()>(&self.module, &"init".to_owned(), var) {
+        match script.run_module_fun::<()>(&self.module, &"init".to_owned(), ()) {
             Ok(_) => ThreadResponse {
                 id: self.id.clone(),
                 content: Ok(None),

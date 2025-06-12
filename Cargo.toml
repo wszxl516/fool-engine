@@ -53,6 +53,7 @@ toml = {version = "0.8.23"}
 dyn-clone = {version = "1.0.19"}
 crossbeam-channel = "0.5.15"
 downcast-rs = { version = "2.0.1"}
+kira = "0.10.7"
 [profile.release]
 opt-level = "z"
 strip = true

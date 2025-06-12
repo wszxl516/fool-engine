@@ -24,6 +24,7 @@ pub struct DSLContent {
     pub update: Function,
     pub module: Table,
     pub deps: Vec<DSLID>,
+    pub enabled: bool
 }
 impl DSLContent {
     pub fn state(&self) -> anyhow::Result<Table> {
@@ -93,6 +94,8 @@ impl DSLModule {
             "Incorrect type of frames_interval"
         )?;
         let _: Table = map2lua_error!(table.get("shared_state"), "Incorrect type of shared_state")?;
+        let enabled: bool = map2lua_error!(table.get("enabled"), "Incorrect type of enabled")?;
+        println!("enabled: {}", enabled);
         let init_func: Function =
             map2lua_error!(table.get("init"), "Incorrect type of init function")?;
         let update_func: Function =
@@ -113,6 +116,7 @@ impl DSLModule {
                 update: update_func,
                 module: table.clone(),
                 deps,
+                enabled
             },
         ))
     }

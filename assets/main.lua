@@ -16,7 +16,7 @@ register_threaded_module(lua_thread)
 function init(engine)
     local ui_context = engine.ui_ctx
     local window = engine.window
-    window:set_title("window")
+    window:set_title("Fool Engine")
     window:set_resizable(true)
     window:set_max_size(size.new(1920, 1080))
     window:set_min_size(size.new(800, 800))
