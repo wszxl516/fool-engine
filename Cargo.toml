@@ -65,6 +65,3 @@ codegen-units = 1
 [profile.dev]
 debug = true
 opt-level = "z"
-
-[patch.crates-io]
-color ={ path = "patch/color-0.3.1"}
