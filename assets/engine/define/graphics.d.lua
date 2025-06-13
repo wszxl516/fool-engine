@@ -1,3 +1,23 @@
+---@class Graphics
+local Graphics = {}
+---@class Scene
+---@field style? Style
+---@field apply_parent_style? boolean
+---@field drawable? SceneNodeKind
+---@field children? Scene[]
+---@param node Scene
+---@diagnostic disable-next-line: lowercase-global
+function Graphics:draw_shape(node)
+end
+---@param image string
+---@param frame_size Size
+---@param num_frame number
+---@return Sprite
+---@diagnostic disable-next-line: lowercase-global
+function Graphics:create_sprite(image, frame_size, num_frame)
+    return{}
+end
+
 ---@class Vec2
 ---@field x number
 ---@field y number

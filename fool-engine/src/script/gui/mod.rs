@@ -61,6 +61,12 @@ impl UserData for EguiContext {
             context.set_style(style);
             Ok(())
         });
+        methods.add_method(
+            "draw_window",
+            |lua, this, (config, func): (LuaUIConfig, Function)| {
+                create_window(lua, config, this.clone(), func)
+            },
+        );
     }
 }
 

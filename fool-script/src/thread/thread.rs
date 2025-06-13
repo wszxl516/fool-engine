@@ -95,7 +95,7 @@ impl AsyncScheduler {
         let dsl_modules = self.modules.dsl_mod.clone();
         let tasks = LuaTask::collect_from(&dsl_modules);
         for t in tasks {
-            if !t.enabled{
+            if !t.enabled {
                 continue;
             }
             self.start_thread(t.clone(), modules.clone())?;

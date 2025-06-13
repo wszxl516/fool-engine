@@ -1,6 +1,6 @@
 [workspace]
 resolver = "1"
-members = ["fool-engine", "packtool", "rolllog", "fool-graphics", "fool-script", "fool-resource", "fool-window"]
+members = ["fool-engine", "packtool", "rolllog", "fool-graphics", "fool-script", "fool-resource", "fool-window", "fool-audio"]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -53,7 +53,7 @@ toml = {version = "0.8.23"}
 dyn-clone = {version = "1.0.19"}
 crossbeam-channel = "0.5.15"
 downcast-rs = { version = "2.0.1"}
-kira = "0.10.7"
+kira = "0.10.6"
 [profile.release]
 opt-level = "z"
 strip = true

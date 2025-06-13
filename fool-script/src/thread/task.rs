@@ -24,7 +24,7 @@ pub struct LuaTask {
     pub state: Bson,
     pub deps: Vec<DSLID>,
     pub frames_interval: u64,
-    pub enabled: bool
+    pub enabled: bool,
 }
 
 impl LuaTask {
@@ -36,7 +36,7 @@ impl LuaTask {
             state: content.get_state()?,
             deps,
             frames_interval: content.frames_interval,
-            enabled: content.enabled
+            enabled: content.enabled,
         })
     }
 

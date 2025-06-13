@@ -31,6 +31,7 @@ fool-graphics = { path = "../fool-graphics"}
 fool-script = { path = "../fool-script"}
 fool-resource = { path = "../fool-resource"}
 fool-window = {path = "../fool-window"}
+fool-audio = { path = "../fool-audio"}
 image ={ workspace = true}
 epaint = {version = "0.31.1", optional = true}
 toml = {workspace = true}

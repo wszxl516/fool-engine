@@ -43,17 +43,23 @@ local shape      = {
 ---@param engine Engine
 ---@diagnostic disable-next-line: lowercase-global
 function shape:init(engine)
-    shape.player_sprite = engine:create_sprite("image/player.png", size.new(64, 64), 32)
+    shape.player_sprite = engine.graphics:create_sprite("image/player.png", size.new(64, 64), 32)
     shape.up_run_animation = shape.player_sprite:create_animation("run_up", { 0, 1, 2, 3, 4, 5, 6, 7 }, 5)
     shape.down_run_animation = shape.player_sprite:create_animation("run_down", { 8, 9, 10, 11, 12, 13, 14, 15 }, 5)
     shape.left_run_animation = shape.player_sprite:create_animation("run_left", { 16, 17, 18, 19, 20, 21, 22, 23 }, 5)
     shape.right_run_animation = shape.player_sprite:create_animation("run_right", { 24, 25, 26, 27, 28, 29, 30, 31 }, 5)
+    engine.audio:add_group("default", 0.0, true, nil)
+    engine.audio:play("default", "audio/bgm.mp3", -10.0)
 end
 
 ---@param engine Engine
 ---@param event Event
 function shape:view(engine, event)
-    engine:draw_shape({
+    local state = engine.audio:state("default", "audio/bgm.mp3")
+    if state ~= nil and state ~= "Playing" then
+        engine.audio:play("default", "audio/bgm.mp3", -10.0)
+    end
+    engine.graphics:draw_shape({
         style = self.style,
         drawable = {
             Ellipse = {
@@ -119,6 +125,7 @@ function shape:view(engine, event)
         },
         apply_parent_style = true
     })
+
     lua_thread.shared_state.orc_force = { x = 0, y = 0 }
     if shape.orc_last_direction == "right" then
         shape.right_run_animation:draw(lua_thread.shared_state.orc_position)
@@ -140,6 +147,11 @@ function shape:view(engine, event)
         lua_thread.shared_state.orc_force.x = 100
     end
     if event:key_held("ArrowUp") then
+        local state = engine.audio:state("default", "audio/jump.mp3")
+        if state == "Playing" then
+            engine.audio:stop("default", "audio/jump.mp3", 1)
+        end
+        engine.audio:play("default", "audio/jump.mp3", -8.0)
         lua_thread.shared_state.orc_force.y = -400
     end
 end

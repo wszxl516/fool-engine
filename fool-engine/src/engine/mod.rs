@@ -74,7 +74,7 @@ impl Engine {
             proxy.clone(),
             self.resource.clone(),
             self.scene_graph.clone(),
-        );
+        )?;
         self.proxy.replace(proxy.clone());
         run_init_fn(&self.script, &lua_engine)?;
         self.lua_engine.replace(lua_engine);

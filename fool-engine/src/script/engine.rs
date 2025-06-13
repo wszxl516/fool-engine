@@ -1,13 +1,14 @@
+use super::audio::LuaAudio;
 use super::graphics::draw::LuaScene;
 use super::graphics::sprite::{LuaSrpite, Sprite};
 use super::gui::EguiContext;
-use super::gui::{create_window, LuaUIConfig};
 use super::types::{LuaPoint, LuaSize};
 use crate::engine::event::EngineEvent;
 use crate::engine::ResourceManager;
 use crate::map2lua_error;
 use chrono::{Local, Utc};
 use egui::Context;
+use fool_audio::AudioSystem;
 use fool_graphics::canvas::SceneGraph;
 use fool_window::{AppEvent, CustomEvent, EventProxy, WindowCursor};
 use mlua::{Function, UserData, UserDataMethods};
@@ -22,9 +23,35 @@ use winit::{
 pub struct LuaEngine {
     pub window: LuaWindow,
     pub ui_ctx: EguiContext,
-    pub scene_graph: Arc<RwLock<SceneGraph>>,
+    pub graph: LuaGraphics,
+    pub audio: LuaAudio,
 }
 
+#[derive(Clone)]
+pub struct LuaGraphics {
+    pub scene_graph: Arc<RwLock<SceneGraph>>,
+    pub resource: ResourceManager,
+}
+impl UserData for LuaGraphics {
+    fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("draw_shape", |_lua, this, scene: LuaScene| {
+            let node = scene.0;
+            this.scene_graph.write().root.add_child(&node);
+            Ok(())
+        });
+        methods.add_method(
+            "create_sprite",
+            |_lua, this, (image, frame_size, num): (String, LuaSize<u32>, usize)| {
+                let img = map2lua_error!(this.resource.raw_image.get(image), "create_sprite")?;
+                let sprite = Sprite::from_image(img, frame_size.width, frame_size.height, 0..num);
+                Ok(LuaSrpite {
+                    sprite: sprite,
+                    scene_graph: this.scene_graph.clone(),
+                })
+            },
+        );
+    }
+}
 impl LuaEngine {
     pub fn new(
         window: Arc<Window>,
@@ -32,7 +59,7 @@ impl LuaEngine {
         proxy: EventProxy,
         resource: ResourceManager,
         scene_graph: Arc<RwLock<SceneGraph>>,
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         let size = window.inner_size();
         let ui_ctx = EguiContext {
             context: context,
@@ -42,15 +69,20 @@ impl LuaEngine {
         };
         let window = LuaWindow {
             window: window,
-            resource: resource,
+            resource: resource.clone(),
             proxy: proxy,
             on_exit: Arc::new(RwLock::new(None)),
         };
-        Self {
+        let audio = AudioSystem::new(resource.raw_resource.clone())?;
+        Ok(Self {
             window,
             ui_ctx,
-            scene_graph,
-        }
+            graph: LuaGraphics {
+                scene_graph,
+                resource: resource,
+            },
+            audio: LuaAudio(audio),
+        })
     }
     pub fn resize(&mut self, w: u32, h: u32) {
         self.ui_ctx.resize(w, h);
@@ -60,31 +92,8 @@ impl UserData for LuaEngine {
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("ui_ctx", |_, this| Ok(this.ui_ctx.clone()));
         fields.add_field_method_get("window", |_, this| Ok(this.window.clone()));
-    }
-    fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method(
-            "draw_window",
-            |lua, this, (config, func): (LuaUIConfig, Function)| {
-                create_window(lua, config, this.ui_ctx.clone(), func)
-            },
-        );
-        methods.add_method("draw_shape", |_lua, this, scene: LuaScene| {
-            let node = scene.0;
-            this.scene_graph.write().root.add_child(&node);
-            Ok(())
-        });
-        methods.add_method(
-            "create_sprite",
-            |_lua, this, (image, frame_size, num): (String, LuaSize<u32>, usize)| {
-                let img =
-                    map2lua_error!(this.ui_ctx.resource.raw_image.get(image), "create_sprite")?;
-                let sprite = Sprite::from_image(img, frame_size.width, frame_size.height, 0..num);
-                Ok(LuaSrpite {
-                    sprite: sprite,
-                    scene_graph: this.scene_graph.clone(),
-                })
-            },
-        );
+        fields.add_field_method_get("audio", |_, this| Ok(this.audio.clone()));
+        fields.add_field_method_get("graphics", |_, this| Ok(this.graph.clone()));
     }
 }
 

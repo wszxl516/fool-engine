@@ -1,0 +1,20 @@
+[package]
+name = "fool-audio"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "fool_audio"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fool-audio"
+path = "src/main.rs"
+
+[dependencies]
+kira = { workspace = true, features = ["serde"]}
+anyhow = {workspace = true}
+serde ={ workspace = true}
+fool-resource = { path = "../fool-resource"}
+dashmap ={ workspace = true}
+parking_lot ={ workspace = true}

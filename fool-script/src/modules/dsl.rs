@@ -24,7 +24,7 @@ pub struct DSLContent {
     pub update: Function,
     pub module: Table,
     pub deps: Vec<DSLID>,
-    pub enabled: bool
+    pub enabled: bool,
 }
 impl DSLContent {
     pub fn state(&self) -> anyhow::Result<Table> {
@@ -116,7 +116,7 @@ impl DSLModule {
                 update: update_func,
                 module: table.clone(),
                 deps,
-                enabled
+                enabled,
             },
         ))
     }
