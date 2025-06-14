@@ -77,6 +77,9 @@ function run(engine, event, dt)
     shape:view(engine, event)
     window:set_ime_allowed(true)
     window:set_ime_cursor_area(point.new(100, 100), size.new(100, 100))
+    if event:focused() == false then
+        engine:set_pause()
+    end
 end
 
 ---@param engine Engine

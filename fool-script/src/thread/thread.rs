@@ -53,7 +53,10 @@ impl AsyncScheduler {
                                 };
                                 let _ = slaver.sender().send(res);
                             }
-                            ThreadControl::Stop => break,
+                            ThreadControl::Stop => {
+                                log::debug!("stop thread {}", task.id);
+                                break;
+                            }
                         }
                     }
                 }

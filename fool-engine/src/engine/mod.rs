@@ -100,6 +100,7 @@ impl Engine {
         }
     }
     fn exiting(&mut self) {
+        self.script_scheduler.stop_all();
         if let (Some(render), Some(window), Some(lua_engine)) = (
             self.render.take(),
             self.window.take(),

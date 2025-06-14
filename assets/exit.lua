@@ -35,7 +35,7 @@ function exit(engine, event, dt)
             if ctx:button("Yes"):clicked() then
                 engine.window:exit()
             end
-            ctx:empty_space(120, 0)
+            ctx:empty_space(150, 0)
             if ctx:button("No"):clicked() then
                 engine:set_running()
                 engine.audio:resume_all(0)
