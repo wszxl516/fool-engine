@@ -169,7 +169,10 @@ end
 function UIContext:separator()
     return {}
 end
-
+---@param width number
+---@param height number
+function UIContext:empty_space(width, height)
+end
 ---@param text string
 ---@return LuaResponse
 function UIContext:heading(text)
@@ -206,10 +209,9 @@ function UIContext:selectable_label(selected, label)
 end
 
 ---@param topdown_or_leftright boolean
----@param reverse boolean
 ---@param body fun(ctx: UIContext)
 ---@return LuaResponse
-function UIContext:with_layout(topdown_or_leftright, reverse, body)
+function UIContext:with_layout(topdown_or_leftright, body)
     return {}
 end
 

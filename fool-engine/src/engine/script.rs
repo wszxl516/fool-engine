@@ -1,5 +1,8 @@
 pub use super::Engine;
-use crate::script::run_frame_fn;
+use crate::{
+    engine::EngineStatus,
+    script::{exit_fn, pause_fn, run_fn},
+};
 use fool_graphics::canvas::Scene;
 use fool_window::WinEvent;
 use winit::event::WindowEvent;
@@ -9,7 +12,12 @@ impl Engine {
         let events = &self.events_current_frame;
         if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
             render.begin_frame();
-            let frame_result = run_frame_fn(&self.script, lua_engine, events);
+            let status = { self.status.read().clone() };
+            let frame_result = match status {
+                EngineStatus::Pause => pause_fn(&self.script, lua_engine, events),
+                EngineStatus::Exiting => exit_fn(&self.script, lua_engine, events),
+                _ => run_fn(&self.script, lua_engine, events),
+            };
             let mut graph = scene_graph.write();
             let mut scene = Scene::new();
             let graph_result = graph.draw(&mut scene);
@@ -33,15 +41,17 @@ impl Engine {
         if !event.must_redraw() {
             return;
         }
-        self.run_frame();
         if let Err(err) = self
             .script_scheduler
-            .tick(&self.script, self.scheduler.frame_id.into())
+            .fetch_result(&self.script, self.scheduler.frame_id.into())
         {
             log::error!("run lua script_scheduler failed: {}", err);
             self.stop();
             return;
         }
+        self.run_frame();
+        self.script_scheduler
+            .start_update(self.scheduler.frame_id.into());
         self.events_current_frame.clear();
         log::trace!(
             "Frame: {}, elapsed: {:?}",

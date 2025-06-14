@@ -1,3 +1,4 @@
+use super::super::engine::EngineStatus;
 use super::audio::LuaAudio;
 use super::graphics::draw::LuaScene;
 use super::graphics::sprite::{LuaSrpite, Sprite};
@@ -11,7 +12,7 @@ use egui::Context;
 use fool_audio::AudioSystem;
 use fool_graphics::canvas::SceneGraph;
 use fool_window::{AppEvent, CustomEvent, EventProxy, WindowCursor};
-use mlua::{Function, UserData, UserDataMethods};
+use mlua::{UserData, UserDataMethods};
 use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::{str::FromStr, sync::Arc};
@@ -25,6 +26,7 @@ pub struct LuaEngine {
     pub ui_ctx: EguiContext,
     pub graph: LuaGraphics,
     pub audio: LuaAudio,
+    pub status: Arc<RwLock<EngineStatus>>,
 }
 
 #[derive(Clone)]
@@ -59,6 +61,7 @@ impl LuaEngine {
         proxy: EventProxy,
         resource: ResourceManager,
         scene_graph: Arc<RwLock<SceneGraph>>,
+        status: Arc<RwLock<EngineStatus>>,
     ) -> anyhow::Result<Self> {
         let size = window.inner_size();
         let ui_ctx = EguiContext {
@@ -71,7 +74,6 @@ impl LuaEngine {
             window: window,
             resource: resource.clone(),
             proxy: proxy,
-            on_exit: Arc::new(RwLock::new(None)),
         };
         let audio = AudioSystem::new(resource.raw_resource.clone())?;
         Ok(Self {
@@ -82,6 +84,7 @@ impl LuaEngine {
                 resource: resource,
             },
             audio: LuaAudio(audio),
+            status,
         })
     }
     pub fn resize(&mut self, w: u32, h: u32) {
@@ -95,6 +98,30 @@ impl UserData for LuaEngine {
         fields.add_field_method_get("audio", |_, this| Ok(this.audio.clone()));
         fields.add_field_method_get("graphics", |_, this| Ok(this.graph.clone()));
     }
+    fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("set_running", |_, this, ()| {
+            *this.status.write() = EngineStatus::Running;
+            Ok(())
+        });
+        methods.add_method("set_pause", |_, this, ()| {
+            *this.status.write() = EngineStatus::Pause;
+            Ok(())
+        });
+        methods.add_method("set_exiting", |_, this, ()| {
+            *this.status.write() = EngineStatus::Exiting;
+            Ok(())
+        });
+        methods.add_method("is_running", |_, this, ()| {
+            Ok(*this.status.read() == EngineStatus::Running)
+        });
+
+        methods.add_method("is_pause", |_, this, ()| {
+            Ok(*this.status.read() == EngineStatus::Pause)
+        });
+        methods.add_method("is_exiting", |_, this, ()| {
+            Ok(*this.status.read() == EngineStatus::Exiting)
+        });
+    }
 }
 
 #[derive(Clone)]
@@ -102,7 +129,6 @@ pub struct LuaWindow {
     pub window: Arc<Window>,
     pub resource: ResourceManager,
     pub proxy: EventProxy,
-    pub on_exit: Arc<RwLock<Option<Function>>>,
 }
 
 impl UserData for LuaWindow {
@@ -133,10 +159,6 @@ impl UserData for LuaWindow {
         });
         methods.add_method("exit", |_lua, this, ()| {
             map2lua_error!(this.proxy.exit(), "LuaWindow exit")?;
-            Ok(())
-        });
-        methods.add_method_mut("on_exit", |_lua, this, func: Function| {
-            this.on_exit.write().replace(func);
             Ok(())
         });
         methods.add_method("set_cursor_grab", |_lua, this, enable: String| {

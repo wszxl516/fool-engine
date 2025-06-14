@@ -16,18 +16,21 @@ use std::sync::Arc;
 use winit::window::Window;
 pub mod event;
 pub mod script;
+mod status;
+pub use status::EngineStatus;
 pub struct Engine {
     resource: ResourceManager,
     script: FoolScript,
     window: Option<Arc<Window>>,
     render: Option<GraphRender>,
-    proxy: Option<EventProxy>,
+    event_proxy: Option<EventProxy>,
     scheduler: FrameScheduler,
     script_scheduler: AsyncScheduler,
     lua_engine: Option<LuaEngine>,
     scene_graph: Arc<RwLock<SceneGraph>>,
     events_current_frame: Vec<WinEvent>,
     frame_capture: VecDeque<PathBuf>,
+    status: Arc<RwLock<EngineStatus>>,
     base_config: BaseConfig,
 }
 
@@ -49,13 +52,14 @@ impl Engine {
             resource,
             script: script.clone(),
             window: None,
-            proxy: None,
+            event_proxy: None,
             render: None,
             scheduler: FrameScheduler::new(base_config.fps),
             script_scheduler: AsyncScheduler::new(script.modules.clone()),
             lua_engine: None,
             events_current_frame: Vec::new(),
             frame_capture: Default::default(),
+            status: Arc::new(RwLock::new(EngineStatus::Init)),
             base_config,
             scene_graph,
         })
@@ -74,8 +78,9 @@ impl Engine {
             proxy.clone(),
             self.resource.clone(),
             self.scene_graph.clone(),
+            self.status.clone(),
         )?;
-        self.proxy.replace(proxy.clone());
+        self.event_proxy.replace(proxy.clone());
         run_init_fn(&self.script, &lua_engine)?;
         self.lua_engine.replace(lua_engine);
         self.render.replace(render);
@@ -83,27 +88,26 @@ impl Engine {
         self.scene_graph
             .write()
             .center_with_screen_size(size.width as f64, size.height as f64);
+        *self.status.write() = EngineStatus::Running;
         Ok(())
     }
     pub fn stop(&mut self) {
         log::info!("stop engine");
         self.scheduler.pause();
-        if let Some(proxy) = &self.proxy {
+        *self.status.write() = EngineStatus::Exiting;
+        if let Some(proxy) = &self.event_proxy {
             let _ = proxy.exit();
         }
     }
-    fn lua_exit_callback(&self) -> bool {
-        self.lua_engine
-            .as_ref()
-            .and_then(|w| w.window.on_exit.read().clone())
-            .and_then(|f| f.call::<bool>(()).ok())
-            .unwrap_or(false)
-    }
     fn exiting(&mut self) {
-        self.lua_exit_callback();
-        if let (Some(render), Some(window)) = (self.render.take(), self.window.take()) {
+        if let (Some(render), Some(window), Some(lua_engine)) = (
+            self.render.take(),
+            self.window.take(),
+            self.lua_engine.take(),
+        ) {
             drop(window);
             drop(render);
+            drop(lua_engine);
         }
         log::debug!("exiting engine");
     }

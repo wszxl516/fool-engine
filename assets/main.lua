@@ -1,14 +1,12 @@
-local point       = require("engine.vector2.point")
+local point      = require("engine.vector2.point")
 local size       = require("engine.vector2.size")
-local rgba8      = require("engine.color.rgba8")
-
 local LOG        = require("engine.log")
 local logger     = LOG.new("main", true, true)
 local UI         = require("ui")
 local ui         = UI:new()
 local shape      = require("shape")
 local lua_thread = require('lua_thread')
-local Physics    = require("Physics")
+local exit_ui    = require("exit")
 register_threaded_module(lua_thread)
 
 ---@param engine Engine
@@ -46,10 +44,6 @@ function init(engine)
     -- })
     logger:debug("window:monitor %s", window:monitor())
     ui:init()
-    window:on_exit(function()
-        logger:debug("exit from lua")
-        return true
-    end)
     shape:init(engine)
 end
 
@@ -57,7 +51,7 @@ end
 ---@param event Event
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
-function run_frame(engine, event, dt)
+function run(engine, event, dt)
     local window = engine.window
     if event:key_pressed("Insert") then
         logger:debug("Insert pressed")
@@ -77,10 +71,27 @@ function run_frame(engine, event, dt)
     end
     if event:key_pressed("Escape") then
         logger:debug("Escape pressed exit")
-        window:exit()
+        engine:set_pause()
     end
     ui:view(engine)
     shape:view(engine, event)
     window:set_ime_allowed(true)
-    window:set_ime_cursor_area(point.new(100,100), size.new(100,100))
+    window:set_ime_cursor_area(point.new(100, 100), size.new(100, 100))
+end
+
+---@param engine Engine
+---@param event Event
+---@param dt number -- delay time
+---@diagnostic disable-next-line: lowercase-global
+function exit(engine, event, dt)
+    exit_ui(engine, event, dt)
+end
+
+
+---@param engine Engine
+---@param event Event
+---@param dt number -- delay time
+---@diagnostic disable-next-line: lowercase-global
+function pause(engine, event, dt)
+    exit_ui(engine, event, dt)
 end

@@ -414,7 +414,13 @@ impl<'lua> UserData for LuaUiContext<'lua> {
             let response = this.ui.separator();
             lua.create_userdata(LuaResponse { response })
         });
-
+        methods.add_method_mut("empty_space", |_lua, this, (width, height): (f32, f32)| {
+            let _ = this.ui.allocate_space(Vec2 {
+                x: width,
+                y: height,
+            });
+            Ok(())
+        });
         methods.add_method_mut("heading", |lua, this, text: String| {
             let response = this.ui.heading(text);
             lua.create_userdata(LuaResponse { response })

@@ -5,6 +5,7 @@ use crate::thread::fullchannel::FullChannel;
 use bson::Bson;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 pub type StateMap = Arc<HashMap<DSLID, Bson>>;
 
@@ -18,6 +19,7 @@ pub enum ThreadControl {
 pub struct AsyncScheduler {
     modules: Modules,
     task_map: HashMap<DSLID, (JoinHandle<()>, FullChannel<ThreadControl, ThreadResponse>)>,
+    running: AtomicBool,
 }
 
 impl AsyncScheduler {
@@ -25,6 +27,7 @@ impl AsyncScheduler {
         Self {
             modules: modules,
             task_map: Default::default(),
+            running: AtomicBool::new(false),
         }
     }
     pub(crate) fn runner(
@@ -116,7 +119,8 @@ impl AsyncScheduler {
             log::trace!("stop dsl module {}", id)
         }
     }
-    fn start_update(&mut self, frame_id: u64) {
+    pub fn start_update(&mut self, frame_id: u64) {
+        self.running.store(true, Ordering::SeqCst);
         let state_map = self.state_map();
         for (id, (_j, control)) in &mut self.task_map {
             log::trace!("start {} update function at frame {}", id, frame_id);
@@ -125,7 +129,10 @@ impl AsyncScheduler {
                 .send(ThreadControl::Start(state_map.clone(), frame_id));
         }
     }
-    fn fetch_result(&mut self, lua: &FoolScript, frame_id: u64) -> anyhow::Result<()> {
+    pub fn fetch_result(&mut self, lua: &FoolScript, frame_id: u64) -> anyhow::Result<()> {
+        if !self.running.load(Ordering::Relaxed) {
+            return Ok(());
+        }
         let mut is_error = Ok(());
         let mut result_map = Vec::new();
         for (id, (_j, control)) in &mut self.task_map {
@@ -157,6 +164,7 @@ impl AsyncScheduler {
             return is_error;
         }
         let mut modules_lock = self.modules.dsl_mod.modules.write();
+        self.running.store(false, Ordering::SeqCst);
         for res in result_map {
             if let Some(m) = modules_lock.get_mut(&res.0) {
                 match res.1 {
@@ -168,13 +176,6 @@ impl AsyncScheduler {
                 }
             }
         }
-        Ok(())
-    }
-    pub fn tick(&mut self, lua: &FoolScript, frame_id: u64) -> anyhow::Result<()> {
-        let now = std::time::Instant::now();
-        self.start_update(frame_id);
-        self.fetch_result(lua, frame_id)?;
-        log::trace!("lua elapsed: {:?} ", now.elapsed());
         Ok(())
     }
 }

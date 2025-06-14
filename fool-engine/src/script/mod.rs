@@ -44,21 +44,49 @@ pub fn run_init_fn(lua: &Lua, lua_win: &LuaEngine) -> anyhow::Result<()> {
     }
 }
 
-pub fn run_frame_fn(lua: &Lua, lua_win: &LuaEngine, events: &Vec<WinEvent>) -> anyhow::Result<()> {
+pub fn run_fn(lua: &Lua, lua_win: &LuaEngine, events: &Vec<WinEvent>) -> anyhow::Result<()> {
     let elapsed = time_peer_frame();
     map2anyhow_error!(
         lua.scope(|scope| {
             let window = scope.create_userdata(lua_win.clone())?;
             let input_event = InputEvent { events };
             let input_event = scope.create_userdata(input_event)?;
-            let lua_view_fn: Function = lua.globals().get("run_frame")?;
+            let lua_view_fn: Function = lua.globals().get("run")?;
             lua_view_fn.call::<()>((window, input_event, elapsed))?;
             Ok(())
         }),
         "run_frame_fn failed"
     )
 }
+pub fn exit_fn(lua: &Lua, lua_win: &LuaEngine, events: &Vec<WinEvent>) -> anyhow::Result<()> {
+    let elapsed = time_peer_frame();
+    map2anyhow_error!(
+        lua.scope(|scope| {
+            let window = scope.create_userdata(lua_win.clone())?;
+            let input_event = InputEvent { events };
+            let input_event = scope.create_userdata(input_event)?;
+            let lua_view_fn: Function = lua.globals().get("exit")?;
+            lua_view_fn.call::<()>((window, input_event, elapsed))?;
+            Ok(())
+        }),
+        "exit_fn failed"
+    )
+}
 
+pub fn pause_fn(lua: &Lua, lua_win: &LuaEngine, events: &Vec<WinEvent>) -> anyhow::Result<()> {
+    let elapsed = time_peer_frame();
+    map2anyhow_error!(
+        lua.scope(|scope| {
+            let window = scope.create_userdata(lua_win.clone())?;
+            let input_event = InputEvent { events };
+            let input_event = scope.create_userdata(input_event)?;
+            let lua_view_fn: Function = lua.globals().get("pause")?;
+            lua_view_fn.call::<()>((window, input_event, elapsed))?;
+            Ok(())
+        }),
+        "pause_fn failed"
+    )
+}
 pub fn setup_modules(lua: &FoolScript) -> anyhow::Result<()> {
     lua.register_user_mod("Physics", |lua: &Lua| {
         let lua_phy_new = lua.create_function(|_, (x, y): (f32, f32)| Ok(LuaPhysics::new(x, y)))?;

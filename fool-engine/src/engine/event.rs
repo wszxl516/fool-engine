@@ -1,3 +1,5 @@
+use crate::engine::EngineStatus;
+
 use super::Engine;
 use fool_window::{Application, CustomEvent, EventProxy, WinEvent};
 use std::{path::PathBuf, sync::Arc};
@@ -7,10 +9,8 @@ impl Engine {
         if !self.scheduler.running {
             return;
         }
-        if event.close_requested() && self.lua_exit_callback() {
-            if let Some(proxy) = &self.proxy {
-                let _ = proxy.exit();
-            }
+        if event.close_requested() {
+            *self.status.write() = EngineStatus::Exiting
         }
         if let Some(size) = event.window_resized() {
             if let (Some(render), Some(window), Some(lua_engine)) =
@@ -46,7 +46,7 @@ impl Application for Engine {
         if !self.scheduler.running {
             return;
         }
-        if let (Some(proxy), Some(window)) = (&self.proxy, &self.window) {
+        if let (Some(proxy), Some(window)) = (&self.event_proxy, &self.window) {
             if self.scheduler.trigger_redraw(proxy) {
                 window.request_redraw();
             }

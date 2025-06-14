@@ -87,9 +87,6 @@ end
 function Window:is_fullscreen()
     return false
 end
-
----@param call_back fun():boolean
-function Window:on_exit(call_back) end
 function Window:exit()
 end
 ---capture screen save to %Y-%m-%d %H:%M:%S.png
