@@ -115,7 +115,7 @@ pub fn dump_info(gp: &ResourcePackage) {
         Cell::new(
             format!(
                 "{}",
-                info.timestamp
+                chrono::DateTime::<chrono::Utc>::from(info.timestamp.clone())
                     .with_timezone(&chrono::Local)
                     .format("%Y-%m-%d %H:%M:%S")
             )

@@ -5,7 +5,7 @@ capture_path = "screenshots"
 # $HOME/Document/$name/$save_path
 save_path = "saves"
 # $exe_path/$assets_path
-# $exe_path/$assets_path/assets.pak
+# $exe_path/assets.pak
 assets_path = "assets"
 fps = 60
 

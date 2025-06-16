@@ -44,13 +44,12 @@ impl ResourceManager {
 
         #[cfg(not(feature = "debug"))]
         let raw_resource: Resource<String, SharedData> = {
-            let assets_path = assets_path.join("assets.pak");
             log::debug!(
                 "init resource manager assets_path from {}",
                 assets_path.display()
             );
             let resource_pack =
-                packtool::ResourcePackage::from_pak(assets_path)?.unpack2memory()?;
+                packtool::ResourcePackage::from_pak(&assets_path)?.unpack2memory()?;
             let raw = Resource::empty();
             raw.load_from_map(resource_pack);
             raw

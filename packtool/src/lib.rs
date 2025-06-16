@@ -1,5 +1,6 @@
 mod tee;
-use chrono::{DateTime, Utc};
+use bincode::{Decode, Encode, config::standard};
+use chrono::{DateTime, TimeZone, Utc};
 use path_slash::PathExt;
 use serde::{Deserialize, Serialize};
 #[cfg(target_os = "linux")]
@@ -19,16 +20,31 @@ const FOOTER_MAGIC: &[u8; 7] = b"GPACEND";
 const FOOTER_LEN: usize = size_of::<u64>() * 2 + FOOTER_MAGIC.len();
 type Sha256Digest = [u8; 32];
 pub type MemResource = HashMap<String, Vec<u8>>;
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+
+#[derive(Encode, Decode, Debug, Serialize, Deserialize, Default, Clone)]
+pub struct TimestampUtc(i64);
+
+impl From<DateTime<Utc>> for TimestampUtc {
+    fn from(dt: DateTime<Utc>) -> Self {
+        TimestampUtc(dt.timestamp())
+    }
+}
+
+impl From<TimestampUtc> for DateTime<Utc> {
+    fn from(ts: TimestampUtc) -> Self {
+        Utc.timestamp_opt(ts.0, 0).unwrap()
+    }
+}
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Encode, Decode)]
 pub struct PackageHeader {
     pub magic: [u8; 4],
     pub version: [u8; 4],
     pub file_count: u32,
     pub compress: bool,
     pub compress_level: i32,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub timestamp: DateTime<Utc>,
-    #[serde()]
+    // #[serde(with = "chrono::serde::ts_seconds")]
+    // pub timestamp: DateTime<Utc>,
+    pub timestamp: TimestampUtc,
     pub resource_id: String,
 }
 
@@ -41,7 +57,7 @@ impl PackageHeader {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Encode, Decode)]
 pub struct FileEntry {
     pub path: String,
     pub data_offset: u64,
@@ -157,10 +173,10 @@ impl ResourcePackage {
             }
         }
         self.header.file_count = entries.len() as u32;
-        self.header.timestamp = Utc::now();
+        self.header.timestamp = Utc::now().into();
 
-        let entry_bytes = bincode::serialize(&entries)?;
-        let header_bytes = bincode::serialize(&self.header)?;
+        let entry_bytes = bincode::encode_to_vec(&entries, standard())?;
+        let header_bytes = bincode::encode_to_vec(&self.header, standard())?;
 
         out_file.write_all(&header_bytes)?;
         out_file.write_all(&entry_bytes)?;
@@ -203,8 +219,10 @@ impl ResourcePackage {
         file.seek(SeekFrom::End(-(FOOTER_LEN as i64 + buf.len() as i64)))?;
         file.read_exact(&mut buf)?;
 
-        let header: PackageHeader = bincode::deserialize(&buf[..header_len as usize])?;
-        let entries: Vec<FileEntry> = bincode::deserialize(&buf[header_len as usize..])?;
+        let (header, _): (PackageHeader, usize) =
+            bincode::decode_from_slice(&buf[..header_len as usize], standard())?;
+        let (entries, _): (Vec<FileEntry>, usize) =
+            bincode::decode_from_slice(&buf[header_len as usize..], standard())?;
         #[cfg(target_os = "linux")]
         let size = file.metadata().and_then(|s| Ok(s.size())).unwrap_or(0);
         #[cfg(not(target_os = "linux"))]
