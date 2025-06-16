@@ -22,7 +22,7 @@ impl Engine {
             let mut scene = Scene::new();
             let graph_result = graph.draw(&mut scene);
             render.draw_scene(&scene);
-            graph.root.clear_children();
+            graph.reset();
             crate::try_or_return!(
                 render.end_frame(self.frame_capture.pop_front()),
                 "end_frame",

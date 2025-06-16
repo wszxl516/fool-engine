@@ -101,6 +101,7 @@ impl Engine {
                 style: Default::default(),
                 font_mgr: Default::default(),
                 img_mgr: self.img.clone(),
+                ..Default::default()
             };
             sgraph.draw(&mut scene).unwrap();
             render.draw_scene(&scene);

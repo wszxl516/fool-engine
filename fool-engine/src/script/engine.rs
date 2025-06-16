@@ -43,6 +43,10 @@ impl UserData for LuaGraphics {
             this.scene_graph.write().root.add_child(&node);
             Ok(())
         });
+        methods.add_method("set_scale", |_lua, this, scale: Option<f64>| {
+            this.scene_graph.write().set_scale(scale);
+            Ok(())
+        });
         methods.add_method(
             "create_sprite",
             |_lua, this, (image, frame_size, num): (String, LuaSize<u32>, usize)| {

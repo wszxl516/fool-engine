@@ -55,6 +55,7 @@ end
 ---@param engine Engine
 ---@param event Event
 function shape:view(engine, event)
+    engine.graphics:set_scale(0.9)
     local state = engine.audio:state("default", "audio/bgm.mp3")
     if state ~= nil and state ~= "Playing" then
         engine.audio:play("default", "audio/bgm.mp3", -10.0)

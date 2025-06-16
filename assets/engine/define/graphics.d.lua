@@ -18,6 +18,11 @@ function Graphics:create_sprite(image, frame_size, num_frame)
     return{}
 end
 
+---@param scale number float number
+---@diagnostic disable-next-line: lowercase-global
+function Graphics:set_scale(scale)
+    return{}
+end
 ---@class Vec2
 ---@field x number
 ---@field y number
