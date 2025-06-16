@@ -4,6 +4,7 @@
 ---@field window Window
 ---@field graphics Graphics
 ---@field audio Audio
+---@field save SaveManager
 local Engine = {}
 
 ---@class DSLModule
@@ -42,3 +43,36 @@ function Engine:is_pause() end
 ---@return boolean
 ---@diagnostic disable-next-line: lowercase-global
 function Engine:is_exiting() end
+
+
+---@class SaveManager
+local SaveManager = {}
+
+---@param name string | nil
+---@param data table
+---@diagnostic disable-next-line: lowercase-global
+function SaveManager:save(name, data) end
+
+
+---@param name string
+---@diagnostic disable-next-line: lowercase-global
+function SaveManager:delete(name) end
+
+
+---@class SaveEntry
+---@field name string
+---@field create_at string
+---@field data table
+---@return SaveEntry[]
+---@diagnostic disable-next-line: lowercase-global
+function SaveManager:list()
+    return {}
+end
+
+
+---@param name string
+---@return SaveEntry
+---@diagnostic disable-next-line: lowercase-global
+function SaveManager:load(name)
+    return {}
+end

@@ -3,6 +3,7 @@ pub mod engine;
 pub mod event;
 pub mod physics;
 pub mod resource;
+pub mod save;
 mod scheduler;
 pub mod script;
 pub mod utils;

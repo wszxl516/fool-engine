@@ -171,7 +171,7 @@ impl AsyncScheduler {
         for res in result_map {
             if let Some(m) = modules_lock.get_mut(&res.0) {
                 match res.1 {
-                    Some(state) => match m.set_state(&lua, state) {
+                    Some(state) => match m.set_state(&lua, &state) {
                         Ok(_) => {}
                         Err(err) => return Err(err),
                     },

@@ -79,6 +79,7 @@ impl Engine {
             self.resource.clone(),
             self.scene_graph.clone(),
             self.status.clone(),
+            &self.base_config.save_path,
         )?;
         self.event_proxy.replace(proxy.clone());
         run_init_fn(&self.script, &lua_engine)?;

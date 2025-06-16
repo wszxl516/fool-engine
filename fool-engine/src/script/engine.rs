@@ -7,6 +7,7 @@ use super::types::{LuaPoint, LuaSize};
 use crate::engine::event::EngineEvent;
 use crate::engine::ResourceManager;
 use crate::map2lua_error;
+use crate::save::SaveManager;
 use chrono::{Local, Utc};
 use egui::Context;
 use fool_audio::AudioSystem;
@@ -26,6 +27,7 @@ pub struct LuaEngine {
     pub ui_ctx: EguiContext,
     pub graph: LuaGraphics,
     pub audio: LuaAudio,
+    pub save: SaveManager,
     pub status: Arc<RwLock<EngineStatus>>,
 }
 
@@ -62,6 +64,7 @@ impl LuaEngine {
         resource: ResourceManager,
         scene_graph: Arc<RwLock<SceneGraph>>,
         status: Arc<RwLock<EngineStatus>>,
+        save_path: impl Into<PathBuf>,
     ) -> anyhow::Result<Self> {
         let size = window.inner_size();
         let ui_ctx = EguiContext {
@@ -84,6 +87,7 @@ impl LuaEngine {
                 resource: resource,
             },
             audio: LuaAudio(audio),
+            save: SaveManager::new(save_path),
             status,
         })
     }
@@ -97,6 +101,7 @@ impl UserData for LuaEngine {
         fields.add_field_method_get("window", |_, this| Ok(this.window.clone()));
         fields.add_field_method_get("audio", |_, this| Ok(this.audio.clone()));
         fields.add_field_method_get("graphics", |_, this| Ok(this.graph.clone()));
+        fields.add_field_method_get("save", |_, this| Ok(this.save.clone()));
     }
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("set_running", |_, this, ()| {

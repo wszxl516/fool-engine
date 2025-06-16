@@ -1,5 +1,5 @@
 mod macros;
-mod modules;
+pub mod modules;
 pub mod thread;
 mod utils;
 use std::ops::Deref;

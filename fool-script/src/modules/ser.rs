@@ -18,7 +18,7 @@ pub fn lua_value_to_bson(value: Value) -> mlua::Result<Bson> {
                 }
                 Bson::Array(arr)
             } else {
-                let doc = lua_table_to_bson_doc(t)?;
+                let doc = lua_table_to_bson_doc(&t)?;
                 Bson::Document(doc)
             }
         }
@@ -26,7 +26,7 @@ pub fn lua_value_to_bson(value: Value) -> mlua::Result<Bson> {
     })
 }
 
-fn lua_table_to_bson_doc(table: Table) -> mlua::Result<Document> {
+fn lua_table_to_bson_doc(table: &Table) -> mlua::Result<Document> {
     let mut doc = Document::new();
     for pair in table.pairs::<Value, Value>() {
         let (k, v) = pair?;
@@ -52,13 +52,13 @@ fn is_array_table(table: &Table) -> mlua::Result<bool> {
     Ok(true)
 }
 
-pub fn bson_to_lua_value(lua: &Lua, value: Bson) -> mlua::Result<Value> {
+pub fn bson_to_lua_value(lua: &Lua, value: &Bson) -> mlua::Result<Value> {
     Ok(match value {
         Bson::Null => Value::Nil,
-        Bson::Boolean(b) => Value::Boolean(b),
-        Bson::Int32(i) => Value::Integer(i as i64),
-        Bson::Int64(i) => Value::Integer(i),
-        Bson::Double(f) => Value::Number(f),
+        Bson::Boolean(b) => Value::Boolean(*b),
+        Bson::Int32(i) => Value::Integer(*i as i64),
+        Bson::Int64(i) => Value::Integer(*i),
+        Bson::Double(f) => Value::Number(*f),
         Bson::String(s) => Value::String(lua.create_string(&s)?),
         Bson::Array(arr) => {
             let table = lua.create_table()?;
@@ -75,7 +75,7 @@ pub fn bson_to_lua_value(lua: &Lua, value: Bson) -> mlua::Result<Value> {
 fn bson_doc_to_lua_table<'lua>(lua: &'lua Lua, doc: &Document) -> mlua::Result<Table> {
     let table = lua.create_table()?;
     for (k, v) in doc.iter() {
-        table.set(k.as_str(), bson_to_lua_value(lua, v.clone())?)?;
+        table.set(k.as_str(), bson_to_lua_value(lua, v)?)?;
     }
     Ok(table)
 }

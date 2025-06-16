@@ -45,7 +45,7 @@ impl DSLContent {
         )?;
         Ok(bson)
     }
-    pub fn set_state(&self, lua: &Lua, data: Bson) -> anyhow::Result<()> {
+    pub fn set_state(&self, lua: &Lua, data: &Bson) -> anyhow::Result<()> {
         let state = map2anyhow_error!(
             ser::bson_to_lua_value(lua, data),
             "Deserializa of lua value failed"

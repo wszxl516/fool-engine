@@ -79,12 +79,12 @@ impl LuaTask {
     fn prepare_context(&self, lua: &FoolScript, state_map: &StateMap) -> Result<mlua::Value> {
         let ctx = lua.create_table()?;
         if let Some(s) = state_map.get(&self.id) {
-            let shared_state = ser::bson_to_lua_value(lua, s.clone())?;
+            let shared_state = ser::bson_to_lua_value(lua, s)?;
             ctx.set("shared_state", shared_state)?;
         }
         for dep in &self.deps {
             if let Some(dep_val) = state_map.get(dep) {
-                let val = ser::bson_to_lua_value(lua, dep_val.clone())?;
+                let val = ser::bson_to_lua_value(lua, dep_val)?;
                 if let Value::Table(tbl) = val {
                     let readonly = Self::make_readonly_table(lua, tbl)?;
                     ctx.set(dep.name.clone(), readonly)?;

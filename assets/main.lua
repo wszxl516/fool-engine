@@ -6,7 +6,6 @@ local UI         = require("ui")
 local ui         = UI:new()
 local shape      = require("shape")
 local lua_thread = require('lua_thread')
-local exit_ui    = require("exit")
 register_threaded_module(lua_thread)
 
 ---@param engine Engine
@@ -43,7 +42,7 @@ function init(engine)
     --     open_fg_color = rgba8.new(200, 0, 0, 0)
     -- })
     logger:debug("window:monitor %s", window:monitor())
-    ui:init()
+    ui:init(engine)
     shape:init(engine)
 end
 
@@ -87,7 +86,7 @@ end
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function exit(engine, event, dt)
-    exit_ui(engine, event, dt)
+    UI:exit(engine, event, dt)
 end
 
 
@@ -96,5 +95,5 @@ end
 ---@param dt number -- delay time
 ---@diagnostic disable-next-line: lowercase-global
 function pause(engine, event, dt)
-    exit_ui(engine, event, dt)
+    UI:exit(engine, event, dt)
 end
