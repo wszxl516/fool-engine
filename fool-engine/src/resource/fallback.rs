@@ -69,7 +69,7 @@ impl Fallback for WindowIconFallBack {
         Ok(Arc::new(icon))
     }
 }
-
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct WindowCursorFallBack {
     pub raw_image: Resource<String, Arc<DynamicImage>>,

@@ -32,13 +32,14 @@ impl GraphRender {
         })
     }
 
-    pub fn draw_scene(&mut self, scene: &vello::Scene) {
-        self.vello.draw_scene(scene);
+    pub fn draw_scene(&mut self, scene: &vello::Scene) -> anyhow::Result<()> {
+        self.vello.draw_scene(scene)
     }
 
-    pub fn begin_frame(&mut self) {
-        self.frame.replace(self.vello.begin_frame());
-        self.egui.begin_frame()
+    pub fn begin_frame(&mut self) -> anyhow::Result<()> {
+        self.frame.replace(self.vello.begin_frame()?);
+        self.egui.begin_frame();
+        Ok(())
     }
     pub fn end_frame(&mut self, capture_to: Option<impl Into<PathBuf>>) -> anyhow::Result<()> {
         if let Some(mut frame_ctx) = self.frame.take() {

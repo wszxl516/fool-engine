@@ -24,34 +24,29 @@ impl VelloRender {
             frame_buffer: None,
         })
     }
-    pub fn draw_scene(&mut self, scene: &Scene) {
+    pub fn draw_scene(&mut self, scene: &Scene) -> anyhow::Result<()> {
         let context = &mut self.context;
         let surface = &mut context.surface;
         let device_handle = &context.context.devices[surface.dev_id];
-        context
-            .renderer
-            .render_to_texture(
-                &device_handle.device,
-                &device_handle.queue,
-                scene,
-                &surface.target_view,
-                &vello::RenderParams {
-                    base_color: palette::css::BLACK,
-                    width: surface.config.width,
-                    height: surface.config.height,
-                    antialiasing_method: AaConfig::Msaa16,
-                },
-            )
-            .expect("Render failed");
+        context.renderer.render_to_texture(
+            &device_handle.device,
+            &device_handle.queue,
+            scene,
+            &surface.target_view,
+            &vello::RenderParams {
+                base_color: palette::css::BLACK,
+                width: surface.config.width,
+                height: surface.config.height,
+                antialiasing_method: AaConfig::Msaa16,
+            },
+        )?;
+        Ok(())
     }
-    pub fn begin_frame(&mut self) -> FrameContext {
+    pub fn begin_frame(&mut self) -> anyhow::Result<FrameContext> {
         let context = &mut self.context;
         let surface = &mut context.surface;
         let device_handle = &context.context.devices[surface.dev_id];
-        let surface_texture = surface
-            .surface
-            .get_current_texture()
-            .expect("Failed to get texture");
+        let surface_texture = surface.surface.get_current_texture()?;
 
         let final_view = surface_texture
             .texture
@@ -68,13 +63,13 @@ impl VelloRender {
             &surface.target_view,
             &final_view,
         );
-        FrameContext {
+        Ok(FrameContext {
             encoder,
             device: device_handle.device.clone(),
             queue: device_handle.queue.clone(),
             target_view: final_view,
             surface_texture,
-        }
+        })
     }
     pub fn end_frame(&mut self, ctx: FrameContext, capture_to: Option<impl Into<PathBuf>>) {
         let mut ctx = ctx;

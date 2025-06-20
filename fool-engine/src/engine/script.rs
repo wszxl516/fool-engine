@@ -11,7 +11,8 @@ impl Engine {
         let scene_graph = self.scene_graph.clone();
         let events = &self.events_current_frame;
         if let (Some(render), Some(lua_engine)) = (&mut self.render, &mut self.lua_engine) {
-            render.begin_frame();
+            crate::try_or_return!(render.begin_frame(), "begin_frame", self.stop());
+
             let status = { self.status.read().clone() };
             let frame_result = match status {
                 EngineStatus::Pause => pause_fn(&self.script, lua_engine, events),
@@ -21,7 +22,7 @@ impl Engine {
             let mut graph = scene_graph.write();
             let mut scene = Scene::new();
             let graph_result = graph.draw(&mut scene);
-            render.draw_scene(&scene);
+            let scene_result = render.draw_scene(&scene);
             graph.reset();
             crate::try_or_return!(
                 render.end_frame(self.frame_capture.pop_front()),
@@ -31,6 +32,7 @@ impl Engine {
             // must after current frame end
             crate::try_or_return!(frame_result, "run lua run_frame", self.stop());
             crate::try_or_return!(graph_result, "run lua graph.draw", self.stop());
+            crate::try_or_return!(scene_result, "run lua draw_scene", self.stop());
         }
     }
     pub fn event(&mut self, event: &WinEvent, raw_event: &WindowEvent) {

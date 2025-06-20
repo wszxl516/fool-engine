@@ -65,7 +65,7 @@ impl ContextRender {
     pub fn device_handle(&self) -> &DeviceHandle {
         &self.context.devices[self.surface.dev_id]
     }
-    pub fn surface(&self) -> &wgpu::Surface {
+    pub fn surface(&self) -> &wgpu::Surface<'_> {
         &self.surface.surface
     }
 }
